@@ -213,7 +213,7 @@ class WorkoutSession {
     // The new movement in big letters for 1.5 s (easier than reading mid-rep).
     private function announceBlock() as Void {
         var b = engine.currentBlock();
-        if (b == null || engine.state != ST_WORK) { return; }
+        if (b == null || engine.state != ST_WORK || QuickTimer.isQuick(engine.wod)) { return; }
         showFlash((b["name"] as String).toUpper(), Theme.WORK, 1500);
     }
 

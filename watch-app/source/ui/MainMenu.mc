@@ -12,8 +12,9 @@ const MENU_STATS = 1003;
 const MENU_MY_WODS = 1004;
 const MENU_SAMPLES = 1005;
 const MENU_ONBOARD = 1006;
+const MENU_QUICK = 1007;
 
-// Today's WOD on top, then my WODs, stats, coach, sync, samples.
+// Today's WOD on top, quick timer, then my WODs, stats, coach, sync, samples.
 function buildMainMenu() as WatchUi.Menu2 {
     var app = getApp();
     var menu = new WatchUi.Menu2({ :title => "WODwrist" });
@@ -24,6 +25,7 @@ function buildMainMenu() as WatchUi.Menu2 {
     } else {
         menu.addItem(Icons.menuItem(Tr.s("Get started"), Tr.s("No WOD yet"), MENU_ONBOARD, "m_play"));
     }
+    menu.addItem(Icons.menuItem(Tr.s("Quick timer"), Tr.s("No WOD needed"), MENU_QUICK, "m_quick"));
     if (app.syncSvc().settingsError != null) {
         menu.addItem(new WatchUi.MenuItem(Tr.s("Settings WOD error"), app.syncSvc().settingsError as String, MENU_ERROR, {}));
     }
@@ -95,7 +97,9 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
         app.menuOnTop = false;
-        if (id == MENU_COACH) {
+        if (id == MENU_QUICK) {
+            openQuickMenu(false);
+        } else if (id == MENU_COACH) {
             WatchUi.pushView(buildCoachMenu(), new CoachMenuDelegate(), WatchUi.SLIDE_LEFT);
         } else if (id == MENU_STATS) {
             WatchUi.pushView(buildStatsMenu(), new StatsMenuDelegate(), WatchUi.SLIDE_LEFT);

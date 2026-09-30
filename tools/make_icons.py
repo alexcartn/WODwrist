@@ -259,6 +259,11 @@ def _(c):
     c.poly(pts)
 
 
+@icon("m_quick")     # lightning bolt: quick timer
+def _(c):
+    c.poly([(21, 3), (8, 20), (17, 20), (14, 33), (28, 15), (19, 15), (23, 3)])
+
+
 def main():
     (OUT / "icons").mkdir(parents=True, exist_ok=True)
     entries = ['    <bitmap id="LauncherIcon" filename="launcher_icon.png" />']

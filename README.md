@@ -83,6 +83,9 @@ references are tested (`npm test`, `pytest`).
 5. Sideload: copy `bin/WODWRIST.prg` (built for your exact device) to
    `GARMIN/APPS/` on the watch over USB.
 
+No WOD at hand: main menu > Quick timer (AMRAP, For time / chrono, EMOM,
+Tabata set up on the watch, BACK = +1 round).
+
 Controls: [docs/controls.md](docs/controls.md). The app follows the watch
 language: English, or French (`resources-fre/` for the settings, `Tr.mc` for
 the screens). Mockups of every screen: [docs/mockups](docs/mockups).

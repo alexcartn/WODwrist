@@ -26,6 +26,7 @@ module IconRes {
         if (name.equals("m_coach")) { return Rez.Drawables.Icon_m_coach; }
         if (name.equals("m_sync")) { return Rez.Drawables.Icon_m_sync; }
         if (name.equals("m_star")) { return Rez.Drawables.Icon_m_star; }
+        if (name.equals("m_quick")) { return Rez.Drawables.Icon_m_quick; }
         return null;
     }
 }

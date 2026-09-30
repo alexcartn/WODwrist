@@ -209,9 +209,14 @@ class TimerEngine {
         return _capMs;
     }
 
-    // 0 when open-ended (AMRAP, Death by)
+    // 0 when open-ended (AMRAP, Death by, stopwatch)
     function totalRounds() as Number {
-        return wodType == WT_AMRAP || isDeathBy() ? 0 : _rounds;
+        return wodType == WT_AMRAP || isDeathBy() || isOpenForTime() ? 0 : _rounds;
+    }
+
+    // For time with rounds 0: stopwatch with laps (quick timer), ends on finish().
+    function isOpenForTime() as Boolean {
+        return wodType == WT_FOR_TIME && _rounds == 0;
     }
 
     // ---------- controls ----------
@@ -238,11 +243,12 @@ class TimerEngine {
     }
 
     // Athlete stops early. Score keeps what was done.
+    // A stopwatch (open For time) has no end of its own: finishing it is its time.
     function finish(now as Number) as Array<Array<Number> > {
         if (state == ST_DONE) { return [] as Array<Array<Number> >; }
         if (state == ST_PAUSED) { resume(now); }
         var a = activeMs(now);
-        return done(a > 0 ? a : 0, true);
+        return done(a > 0 ? a : 0, !isOpenForTime());
     }
 
     private function done(a as Number, isCapped as Boolean) as Array<Array<Number> > {
@@ -377,7 +383,7 @@ class TimerEngine {
         }
         roundsCompleted++;
         ev.add([EV_ROUND, roundsCompleted]);
-        if (wodType == WT_FOR_TIME && roundsCompleted >= _rounds) {
+        if (wodType == WT_FOR_TIME && !isOpenForTime() && roundsCompleted >= _rounds) {
             appendAll(ev, done(activeMs(now), false));
             return;
         }

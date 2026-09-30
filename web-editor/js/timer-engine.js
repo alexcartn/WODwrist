@@ -144,9 +144,14 @@ export class TimerEngine {
     return 0;
   }
 
-  // Rounds shown as "3/10"; null when open-ended (AMRAP, Death by).
+  // Rounds shown as "3/10"; null when open-ended (AMRAP, Death by, stopwatch).
   totalRounds() {
-    return this.wod.type === "AMRAP" || this.isDeathBy() ? null : this.wod.rounds;
+    return this.wod.type === "AMRAP" || this.isDeathBy() || this.isOpenForTime() ? null : this.wod.rounds;
+  }
+
+  // For time with rounds 0: stopwatch with laps (quick timer), ends on finish().
+  isOpenForTime() {
+    return this.wod.type === "FOR_TIME" && !this.wod.rounds;
   }
 
   // ---------- controls ----------
@@ -172,10 +177,11 @@ export class TimerEngine {
   }
 
   // Athlete stops early. Score keeps what was done.
+  // A stopwatch (open For time) has no end of its own: finishing it is its time.
   finish(now) {
     if (this.state === S.DONE) return [];
     if (this.state === S.PAUSED) this.resume(now);
-    return this.done(Math.max(0, this.activeMs(now)), true);
+    return this.done(Math.max(0, this.activeMs(now)), !this.isOpenForTime());
   }
 
   done(activeMs, capped) {
@@ -317,7 +323,7 @@ export class TimerEngine {
     }
     this.roundsCompleted++;
     ev.push([E.ROUND, this.roundsCompleted]);
-    if (this.wod.type === "FOR_TIME" && this.roundsCompleted >= this.wod.rounds) {
+    if (this.wod.type === "FOR_TIME" && !this.isOpenForTime() && this.roundsCompleted >= this.wod.rounds) {
       ev.push(...this.done(this.activeMs(now), false));
       return;
     }

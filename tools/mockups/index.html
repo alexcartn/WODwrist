@@ -227,7 +227,27 @@ mk("H. Menu avec icônes",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.12,F.tiny,C.wh
   it.forEach(([ic,l,sub,sel],i)=>{const y=h*(0.32+i*0.22);if(sel){d.strokeStyle="#ffffff30";d.lineWidth=2;d.beginPath();d.moveTo(w*0.1,y-h*0.11);d.lineTo(w*0.9,y-h*0.11);d.moveTo(w*0.1,y+h*0.11);d.lineTo(w*0.9,y+h*0.11);d.stroke();}
     d.drawImage(ICON[ic],w*0.13,y-18,36,36);t(d,w*0.25,y-12,sel?F.small:F.tiny,sel?C.white:C.lt,l,{align:"left",bold:sel});t(d,w*0.25,y+16,F.xtiny,sel?C.yellow:C.dk,sub,{align:"left"});});});
 mk("I. Glance (liste des widgets)",416,150,1,(d,w,h)=>{d.fillStyle="#000";d.fillRect(0,0,w,h);d.drawImage(ICON["m_play"],18,h/2-18,36,36);t(d,70,h/3,F.small,C.white,"WOD 2026-09-30",{align:"left"});t(d,70,h*0.72,F.small,C.yellow,"NEW BEST 8 + 10",{align:"left"});});
+// ---- quick timer ----
+function menuIc(d,w,h,title,it,sel){const cx=w/2;t(d,cx,h*0.12,F.tiny,C.white,title,{bold:1});
+  it.forEach(([ic,l,sub],i)=>{const y=h*(0.5+(i-sel)*0.22);if(y<h*0.2||y>h*0.95)return;const on=i==sel;
+    if(on){d.strokeStyle="#ffffff30";d.lineWidth=2;d.beginPath();d.moveTo(w*0.1,y-h*0.11);d.lineTo(w*0.9,y-h*0.11);d.moveTo(w*0.1,y+h*0.11);d.lineTo(w*0.9,y+h*0.11);d.stroke();}
+    const x=ic?w*0.25:w*0.5,al=ic?"left":"center";if(ic)d.drawImage(ICON[ic],w*0.13,y-18,36,36);
+    t(d,x,y-12,on?F.small:F.tiny,on?C.white:C.lt,l,{align:al,bold:on});t(d,x,y+16,F.xtiny,on?C.yellow:C.dk,sub,{align:al});});}
+function quickRun(d,w,h,o){const cx=w/2;if(o.frac!=null)ringUx(d,w,h,o.frac,o.color,w/40);t(d,cx,h*0.12,F.tiny,o.color,o.label);
+  if(o.delta){d.font="500 "+F.tiny+"px Roboto,Arial,sans-serif";const a=o.round+"  ",w1=d.measureText(a).width,w2=d.measureText(o.delta).width,x=cx-(w1+w2)/2;
+    t(d,x,h*0.22,F.tiny,C.lt,a,{align:"left"});t(d,x+w1,h*0.22,F.tiny,o.delta[0]=="-"?C.green:C.red,o.delta,{align:"left"});}else t(d,cx,h*0.22,F.tiny,C.lt,o.round);
+  if(o.page==1){segClock(d,o.big[1],cx,h*0.52,h*0.34,C.yellow);t(d,cx,h*0.83,F.medium,C.white,o.clock);}
+  else{segClock(d,o.clock,cx,h*0.41,h*0.22,C.white);if(o.hint)t(d,cx,h*0.68,F.small,C.lt,o.hint);if(o.foot)t(d,cx,h*0.87,F.xtiny,C.lt,o.foot);}
+  dotsUx(d,w,h,o.page||0,3);}
+mk("J. Menu : Timer rapide",W,W,0,(d,w,h)=>menuIc(d,w,h,"WODwrist",[["m_play","WOD 2026-09-30","Aujourd'hui - AMRAP 12 min"],["m_quick","Timer rapide","Sans WOD"],["m_list","Mes WODs","4 WODs"],["m_stats","Mes stats","23 séances"]],1));
+mk("K. Timer rapide : AMRAP",W,W,0,(d,w,h)=>menuIc(d,w,h,"Timer rapide",[["m_play","Démarrer","AMRAP 20"],[null,"Type","AMRAP"],[null,"Durée","20 min"]],0));
+mk("L. Type = For time (tap pour changer)",W,W,0,(d,w,h)=>menuIc(d,w,h,"Timer rapide",[["m_play","Démarrer","Chrono"],[null,"Type","For time"],[null,"Tours","Chrono"],[null,"Time cap","Sans cap"]],1));
+mk("M. EMOM : réglages",W,W,0,(d,w,h)=>menuIc(d,w,h,"Timer rapide",[["m_play","Démarrer","EVERY 1:30 x 10"],[null,"Type","EMOM"],[null,"Toutes les","1:30"],[null,"Intervalles","x 10"]],2));
+mk("N. AMRAP rapide en cours",W,W,0,(d,w,h)=>quickRun(d,w,h,{frac:0.37,color:C.green,label:"EFFORT",round:"Tours 3",delta:"-0:08",clock:"12:41",hint:"RETOUR = +1 tour",foot:"FC 158"}));
+mk("O. Chrono (pas d'anneau, monte)",W,W,0,(d,w,h)=>quickRun(d,w,h,{color:C.green,label:"EFFORT",round:"Tours 5",clock:"6:12",hint:"RETOUR = +1 tour",foot:"FC 171"}));
+mk("P. EMOM : fait, attends",W,W,0,(d,w,h)=>quickRun(d,w,h,{frac:0.63,color:C.blue,label:"FINI, ATTENDS",round:"Int 4/10",clock:"0:22",foot:"FC 149"}));
+mk("Q. Page tours (swipe haut)",W,W,0,(d,w,h)=>quickRun(d,w,h,{page:1,frac:0.37,color:C.green,label:"EFFORT",round:"Tours 7",clock:"12:41",big:["Tours","7"]}));
 }
-const names=["ball","kb","m_play","m_list","m_stats"];let left=names.length;
+const names=["ball","kb","m_play","m_list","m_stats","m_quick"];let left=names.length;
 names.forEach(n=>{const im=new Image();im.onload=()=>{ICON[n]=im;if(--left==0){later();document.body.dataset.ready=1;}};im.src="../../watch-app/resources/drawables/icons/"+n+".png";});
 </script></body></html>

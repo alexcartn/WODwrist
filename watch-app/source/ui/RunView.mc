@@ -102,7 +102,15 @@ class RunView extends WatchUi.View {
             b = bl.size() > 0 ? bl[0] : null;
         }
         var waiting = e.state != ST_DONE && (e.intervalDone || e.state == ST_REST);
-        if (waiting) {
+        // quick timer: no movement, BACK closes the round / the interval
+        var quickRounds = QuickTimer.isQuick(e.wod) && e.wodType != WT_TABATA;
+        if (quickRounds) {
+            if (e.state == ST_WORK && !e.intervalDone) {
+                var hint = Tr.s("BACK") + " = " + Tr.s(e.wodType == WT_EMOM ? "done" : "+1 round");
+                dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(cx, h * (_s.coach ? 76 : 68) / 100, Graphics.FONT_SMALL, Ui.fit(dc, hint, Graphics.FONT_SMALL, Ui.widthAt(dc, h * 68 / 100)), center);
+            }
+        } else if (waiting) {
             drawNext(dc, e, cx, h, center);
         } else if (b != null && e.state != ST_DONE) {
             var name = b["name"] as String;
@@ -138,8 +146,8 @@ class RunView extends WatchUi.View {
 
         // ---- footer ----
         if (!_s.coach) {
-            var foot = Tr.s("Reps") + " " + e.totalReps.format("%d");
-            if (_s.hr > 0) { foot += "  " + Tr.s("HR") + " " + _s.hr.format("%d"); }
+            var foot = quickRounds ? "" : Tr.s("Reps") + " " + e.totalReps.format("%d");
+            if (_s.hr > 0) { foot += (foot.length() > 0 ? "  " : "") + Tr.s("HR") + " " + _s.hr.format("%d"); }
             dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, foot, center);
         }
@@ -192,7 +200,11 @@ class RunView extends WatchUi.View {
     private function drawDataPage(dc as Graphics.Dc, e as TimerEngine, w as Number, h as Number, cx as Number,
             clock as String, clockColor as Number) as Void {
         var center = Ui.CENTER;
-        if (page == 1) {
+        if (page == 1 && QuickTimer.isQuick(e.wod) && e.wodType != WT_TABATA) {
+            // quick timer: rounds (or interval) in giant digits, labelled by the line above
+            var n = e.isInterval() ? e.round + 1 : e.roundsCompleted;
+            Ui.drawClock(dc, n.format("%d"), cx, h * 52 / 100, h * 34 / 100, Theme.SCORE);
+        } else if (page == 1) {
             var b = e.currentBlock();
             if (b != null && !e.intervalDone && e.state == ST_WORK) {
                 drawNameWithIcon(dc, b, cx, h * 32 / 100);
@@ -230,6 +242,7 @@ class RunView extends WatchUi.View {
     // While waiting (EMOM work done, Tabata rest): what comes next.
     private function drawNext(dc as Graphics.Dc, e as TimerEngine, cx as Number, h as Number, center as Number) as Void {
         var next = e.nextBlocks();
+        if (QuickTimer.isQuick(e.wod) && next.size() > 0) { return; }   // nothing to announce
         var parts = [] as Array<String>;
         for (var i = 0; i < next.size(); i++) { parts.add(WodFormat.block(next[i])); }
         var text = Str.join(parts, " + ");

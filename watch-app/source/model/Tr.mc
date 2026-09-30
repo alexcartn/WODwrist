@@ -29,6 +29,12 @@ module Tr {
             "WORK" => "EFFORT", "GET READY" => "PRÊT", "REST" => "REPOS", "PAUSED" => "PAUSE",
             "DONE" => "FINI", "DONE, WAIT" => "FINI, ATTENDS", "Rounds" => "Tours", "Round" => "Tour",
             "Int" => "Int", "Reps" => "Reps", "HR" => "FC", "NEXT" => "SUIVANT",
+            "BACK" => "RETOUR", "+1 round" => "+1 tour", "done" => "fait",
+            // quick timer
+            "Quick timer" => "Timer rapide", "No WOD needed" => "Sans WOD", "Start timer" => "Démarrer",
+            "Type" => "Type", "Duration" => "Durée", "Time cap" => "Time cap", "Every" => "Toutes les",
+            "Intervals" => "Intervalles", "Work / rest" => "Effort / repos", "No cap" => "Sans cap",
+            "rounds" => "tours", "For time" => "For time",
             "Last interval" => "Dernier intervalle", "Next" => "Suivant",
             "HALFWAY" => "MI-TEMPS", "1 MIN LEFT" => "1 MIN RESTANTE", "max" => "max",
             // menus

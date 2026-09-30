@@ -21,4 +21,5 @@
     <bitmap id="Icon_m_coach" filename="icons/m_coach.png" />
     <bitmap id="Icon_m_sync" filename="icons/m_sync.png" />
     <bitmap id="Icon_m_star" filename="icons/m_star.png" />
+    <bitmap id="Icon_m_quick" filename="icons/m_quick.png" />
 </drawables>

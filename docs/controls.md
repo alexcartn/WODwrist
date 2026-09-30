@@ -47,6 +47,25 @@ Coach mode (class timer): bigger clock, movement line under it, no footer,
 longer vibrations, no activity saved unless "Record activity in coach mode"
 is on.
 
+## Quick timer (main menu > Quick timer)
+
+A timer without a WOD, set up on the watch alone. Tap a row to go to its next
+value (it wraps); the choices are remembered for next time. Start timer shows
+what will run (`AMRAP 20`, `Chrono`, `EVERY 1:30 x 10`...).
+
+| Type | Rows |
+| --- | --- |
+| AMRAP | duration 5 to 60 min |
+| For time | rounds (Chrono = open stopwatch, or 1 to 20), time cap (none, 5 to 60 min) |
+| EMOM | every 1:00 to 5:00, number of intervals |
+| Tabata | work / rest (20/10, 30/15, 40/20, 45/15, 30/30, 60/30), rounds |
+
+During the timer there is no movement on screen: BACK short (or a tap) closes
+a round (AMRAP, For time: lap, round time, pace vs your best) or marks the
+EMOM interval done. Tabata counts reps. Chrono runs until START > Finish, its
+score is the time. The activity is saved and remembered like any WOD.
+Logic: `web-editor/js/quick-timer.js` (tested), port `watch-app/source/model/QuickTimer.mc`.
+
 ## Coach menu (main menu > Coach)
 
 | Item | What it does |
