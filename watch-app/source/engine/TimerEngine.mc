@@ -59,6 +59,9 @@ class TimerEngine {
     private var _taskFired as Number = 0;
     private var _savedBlockReps as Number = 0;
 
+    // "Rest 1:00" between movements: a timed block that moves on by itself
+    private var _blockStartMs as Number = 0;
+
     private var _countdownMs as Number;
     private var _pausedFrom as Number = ST_IDLE;
     private var _startMs as Number = 0;
@@ -261,6 +264,33 @@ class TimerEngine {
         }
     }
 
+    // ---------- timed rest blocks ----------
+
+    function isRestBlock(b as Dictionary?) as Boolean {
+        return b != null && (b["movement"] as String).equals("rest") && (b["unit"] as String).equals("sec")
+            && (b["reps"] as Number) > 0;
+    }
+
+    // ms left in the current rest block, or -1 when the block is not a rest.
+    function restLeftMs(now as Number) as Number {
+        var b = currentBlock();
+        if (state != ST_WORK || intervalDone || taskActive || !isRestBlock(b)) { return -1; }
+        var left = ((b as Dictionary)["reps"] as Number) * 1000 - (activeMs(now) - _blockStartMs);
+        return left > 0 ? left : 0;
+    }
+
+    private function tickRest(a as Number, now as Number, ev as Array<Array<Number> >) as Void {
+        if (state != ST_WORK || intervalDone || taskActive) { return; }
+        var b = currentBlock();
+        if (!isRestBlock(b)) { return; }
+        var left = ((b as Dictionary)["reps"] as Number) * 1000 - (a - _blockStartMs);
+        if (left <= 0) {
+            advance(ev, now);
+        } else {
+            warn(100000 + round * 100 + blockIdx, left, ev);
+        }
+    }
+
     // ---------- blocks ----------
 
     function currentBlocks() as Array<Dictionary> {
@@ -404,6 +434,7 @@ class TimerEngine {
                 set++;
                 state = ST_WORK;
                 _taskFired = 0;
+                _blockStartMs = idx * setPeriod();
                 ev.add([EV_SET, set]);
             }
             if (within >= _capMs) {
@@ -430,6 +461,7 @@ class TimerEngine {
                 if (isDeathBy() && !intervalDone) { return appendAll(ev, done((round + 1) * _intervalMs, false)); }
                 closeLap(ev);
                 nextInterval();
+                _blockStartMs = round * _intervalMs;
             }
             if (idx >= _rounds) { return appendAll(ev, done(_rounds * _intervalMs, false)); }
             warn(idx, _intervalMs - (a % _intervalMs), ev);
@@ -439,6 +471,7 @@ class TimerEngine {
             while (round < idx) {
                 closeLap(ev);
                 nextInterval();
+                _blockStartMs = round * _intervalMs;
                 state = ST_WORK;
             }
             var within = a % _intervalMs;
@@ -452,6 +485,7 @@ class TimerEngine {
                 warn(idx * 2 + 1, _intervalMs - within, ev);
             }
         }
+        tickRest(a, now, ev);
         return ev;
     }
 
@@ -512,6 +546,8 @@ class TimerEngine {
     private function advance(ev as Array<Array<Number> >, now as Number) as Void {
         blockIdx++;
         blockReps = 0;
+        var an = activeMs(now);
+        _blockStartMs = an > 0 ? an : 0;
         if (blockIdx < currentBlocks().size()) {
             ev.add([EV_BLOCK, blockIdx]);
             return;

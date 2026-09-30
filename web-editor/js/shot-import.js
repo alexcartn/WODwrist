@@ -2,7 +2,7 @@
 // apps...) into WOD text for the editor. Pure functions, tested in
 // test/shot.test.js. The OCR itself (tesseract.js) runs in the browser.
 
-import { parseHeader, parseCapLine, parseRestLine } from "./wod-parser.js";
+import { parseHeader, parseCapLine, parseRestLine, parseMovement } from "./wod-parser.js";
 
 // Words of app menus and buttons, French and English (accents removed).
 const UI_WORDS = new Set([
@@ -37,7 +37,7 @@ function isJunk(line) {
 // Buttons glued at the end of a line: "Tough Set Of HSPU   MODIFIER >".
 function stripTail(line) {
   return line
-    .replace(/\s+(MODIFIER|EDIT|SWAP|REMPLACER)\s*>?\s*$/i, "")
+    .replace(/\s+(MODIFIER|MODIFY|EDIT|SWAP|REMPLACER)\s*>?\s*$/i, "")
     .replace(/\s*[>›]\s*$/, "")
     .trim();
 }
@@ -58,20 +58,40 @@ const isHeader = (l) => {
   return h != null && !h.error;
 };
 
-// A line cut in two by the app layout: "..., complete 8/6" + "Cal Ski".
+const unclosed = (s) => (s.match(/[([]/g) || []).length > (s.match(/[)\]]/g) || []).length;
+
+// A line cut in two by the app layout: "..., complete 8/6" + "Cal Ski",
+// "Carry (150/100lbs ||" + "70/45kg)".
 function continues(prev, next) {
+  if (unclosed(prev) && /^[^([]*[)\]]/.test(next)) return true;
   if (isHeader(prev) || isScheme(prev) || /^\d/.test(next) || isHeader(next)) return false;
+  if (parseCapLine(prev) > 0 || parseRestLine(prev)) return false;
   if (parseCapLine(next) > 0 || parseRestLine(next)) return false;
   return /(\d+\/\d+|\d|,|\bof|\band|\+|complete|\()$/i.test(prev) || /^[a-z(]/.test(next);
 }
 
-// OCR text -> { text, wods }: WOD text with parts separated by "---".
+// A section title without "|": "Metcon", "Bonus", "Part 1".
+function titleLike(line) {
+  if (line == null || isHeader(line) || /^\d/.test(line) || /[@([:]/.test(line)) return false;
+  if (parseCapLine(line) > 0 || parseRestLine(line)) return false;
+  if (line.split(" ").length > 4) return false;
+  if (/^(part|partie|block|bloc|section)\s+\w{1,2}$/i.test(line)) return true;
+  const b = parseMovement(line);
+  return b.movement === "custom" && b.reps === 0;
+}
+
+// OCR text -> { text, wods, cut }: WOD text with parts separated by "---",
+// cut = parts dropped because the screenshot ends before their movements.
 export function cleanOcr(raw) {
   const lines = [];
   for (let line of raw.replace(/\r/g, "").split("\n")) {
     line = line.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
+    // checkbox circle read as a letter: "Metcon O"
+    line = line.replace(/\s+[O0o]$/, "").replace(/(\d)\s?Ibs\b/g, "$1lbs");
     if (line.length === 0) continue;
-    if (line.includes("|")) {
+    // the athlete's max shown by the app: "Deadlift 1RM 200 kg"
+    if (/\b[1I]RM\b/.test(line)) continue;
+    if (line.includes("|") && !line.includes("||") && !unclosed(line)) {
       const h = heading(line);
       if (h) lines.push({ heading: h });
       continue;
@@ -86,11 +106,34 @@ export function cleanOcr(raw) {
     lines.push({ text: line });
   }
 
+  // titles without "|": a short unknown line right before a header
+  for (let i = 0; i < lines.length; i++) {
+    const t = (k) => (k < lines.length && !lines[k].heading ? lines[k].text : null);
+    if (titleLike(t(i)) && (isHeader(t(i + 1) ?? "") || (titleLike(t(i + 1)) && isHeader(t(i + 2) ?? "")))) {
+      lines[i] = { heading: t(i) };
+    }
+  }
+  // "Bonus" + "Part 1" -> "Bonus: Part 1"
+  for (let i = lines.length - 1; i > 0; i--) {
+    if (lines[i].heading && lines[i - 1].heading) {
+      lines[i - 1] = { heading: `${lines[i - 1].heading}: ${lines[i].heading}` };
+      lines.splice(i, 1);
+    }
+  }
+
   // one WOD per heading, or per new header line
   const wods = [];
   let cur = null;
   const open = (name) => {
-    cur = { name, lines: [], hasHeader: false };
+    // "Rest 2:00" closing a part is the rest before the next one
+    if (cur && cur.lines.length > 1) {
+      const r = parseRestLine(cur.lines[cur.lines.length - 1]);
+      if (r && !r.betweenSets) {
+        cur.lines.pop();
+        cur.restAfter = cur.lines.length > 0 ? r.sec : 0;
+      }
+    }
+    cur = { name, lines: [], hasHeader: false, restAfter: 0 };
     wods.push(cur);
   };
   for (const l of lines) {
@@ -106,9 +149,15 @@ export function cleanOcr(raw) {
     }
     cur.lines.push(l.text);
   }
-  const kept = wods.filter((w) => w.hasHeader);
+  const withHeader = wods.filter((w) => w.hasHeader);
+  const kept = withHeader.filter((w) => w.lines.length > 1);
+  const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
   const text = kept
-    .map((w) => (w.name ? [`# ${w.name}`, ...w.lines] : w.lines).join("\n"))
+    .map((w) => {
+      let name = w.name;
+      if (w.restAfter > 0) name = `${name ?? w.lines[0]} (then rest ${clock(w.restAfter)})`;
+      return (name ? [`# ${name}`, ...w.lines] : w.lines).join("\n");
+    })
     .join("\n---\n");
-  return { text, wods: kept.length };
+  return { text, wods: kept.length, cut: withHeader.length - kept.length };
 }

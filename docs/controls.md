@@ -14,6 +14,9 @@
 | swipe up / down | data page: clock (default), reps in giant digits, heart rate and zone |
 | swipe right | ignored, so a sweaty swipe does not leave the workout |
 
+Timed rest block (`1:00 Rest` in a superset): `REST` in blue with the time left,
+3-2-1 beeps, then the next movement by itself; BACK skips the rest.
+
 Every-minute task (`Every minute, 8/6 cal ski` in a For time / AMRAP): at each
 interval the screen shows `TASK` in orange, a strong double vibration and the
 task; count it like any movement (BACK = done for cal / m), then the main

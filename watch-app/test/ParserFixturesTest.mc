@@ -540,6 +540,121 @@ function fixture_for_time_single(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function fixture_hwpo_bike(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("3:00 AMRAP\n30/24 cal Fan Bike\n30/24 cal C2 Bike\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "3:00 AMRAP", "name");
+    TestUtil.check(logger, w["type"], "AMRAP", "type");
+    TestUtil.check(logger, w["timeCapSec"], 180, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], null, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], null, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
+    TestUtil.check(logger, w["repScheme"], null, "repScheme");
+    TestUtil.check(logger, w["sets"], null, "sets");
+    TestUtil.check(logger, w["setRestSec"], null, "setRestSec");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 2, "block count");
+    TestUtil.check(logger, b[0]["movement"], "bike", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Bike", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 30, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "cal", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], null, "block 0 slot");
+    TestUtil.check(logger, b[0]["load"], null, "block 0 load");
+    TestUtil.check(logger, b[0]["repsAlt"], 24, "block 0 repsAlt");
+    TestUtil.check(logger, b[1]["movement"], "bike", "block 1 movement");
+    TestUtil.check(logger, b[1]["name"], "Bike", "block 1 name");
+    TestUtil.check(logger, b[1]["reps"], 30, "block 1 reps");
+    TestUtil.check(logger, b[1]["unit"], "cal", "block 1 unit");
+    TestUtil.check(logger, b[1]["slot"], null, "block 1 slot");
+    TestUtil.check(logger, b[1]["load"], null, "block 1 load");
+    TestUtil.check(logger, b[1]["repsAlt"], 24, "block 1 repsAlt");
+    TestUtil.check(logger, w["task"], null, "task");
+    return true;
+}
+
+(:test)
+function fixture_hwpo_deadlift(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("# Strength: Deadlift\nEvery 1:30 x 8 Sets\n3 Deadlift @ 145-155 kg (72.5-77.5%)\nRPE 8\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "Strength: Deadlift", "name");
+    TestUtil.check(logger, w["type"], "EMOM", "type");
+    TestUtil.check(logger, w["timeCapSec"], 720, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], 90, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], 8, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
+    TestUtil.check(logger, w["repScheme"], null, "repScheme");
+    TestUtil.check(logger, w["sets"], null, "sets");
+    TestUtil.check(logger, w["setRestSec"], null, "setRestSec");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 1, "block count");
+    TestUtil.check(logger, b[0]["movement"], "deadlift", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Deadlifts", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 3, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], 0, "block 0 slot");
+    TestUtil.checkArray(logger, b[0]["load"], [145], "block 0 load");
+    TestUtil.check(logger, b[0]["repsAlt"], null, "block 0 repsAlt");
+    TestUtil.check(logger, w["task"], null, "task");
+    return true;
+}
+
+(:test)
+function fixture_hwpo_metcon(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("# Metcon\n3 Rounds For Time\n100 Double Under\n100ft D-Ball/ SandBag Bear Hug Carry (150/100lbs || 70/45kg)\n30 Kettlebell Swing (53/35lbs || 24/16kg)\n30 Toes to Bar\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "Metcon", "name");
+    TestUtil.check(logger, w["type"], "FOR_TIME", "type");
+    TestUtil.check(logger, w["timeCapSec"], null, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], null, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], 3, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
+    TestUtil.check(logger, w["repScheme"], null, "repScheme");
+    TestUtil.check(logger, w["sets"], null, "sets");
+    TestUtil.check(logger, w["setRestSec"], null, "setRestSec");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 4, "block count");
+    TestUtil.check(logger, b[0]["movement"], "double_under", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Double-unders", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 100, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], null, "block 0 slot");
+    TestUtil.check(logger, b[0]["load"], null, "block 0 load");
+    TestUtil.check(logger, b[0]["repsAlt"], null, "block 0 repsAlt");
+    TestUtil.check(logger, b[1]["movement"], "custom", "block 1 movement");
+    TestUtil.check(logger, b[1]["name"], "D-ball/ sandbag bear hug carry", "block 1 name");
+    TestUtil.check(logger, b[1]["reps"], 30, "block 1 reps");
+    TestUtil.check(logger, b[1]["unit"], "m", "block 1 unit");
+    TestUtil.check(logger, b[1]["slot"], null, "block 1 slot");
+    TestUtil.checkArray(logger, b[1]["load"], [70, 45], "block 1 load");
+    TestUtil.check(logger, b[1]["repsAlt"], null, "block 1 repsAlt");
+    TestUtil.check(logger, b[2]["movement"], "kb_swing", "block 2 movement");
+    TestUtil.check(logger, b[2]["name"], "KB swings", "block 2 name");
+    TestUtil.check(logger, b[2]["reps"], 30, "block 2 reps");
+    TestUtil.check(logger, b[2]["unit"], "reps", "block 2 unit");
+    TestUtil.check(logger, b[2]["slot"], null, "block 2 slot");
+    TestUtil.checkArray(logger, b[2]["load"], [24, 16], "block 2 load");
+    TestUtil.check(logger, b[2]["repsAlt"], null, "block 2 repsAlt");
+    TestUtil.check(logger, b[3]["movement"], "toes_to_bar", "block 3 movement");
+    TestUtil.check(logger, b[3]["name"], "Toes-to-bar", "block 3 name");
+    TestUtil.check(logger, b[3]["reps"], 30, "block 3 reps");
+    TestUtil.check(logger, b[3]["unit"], "reps", "block 3 unit");
+    TestUtil.check(logger, b[3]["slot"], null, "block 3 slot");
+    TestUtil.check(logger, b[3]["load"], null, "block 3 load");
+    TestUtil.check(logger, b[3]["repsAlt"], null, "block 3 repsAlt");
+    TestUtil.check(logger, w["task"], null, "task");
+    return true;
+}
+
+(:test)
 function fixture_hwpo_sets(logger as Test.Logger) as Boolean {
     var r = WodParser.parse("# Skill AMRAP\n3 x AMRAP 1:15\nTough Set Of Strict Handstand Push Up\nTough Set Of Ring Dip (Kipping)\nIn Remaining Time, Max Dual Dumbbell Overhead Hold\nRest 3:00 Between Sets\n");
     Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
@@ -578,6 +693,56 @@ function fixture_hwpo_sets(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, b[2]["slot"], null, "block 2 slot");
     TestUtil.check(logger, b[2]["load"], null, "block 2 load");
     TestUtil.check(logger, b[2]["repsAlt"], null, "block 2 repsAlt");
+    TestUtil.check(logger, w["task"], null, "task");
+    return true;
+}
+
+(:test)
+function fixture_hwpo_superset(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("# Strength: Superset\n3-4 Sets\n20 Heel Elevated Goblet Squat [@ RPE 7-8\n1:00 Rest\n12/12 Weighted Side Bend @ RPE 7-8\nRest 2:00 Between Sets\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "Strength: Superset", "name");
+    TestUtil.check(logger, w["type"], "FOR_TIME", "type");
+    TestUtil.check(logger, w["timeCapSec"], null, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], null, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], 4, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
+    TestUtil.check(logger, w["repScheme"], null, "repScheme");
+    TestUtil.check(logger, w["sets"], null, "sets");
+    TestUtil.check(logger, w["setRestSec"], null, "setRestSec");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 4, "block count");
+    TestUtil.check(logger, b[0]["movement"], "goblet_squat", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Heel elevated goblet squat", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 20, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], null, "block 0 slot");
+    TestUtil.check(logger, b[0]["load"], null, "block 0 load");
+    TestUtil.check(logger, b[0]["repsAlt"], null, "block 0 repsAlt");
+    TestUtil.check(logger, b[1]["movement"], "rest", "block 1 movement");
+    TestUtil.check(logger, b[1]["name"], "Rest", "block 1 name");
+    TestUtil.check(logger, b[1]["reps"], 60, "block 1 reps");
+    TestUtil.check(logger, b[1]["unit"], "sec", "block 1 unit");
+    TestUtil.check(logger, b[1]["slot"], null, "block 1 slot");
+    TestUtil.check(logger, b[1]["load"], null, "block 1 load");
+    TestUtil.check(logger, b[1]["repsAlt"], null, "block 1 repsAlt");
+    TestUtil.check(logger, b[2]["movement"], "custom", "block 2 movement");
+    TestUtil.check(logger, b[2]["name"], "Weighted side bend", "block 2 name");
+    TestUtil.check(logger, b[2]["reps"], 12, "block 2 reps");
+    TestUtil.check(logger, b[2]["unit"], "reps", "block 2 unit");
+    TestUtil.check(logger, b[2]["slot"], null, "block 2 slot");
+    TestUtil.check(logger, b[2]["load"], null, "block 2 load");
+    TestUtil.check(logger, b[2]["repsAlt"], 12, "block 2 repsAlt");
+    TestUtil.check(logger, b[3]["movement"], "rest", "block 3 movement");
+    TestUtil.check(logger, b[3]["name"], "Rest", "block 3 name");
+    TestUtil.check(logger, b[3]["reps"], 120, "block 3 reps");
+    TestUtil.check(logger, b[3]["unit"], "sec", "block 3 unit");
+    TestUtil.check(logger, b[3]["slot"], null, "block 3 slot");
+    TestUtil.check(logger, b[3]["load"], null, "block 3 load");
+    TestUtil.check(logger, b[3]["repsAlt"], null, "block 3 repsAlt");
     TestUtil.check(logger, w["task"], null, "task");
     return true;
 }
@@ -740,7 +905,7 @@ function fixture_rest_block(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, b[1]["slot"], null, "block 1 slot");
     TestUtil.checkArray(logger, b[1]["load"], [24, 16], "block 1 load");
     TestUtil.check(logger, b[1]["repsAlt"], null, "block 1 repsAlt");
-    TestUtil.check(logger, b[2]["movement"], "custom", "block 2 movement");
+    TestUtil.check(logger, b[2]["movement"], "rest", "block 2 movement");
     TestUtil.check(logger, b[2]["name"], "Rest", "block 2 name");
     TestUtil.check(logger, b[2]["reps"], 60, "block 2 reps");
     TestUtil.check(logger, b[2]["unit"], "sec", "block 2 unit");

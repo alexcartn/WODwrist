@@ -53,6 +53,9 @@ export class TimerEngine {
     this.taskFired = 0;
     this.savedBlockReps = 0;
 
+    // "Rest 1:00" between movements: a timed block that moves on by itself
+    this.blockStartMs = 0;
+
     const slots = [];
     for (const b of wod.blocks) if (b.slot != null && !slots.includes(b.slot)) slots.push(b.slot);
     slots.sort((a, b) => a - b);
@@ -190,6 +193,28 @@ export class TimerEngine {
     }
   }
 
+  // ---------- timed rest blocks ----------
+
+  isRestBlock(b) {
+    return b != null && b.movement === "rest" && b.unit === "sec" && b.reps > 0;
+  }
+
+  // ms left in the current rest block, or -1 when the block is not a rest.
+  restLeftMs(now) {
+    const b = this.currentBlock();
+    if (this.state !== S.WORK || this.intervalDone || this.taskActive || !this.isRestBlock(b)) return -1;
+    return Math.max(0, b.reps * 1000 - (this.activeMs(now) - this.blockStartMs));
+  }
+
+  tickRest(a, now, ev) {
+    if (this.state !== S.WORK || this.intervalDone || this.taskActive) return;
+    const b = this.currentBlock();
+    if (!this.isRestBlock(b)) return;
+    const left = b.reps * 1000 - (a - this.blockStartMs);
+    if (left <= 0) this.advance(ev, now);
+    else this.warn(100000 + this.round * 100 + this.blockIdx, left, ev);
+  }
+
   // ---------- blocks ----------
 
   currentBlocks() {
@@ -310,6 +335,7 @@ export class TimerEngine {
           this.set++;
           this.state = S.WORK;
           this.taskFired = 0;
+          this.blockStartMs = idx * this.setPeriod();
           ev.push([E.SET, this.set]);
         }
         if (within >= cap) {
@@ -342,6 +368,7 @@ export class TimerEngine {
           if (this.isDeathBy() && !this.intervalDone) return ev.concat(this.done((this.round + 1) * iv, false));
           this.closeLap(ev);
           this.nextInterval();
+          this.blockStartMs = this.round * iv;
         }
         if (idx >= w.rounds) return ev.concat(this.done(w.rounds * iv, false));
         this.warn(idx, iv - (a % iv), ev);
@@ -355,6 +382,7 @@ export class TimerEngine {
         while (this.round < idx) {
           this.closeLap(ev);
           this.nextInterval();
+          this.blockStartMs = this.round * p;
           this.state = S.WORK;
         }
         const within = a % p;
@@ -366,6 +394,7 @@ export class TimerEngine {
         break;
       }
     }
+    this.tickRest(a, now, ev);
     return ev;
   }
 
@@ -424,6 +453,7 @@ export class TimerEngine {
   advance(ev, now) {
     this.blockIdx++;
     this.blockReps = 0;
+    this.blockStartMs = Math.max(0, this.activeMs(now));
     const n = this.currentBlocks().length;
     if (this.blockIdx < n) {
       ev.push([E.BLOCK, this.blockIdx]);

@@ -75,3 +75,34 @@ function hwpoSide(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, WodFormat.block((w["blocks"] as Array<Dictionary>)[0]), "15/12 cal Row", "format");
     return true;
 }
+
+(:test)
+function hwpoStrengthLines(logger as Test.Logger) as Boolean {
+    var w = EngineTestUtil.wod("3-4 Sets\n3 Deadlift @ 145-155 kg (72.5-77.5%)\nRPE 8\n1:00 Rest\n30 KB swings (53/35lbs || 24/16kg)\n100ft sled push");
+    Test.assertEqual(w["type"], "FOR_TIME");
+    Test.assertEqual(w["rounds"], 4);
+    var b = w["blocks"] as Array<Dictionary>;
+    Test.assertEqual(b.size(), 4);
+    TestUtil.checkArray(logger, b[0]["load"], [145], "range");
+    TestUtil.check(logger, b[1]["movement"], "rest", "rest id");
+    Test.assertEqual(b[1]["reps"], 60);
+    TestUtil.checkArray(logger, b[2]["load"], [24, 16], "kg first");
+    Test.assertEqual(b[3]["reps"], 30);
+    return true;
+}
+
+(:test)
+function hwpoRestBlock(logger as Test.Logger) as Boolean {
+    var e = new TimerEngine(EngineTestUtil.wod("2 Sets\n2 deadlifts\n1:00 Rest"), 0);
+    e.start(0);
+    e.addRep(1, 1000);
+    e.addRep(1, 5000);
+    Test.assertEqual(e.restLeftMs(35000), 30000);
+    var ev = EngineTestUtil.run(e, 5250, 64000);
+    Test.assertEqual(EngineTestUtil.count(ev, EV_WARN), 3);
+    Test.assertEqual(EngineTestUtil.count(ev, EV_ROUND), 0);
+    ev = EngineTestUtil.run(e, 64250, 66000);
+    Test.assertEqual(EngineTestUtil.count(ev, EV_ROUND), 1);
+    Test.assertEqual(e.restLeftMs(66000), -1);
+    return true;
+}

@@ -336,7 +336,7 @@ class WorkoutSession {
     private function mvOpen() as Void {
         _setRepTimes = [] as Array<Number>;
         var b = engine.currentBlock();
-        if (b == null || (b["movement"] as String).equals("custom")) {
+        if (b == null || (b["movement"] as String).equals("custom") || (b["movement"] as String).equals("rest")) {
             _mvId = null;
             return;
         }

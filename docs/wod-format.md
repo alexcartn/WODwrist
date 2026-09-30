@@ -77,6 +77,13 @@ editor) use these forms, all understood:
 | `15/12 cal row`, `8/6 cal ski` | men / women reps: `reps` 15, `repsAlt` 12. The watch setting "My numbers in 43/30kg and 15/12 cal" picks the side |
 | `Every minute on the minute (including 0:00), complete 8/6 cal ski`, `EMOM: 5 burpees`, `Every 2:00, 10 wall balls` | inside a For time / AMRAP: a task that interrupts the main work at each interval (first one at 0:00 only when written). JSON: `task` |
 
+| `4 Sets`, `3-4 Sets`, `3 Rounds` (header) | untimed sets: rounds for time with the higher count |
+| `1:00 Rest`, `Rest 90 sec` (own line, no sets) | timed rest block (`movement: "rest"`): counts down, 3-2-1, then the next movement by itself. BACK skips it |
+| `3 Deadlift @ 145-155 kg (72.5-77.5%)` | load range: the lower value (145 kg); percentages in brackets ignored |
+| `RPE 8`, `@ RPE 7-8` | intensity notes: ignored |
+| `(150/100lbs \|\| 70/45kg)` | `\|\|` is not a line break; kg is preferred over lb |
+| `100ft carry` | feet: 30 m |
+
 On the watch a task shows `TASK` in orange with a strong double vibration and
 the task movement; when it is done (reps reached, or BACK for cal / m) the
 main movement comes back with its rep count. Sets show `Set 2/3`, a rest ring

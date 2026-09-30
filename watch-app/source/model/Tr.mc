@@ -30,7 +30,7 @@ module Tr {
             "DONE" => "FINI", "DONE, WAIT" => "FINI, ATTENDS", "Rounds" => "Tours", "Round" => "Tour",
             "Int" => "Int", "Reps" => "Reps", "HR" => "FC", "NEXT" => "SUIVANT",
             "BACK" => "RETOUR", "+1 round" => "+1 tour", "done" => "fait",
-            "TASK" => "TÂCHE", "SET" => "SÉRIE", "Set" => "Série",
+            "TASK" => "TÂCHE", "SET" => "SÉRIE", "Set" => "Série", "Rest" => "Repos",
             // quick timer
             "Quick timer" => "Timer rapide", "No WOD needed" => "Sans WOD", "Start timer" => "Démarrer",
             "Type" => "Type", "Duration" => "Durée", "Time cap" => "Time cap", "Every" => "Toutes les",

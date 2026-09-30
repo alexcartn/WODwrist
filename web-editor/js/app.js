@@ -349,6 +349,7 @@ function drawTimer() {
     engine.state === S.DONE ? engine.wod.name
       : engine.intervalDone ? "Rest until next interval"
       : engine.state === S.REST && !engine.isInterval() ? `Next: set ${engine.set + 2} / ${engine.sets}`
+      : engine.restLeftMs(now) >= 0 ? `Rest ${fmt(Math.ceil(engine.restLeftMs(now) / 1000))}`
       : b ? blockText({ ...b, reps: engine.target(b) }) : "";
   // what comes next, readable from across the room
   let next = "";
@@ -490,7 +491,8 @@ async function importShot(file) {
     const before = $("wodText").value;
     $("wodText").value = out.text;
     render();
-    st.textContent = out.wods === 1 ? "1 WOD imported: check it below." : `${out.wods} WODs imported as a class plan: check them below.`;
+    st.textContent = (out.wods === 1 ? "1 WOD imported: check it below." : `${out.wods} WODs imported as a class plan: check them below.`)
+      + (out.cut ? ` ${out.cut} part cut off at the bottom of the screenshot: scroll and import a second one.` : "");
     undo.hidden = false;
     undo.onclick = () => {
       $("wodText").value = before;

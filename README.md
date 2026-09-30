@@ -112,7 +112,9 @@ mode, dark theme by default. `vendor/qrcode.js` is qrcode-generator (MIT).
 From a screenshot: the button (or pasting an image in the text box) reads the
 text of a training app page (HWPO...) with tesseract.js, in the browser: the
 image is not uploaded. App menus are dropped, cut lines joined, one WOD per
-section (`---`). Check the result: OCR can misread small italic text.
+section (`---`), titles kept (`Strength: Deadlift`, `Bonus: Part 1`), the
+1RM box and RPE notes dropped, a part cut at the bottom of the screenshot
+reported. Check the result: OCR can misread small italic text.
 
 ```bash
 cd web-editor

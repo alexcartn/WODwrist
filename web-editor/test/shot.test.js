@@ -25,10 +25,39 @@ test("HWPO page (real OCR output): two WODs, app menus dropped, cut line joined"
 test("headers split WODs, schemes and headers are never joined", () => {
   const r = cleanOcr("Metcon\nFor Time\n21-15-9\nThrusters\nPull-ups\nEMOM 10\nBurpees\n");
   assert.equal(r.wods, 2);
-  assert.equal(r.text, "For Time\n21-15-9\nThrusters\nPull-ups\n---\nEMOM 10\nBurpees");
+  assert.equal(r.text, "# Metcon\nFor Time\n21-15-9\nThrusters\nPull-ups\n---\nEMOM 10\nBurpees");
 });
 
 test("junk and tab bar", () => {
   const r = cleanOcr("AMRAP 12\n10 T2B\nO [0]\nA & BA J)\nHome Community Shop Profile\n");
   assert.equal(r.text, "AMRAP 12\n10 T2B");
+});
+
+test("HWPO metcon page: kg loads, titles without |, part cut at the bottom", () => {
+  const r = cleanOcr(fs.readFileSync(OCR + "hwpo-metcon.txt", "utf8"));
+  assert.equal(r.wods, 2);
+  assert.equal(r.cut, 1);
+  const [a, b] = r.text.split("\n---\n").map((p) => parseWod(p).wod);
+  assert.equal(a.name, "Metcon");
+  assert.equal(a.rounds, 3);
+  assert.deepEqual(a.blocks.map((x) => [x.movement, x.reps, x.unit, x.load]), [
+    ["double_under", 100, "reps", null],
+    ["custom", 30, "m", [70, 45]],
+    ["kb_swing", 30, "reps", [24, 16]],
+    ["toes_to_bar", 30, "reps", null],
+  ]);
+  assert.equal(b.name, "Bonus: Part 1 (then rest 2:00)");
+  assert.deepEqual(b.blocks.map((x) => [x.movement, x.reps, x.repsAlt]), [["bike", 30, 24], ["bike", 30, 24]]);
+});
+
+test("HWPO strength page: 1RM box dropped, RPE notes ignored, rests timed", () => {
+  const r = cleanOcr(fs.readFileSync(OCR + "hwpo-strength.txt", "utf8"));
+  assert.equal(r.wods, 2);
+  assert.ok(!/1RM|IRM/.test(r.text));
+  const [a, b] = r.text.split("\n---\n").map((p) => parseWod(p).wod);
+  assert.deepEqual([a.type, a.intervalSec, a.rounds, a.blocks.length, a.blocks[0].load], ["EMOM", 90, 8, 1, [145]]);
+  assert.deepEqual([b.type, b.rounds], ["FOR_TIME", 4]);
+  assert.deepEqual(b.blocks.map((x) => [x.movement, x.reps, x.unit]), [
+    ["goblet_squat", 20, "reps"], ["rest", 60, "sec"], ["custom", 12, "reps"], ["rest", 120, "sec"],
+  ]);
 });

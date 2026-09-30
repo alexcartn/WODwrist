@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "name": "3:00 AMRAP",
+  "type": "AMRAP",
+  "timeCapSec": 180,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": null,
+  "repScheme": null,
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "bike",
+      "name": "Bike",
+      "reps": 30,
+      "unit": "cal",
+      "slot": null,
+      "load": null,
+      "repsAlt": 24
+    },
+    {
+      "movement": "bike",
+      "name": "Bike",
+      "reps": 30,
+      "unit": "cal",
+      "slot": null,
+      "load": null,
+      "repsAlt": 24
+    }
+  ]
+}

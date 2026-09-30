@@ -15,6 +15,7 @@ module WodParser {
     function unitFor(tok as String) as Array? {
         if (tok.equals("m") || tok.equals("meter") || tok.equals("meters") || tok.equals("metre") || tok.equals("metres")) { return ["m", 1]; }
         if (tok.equals("km")) { return ["m", 1000]; }
+        if (tok.equals("ft") || tok.equals("feet") || tok.equals("foot")) { return ["m", 0.3048]; }
         if (tok.equals("cal") || tok.equals("cals") || tok.equals("calorie") || tok.equals("calories")) { return ["cal", 1]; }
         if (tok.equals("s") || tok.equals("sec") || tok.equals("secs") || tok.equals("second") || tok.equals("seconds")) { return ["sec", 1]; }
         if (tok.equals("min") || tok.equals("mins") || tok.equals("minute") || tok.equals("minutes")) { return ["sec", 60]; }
@@ -92,6 +93,16 @@ module WodParser {
 
     function err(msg as String) as Dictionary {
         return { "error" => msg };
+    }
+
+    // "4" -> 4, "3-4" -> 4, else -1
+    function rangeHigh(tok as String) as Number {
+        if (Str.isInt(tok)) { return Str.toInt(tok); }
+        var d = Str.indexOf(tok, "-");
+        if (d > 0 && Str.isInt(Str.sub(tok, 0, d)) && Str.isInt(Str.sub(tok, d + 1, tok.length()))) {
+            return Str.toInt(Str.sub(tok, d + 1, tok.length()));
+        }
+        return -1;
     }
 
     // Returns a header dictionary, null when the line is not a header,
@@ -231,6 +242,16 @@ module WodParser {
             return h;
         }
 
+        // "4 Sets", "3-4 Sets", "3 Rounds": untimed sets, run as rounds for time (the higher count)
+        if (t.size() == 2 && (t[1].equals("sets") || t[1].equals("set") || t[1].equals("rounds") || t[1].equals("round"))) {
+            var rh = rangeHigh(t[0]);
+            if (rh > 0) {
+                var h = emptyHeader("FOR_TIME");
+                h["rounds"] = rh;
+                return h;
+            }
+        }
+
         // TABATA | TABATA 8x20/10
         i = Str.indexIn(t, "tabata");
         if (i >= 0) {
@@ -323,11 +344,19 @@ module WodParser {
     // First load written in these tokens, in kg: [rx] or [rx, alternative].
     // Without a unit, loads are kg: "20/14", "@60". In brackets any number is a
     // load: "(24)", "(43/30)".
+    // kg first: "(150/100lbs || 70/45kg)" gives 70/45.
     function findLoad(t as Array<String>, inBrackets as Boolean) as Array<Number>? {
+        var v = findLoadUnits(t, ["kg", "kgs"] as Array<String>);
+        if (v == null) { v = findLoadUnits(t, WEIGHT_UNITS as Array<String>); }
+        if (v == null) { v = findLoadBare(t, inBrackets); }
+        return v;
+    }
+
+    function findLoadUnits(t as Array<String>, units as Array<String>) as Array<Number>? {
         for (var k = 0; k < t.size(); k++) {
             var tok = stripAt(t[k]);
-            for (var u = 0; u < WEIGHT_UNITS.size(); u++) {
-                var unit = WEIGHT_UNITS[u] as String;
+            for (var u = 0; u < units.size(); u++) {
+                var unit = units[u];
                 if (Str.endsWith(tok, unit) && tok.length() > unit.length()) {
                     var num = Str.sub(tok, 0, tok.length() - unit.length());
                     if (Str.isWeightNumber(num)) {
@@ -336,7 +365,7 @@ module WodParser {
                     }
                 }
             }
-            if (Str.indexIn(WEIGHT_UNITS as Array<String>, tok) >= 0 && k > 0) {
+            if (Str.indexIn(units, tok) >= 0 && k > 0) {
                 var prev = stripAt(t[k - 1]);
                 if (Str.isWeightNumber(prev)) {
                     var v = weightValues(prev, tok);
@@ -344,7 +373,11 @@ module WodParser {
                 }
             }
         }
-        // no unit written: kg
+        return null;
+    }
+
+    // no unit written: kg
+    function findLoadBare(t as Array<String>, inBrackets as Boolean) as Array<Number>? {
         for (var k = 0; k < t.size(); k++) {
             var at = Str.startsWith(t[k], "@");
             var tok = stripAt(t[k]);
@@ -386,7 +419,40 @@ module WodParser {
         "tough set of", "tough set", "max reps of", "max reps", "max rep", "max effort", "max set of", "max"
     ];
     // Words that name a variant of a catalog movement: "strict HSPU" is still HSPU.
-    const VARIANT_WORDS = ["strict", "kipping", "butterfly", "unbroken", "tempo", "deficit", "banded"];
+    const VARIANT_WORDS = ["strict", "kipping", "butterfly", "unbroken", "tempo", "deficit", "banded", "heel", "elevated", "weighted", "paused", "pause"];
+
+    function isLetter(c as Char) as Boolean {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    }
+
+    // "3 Deadlift @ 145-155 kg (72.5-77.5%)", "20 goblet squats @ RPE 7-8": the
+    // intensity notes are not part of the movement. Cuts at "RPE", keeps the load.
+    function cutNotes(raw as String) as String {
+        var low = raw.toLower();
+        var cs = low.toCharArray();
+        for (var i = 0; i + 3 <= cs.size(); i++) {
+            if (cs[i] != 'r' || cs[i + 1] != 'p' || cs[i + 2] != 'e') { continue; }
+            if (i > 0 && isLetter(cs[i - 1])) { continue; }
+            if (i + 3 < cs.size() && isLetter(cs[i + 3])) { continue; }
+            var s = Str.sub(raw, 0, i);
+            while (s.length() > 0) {
+                var last = s.toCharArray()[s.length() - 1];
+                if (last != ' ' && last != '@' && last != '[' && last != '(') { break; }
+                s = Str.sub(s, 0, s.length() - 1);
+            }
+            return s;
+        }
+        return raw;
+    }
+
+    // "145-155" before a weight unit (or after @): the lower value.
+    function loadRange(tok as String) as String? {
+        var d = Str.indexOf(tok, "-");
+        if (d <= 0) { return null; }
+        var a = Str.sub(tok, 0, d);
+        var b = Str.sub(tok, d + 1, tok.length());
+        return Str.isNumeric(a) && Str.isNumeric(b) ? a : null;
+    }
 
     function isSepChar(c as Char) as Boolean {
         return c == ' ' || c == ',' || c == ':';
@@ -422,10 +488,30 @@ module WodParser {
     }
 
     function parseMovement(raw0 as String) as Dictionary {
-        var sm = stripMax(raw0);
+        var sm = stripMax(cutNotes(raw0));
         var raw = sm[0] as String;
         var isMax = sm[1] as Boolean;
         var t0 = Str.tokens(stripBrackets(raw).toLower());
+        // load ranges: "@ 145-155 kg", "145-155kg" -> 145
+        for (var k = 0; k < t0.size(); k++) {
+            var tok = t0[k];
+            var at = Str.startsWith(tok, "@");
+            if (at) { tok = Str.sub(tok, 1, tok.length()); }
+            var wunit = "";
+            for (var u = 0; u < WEIGHT_UNITS.size(); u++) {
+                var wu = WEIGHT_UNITS[u] as String;
+                if (Str.endsWith(tok, wu) && tok.length() > wu.length()) {
+                    wunit = wu;
+                    break;
+                }
+            }
+            var core = wunit.length() > 0 ? Str.sub(tok, 0, tok.length() - wunit.length()) : tok;
+            var lo = loadRange(core);
+            if (lo == null) { continue; }
+            var nextUnit = k + 1 < t0.size() && Str.indexIn(WEIGHT_UNITS as Array<String>, t0[k + 1]) >= 0;
+            var prevAt = at || (k > 0 && t0[k - 1].equals("@"));
+            if (wunit.length() > 0 || nextUnit || prevAt) { t0[k] = (at ? "@" : "") + lo + wunit; }
+        }
         // a pair first on the line is a men / women rep count, not a load
         var pair = null;
         if (t0.size() > 1 && Str.indexIn(WEIGHT_UNITS as Array<String>, t0[1]) < 0) {
@@ -477,20 +563,20 @@ module WodParser {
         for (var k = 0; k < t.size(); k++) {
             if (!Str.isNumeric(t[k])) { continue; }
             var value = t[k].toFloat();
-            var mult = 1;
+            var mult = 1 as Numeric;
             used[k] = true;
             if (k + 1 < t.size()) {
                 var u = unitFor(t[k + 1]);
                 if (u != null) {
                     unit = u[0] as String;
-                    mult = u[1] as Number;
+                    mult = u[1] as Numeric;
                     used[k + 1] = true;
                 }
                 if (t[k + 1].equals("x")) { used[k + 1] = true; }
             }
             if (k > 0 && t[k - 1].equals("x")) { used[k - 1] = true; }
             reps = value == null ? 0 : Math.round(value * mult).toNumber();
-            if (pair != null) { (pair as Array<Number>)[1] = (pair as Array<Number>)[1] * mult; }
+            if (pair != null) { (pair as Array<Number>)[1] = Math.round((pair as Array<Number>)[1] * mult).toNumber(); }
             break;
         }
 
@@ -562,7 +648,16 @@ module WodParser {
     // "Rest 3:00 between sets", "Rest 90 sec" -> [sec, betweenSets], or null.
     function parseRestLine(line as String) as Array? {
         var t = optionTokens(line);
-        if (t.size() < 2 || !t[0].equals("rest")) { return null; }
+        if (t.size() < 2) { return null; }
+        // "1:00 Rest" -> "rest 1:00"
+        if (!t[0].equals("rest")) {
+            var d0 = durationAt(t, 0);
+            if (d0 == null || d0[1] >= t.size() || !t[d0[1]].equals("rest")) { return null; }
+            var moved = ["rest"] as Array<String>;
+            moved.addAll(t.slice(0, d0[1]));
+            moved.addAll(t.slice(d0[1] + 1, null));
+            t = moved;
+        }
         var d = durationAt(t, 1);
         if (d == null) { return null; }
         var ok = ["between", "sets", "set", "rounds", "round", "each", "after"] as Array<String>;
@@ -678,6 +773,11 @@ module WodParser {
         var cs = text.toCharArray();
         for (var i = 0; i <= cs.size(); i++) {
             var end = i == cs.size();
+            // "(150/100lbs || 70/45kg)": two loads, not two lines
+            if (!end && cs[i] == '|' && ((i + 1 < cs.size() && cs[i + 1] == '|') || (i > 0 && cs[i - 1] == '|'))) {
+                cur.add(' ');
+                continue;
+            }
             if (end || cs[i] == '\n' || cs[i] == '\r' || cs[i] == ';' || cs[i] == '|') {
                 var line = Str.trim(StringUtil.charArrayToString(cur));
                 if (line.length() > 0) { out.add(line); }
@@ -744,6 +844,9 @@ module WodParser {
                 continue;
             }
 
+            // "RPE 8", "@ RPE 7-8" on its own line: an intensity note, not a movement
+            if (Str.trim(cutNotes(line)).length() == 0) { continue; }
+
             var htype = header["type"] as String;
             var cap = parseCapLine(line);
             if (cap > 0) {
@@ -755,7 +858,7 @@ module WodParser {
                 if ((header["sets"] as Number) > 1) {
                     header["setRestSec"] = restLine[0];
                 } else {
-                    blocks.add({ "movement" => "custom", "name" => "Rest", "reps" => restLine[0], "unit" => "sec", "slot" => null, "load" => null });
+                    blocks.add({ "movement" => "rest", "name" => "Rest", "reps" => restLine[0], "unit" => "sec", "slot" => null, "load" => null });
                 }
                 continue;
             }

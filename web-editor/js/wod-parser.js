@@ -10,6 +10,7 @@ export const UNITS = ["reps", "m", "cal", "sec"];
 const UNIT_MAP = {
   m: ["m", 1], meter: ["m", 1], meters: ["m", 1], metre: ["m", 1], metres: ["m", 1],
   km: ["m", 1000],
+  ft: ["m", 0.3048], feet: ["m", 0.3048], foot: ["m", 0.3048],
   cal: ["cal", 1], cals: ["cal", 1], calorie: ["cal", 1], calories: ["cal", 1],
   s: ["sec", 1], sec: ["sec", 1], secs: ["sec", 1], second: ["sec", 1], seconds: ["sec", 1],
   min: ["sec", 60], mins: ["sec", 60], minute: ["sec", 60], minutes: ["sec", 60],
@@ -103,6 +104,14 @@ function durationAt(t, k) {
   }
   const d = parseDuration(t[k]);
   return d > 0 ? [d, k + 1] : null;
+}
+
+// "4" -> 4, "3-4" -> 4, else -1
+function rangeHigh(tok) {
+  if (isInt(tok)) return parseInt(tok, 10);
+  const d = tok.indexOf("-");
+  if (d > 0 && isInt(tok.substring(0, d)) && isInt(tok.substring(d + 1))) return parseInt(tok.substring(d + 1), 10);
+  return -1;
 }
 
 // Returns a header object, or null when the line is not a WOD header.
@@ -228,6 +237,16 @@ export function parseHeader(line) {
     return h;
   }
 
+  // "4 Sets", "3-4 Sets", "3 Rounds": untimed sets, run as rounds for time (the higher count)
+  if (t.length === 2 && ["sets", "set", "rounds", "round"].includes(t[1])) {
+    const r = rangeHigh(t[0]);
+    if (r > 0) {
+      const h = emptyHeader("FOR_TIME");
+      h.rounds = r;
+      return h;
+    }
+  }
+
   // TABATA | TABATA 8x20/10
   i = t.indexOf("tabata");
   if (i >= 0) {
@@ -291,16 +310,23 @@ function weightValues(num, unit) {
 // First load written in these tokens, in kg: [rx] or [rx, alternative].
 // Without a unit, loads are kg: "20/14", "@60". In brackets any number is a
 // load: "(24)", "(43/30)".
+// kg first: "(150/100lbs || 70/45kg)" gives 70/45.
+const KG_UNITS = ["kg", "kgs"];
+
 function findLoad(t, inBrackets = false) {
+  return findLoadUnits(t, KG_UNITS) ?? findLoadUnits(t, WEIGHT_UNITS) ?? findLoadBare(t, inBrackets);
+}
+
+function findLoadUnits(t, units) {
   for (let k = 0; k < t.length; k++) {
     const tok = t[k][0] === "@" ? t[k].substring(1) : t[k];
-    for (const u of WEIGHT_UNITS) {
+    for (const u of units) {
       if (tok.endsWith(u) && tok.length > u.length && isWeightNumber(tok.substring(0, tok.length - u.length))) {
         const v = weightValues(tok.substring(0, tok.length - u.length), u);
         if (v) return v;
       }
     }
-    if (WEIGHT_UNITS.includes(tok) && k > 0) {
+    if (units.includes(tok) && k > 0) {
       const prev = t[k - 1][0] === "@" ? t[k - 1].substring(1) : t[k - 1];
       if (isWeightNumber(prev)) {
         const v = weightValues(prev, tok);
@@ -308,7 +334,11 @@ function findLoad(t, inBrackets = false) {
       }
     }
   }
-  // no unit written: kg
+  return null;
+}
+
+// no unit written: kg
+function findLoadBare(t, inBrackets) {
   for (let k = 0; k < t.length; k++) {
     const at = t[k][0] === "@";
     const tok = at ? t[k].substring(1) : t[k];
@@ -343,7 +373,32 @@ const MAX_PREFIXES = [
   "tough set of", "tough set", "max reps of", "max reps", "max rep", "max effort", "max set of", "max",
 ];
 // Words that name a variant of a catalog movement: "strict HSPU" is still HSPU.
-const VARIANT_WORDS = ["strict", "kipping", "butterfly", "unbroken", "tempo", "deficit", "banded"];
+const VARIANT_WORDS = ["strict", "kipping", "butterfly", "unbroken", "tempo", "deficit", "banded", "heel", "elevated", "weighted", "paused", "pause"];
+
+// "3 Deadlift @ 145-155 kg (72.5-77.5%)", "20 goblet squats @ RPE 7-8": the
+// intensity notes are not part of the movement. Cuts at "RPE", keeps the load.
+export function cutNotes(raw) {
+  const low = raw.toLowerCase();
+  for (let i = 0; i + 3 <= low.length; i++) {
+    if (low.substring(i, i + 3) !== "rpe") continue;
+    const before = i === 0 ? " " : low[i - 1];
+    const after = i + 3 < low.length ? low[i + 3] : " ";
+    if (/[a-z]/.test(before) || /[a-z]/.test(after)) continue;
+    let s = raw.substring(0, i);
+    while (s.length > 0 && " @[(".includes(s[s.length - 1])) s = s.substring(0, s.length - 1);
+    return s;
+  }
+  return raw;
+}
+
+// "145-155" before a weight unit (or after @): the lower value.
+function loadRange(tok) {
+  const d = tok.indexOf("-");
+  if (d <= 0) return null;
+  const a = tok.substring(0, d);
+  const b = tok.substring(d + 1);
+  return isNumeric(a) && isNumeric(b) ? a : null;
+}
 
 // Returns [rest of the line, true] when it starts with a max qualifier.
 function stripMax(raw) {
@@ -376,8 +431,22 @@ function repsPair(tok) {
 }
 
 export function parseMovement(raw0) {
-  const [raw, isMax] = stripMax(raw0);
+  const [raw, isMax] = stripMax(cutNotes(raw0));
   let t0 = tokens(stripBrackets(raw).toLowerCase());
+  // load ranges: "@ 145-155 kg", "145-155kg" -> 145
+  for (let k = 0; k < t0.length; k++) {
+    let tok = t0[k];
+    const at = tok[0] === "@";
+    if (at) tok = tok.substring(1);
+    let unit = "";
+    for (const u of WEIGHT_UNITS) if (tok.endsWith(u) && tok.length > u.length) { unit = u; break; }
+    const core = unit ? tok.substring(0, tok.length - unit.length) : tok;
+    const lo = loadRange(core);
+    if (lo == null) continue;
+    const nextUnit = k + 1 < t0.length && WEIGHT_UNITS.includes(t0[k + 1]);
+    const prevAt = at || (k > 0 && t0[k - 1] === "@");
+    if (unit || nextUnit || prevAt) t0[k] = (at ? "@" : "") + lo + unit;
+  }
   // a pair first on the line is a men / women rep count, not a load
   let pair = null;
   if (t0.length > 1 && !WEIGHT_UNITS.includes(t0[1])) {
@@ -483,8 +552,14 @@ export function parseCapLine(line) {
 
 // "Rest 3:00 between sets", "Rest 90 sec" -> { sec, betweenSets }, or null.
 export function parseRestLine(line) {
-  const t = optionTokens(line);
-  if (t.length < 2 || t[0] !== "rest") return null;
+  let t = optionTokens(line);
+  if (t.length < 2) return null;
+  // "1:00 Rest" -> "rest 1:00"
+  if (t[0] !== "rest") {
+    const d0 = durationAt(t, 0);
+    if (!d0 || d0[1] >= t.length || t[d0[1]] !== "rest") return null;
+    t = ["rest", ...t.slice(0, d0[1]), ...t.slice(d0[1] + 1)];
+  }
   const d = durationAt(t, 1);
   if (!d) return null;
   for (let k = d[1]; k < t.length; k++) {
@@ -584,7 +659,14 @@ function parseSlot(line) {
 export function splitLines(text) {
   const out = [];
   let cur = "";
-  for (const c of text) {
+  const cs = [...text];
+  for (let i = 0; i < cs.length; i++) {
+    const c = cs[i];
+    // "(150/100lbs || 70/45kg)": two loads, not two lines
+    if (c === "|" && ((i + 1 < cs.length && cs[i + 1] === "|") || (i > 0 && cs[i - 1] === "|"))) {
+      cur += " ";
+      continue;
+    }
     if (c === "\n" || c === "\r" || c === ";" || c === "|") {
       if (cur.trim().length > 0) out.push(cur.trim());
       cur = "";
@@ -634,6 +716,9 @@ export function parseWod(text) {
     const scheme = parseRepScheme(line);
     if (scheme) { repScheme = scheme.scheme; repStep = scheme.step; continue; }
 
+    // "RPE 8", "@ RPE 7-8" on its own line: an intensity note, not a movement
+    if (cutNotes(line).trim().length === 0) continue;
+
     const cap = parseCapLine(line);
     if (cap > 0) {
       if (header.type === "FOR_TIME") header.timeCapSec = cap;
@@ -642,7 +727,7 @@ export function parseWod(text) {
     const restLine = parseRestLine(line);
     if (restLine && header.sets > 1) { header.setRestSec = restLine.sec; continue; }
     if (restLine) {
-      blocks.push({ movement: "custom", name: "Rest", reps: restLine.sec, unit: "sec", slot: null, load: null });
+      blocks.push({ movement: "rest", name: "Rest", reps: restLine.sec, unit: "sec", slot: null, load: null });
       continue;
     }
     if (header.type === "AMRAP" || header.type === "FOR_TIME") {

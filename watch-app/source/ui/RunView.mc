@@ -56,6 +56,10 @@ class RunView extends WatchUi.View {
             // every-minute task on top of the main work
             label = "TASK";
             color = Theme.WARN;
+        } else if (e.restLeftMs(now) >= 0) {
+            // "Rest 1:00" block of a strength superset
+            label = "REST";
+            color = Theme.REST;
         }
 
         // ---- progress ring: countdown, cap, interval or tabata phase ----
@@ -116,6 +120,16 @@ class RunView extends WatchUi.View {
             }
         } else if (waiting) {
             drawNext(dc, e, cx, h, center);
+        } else if (b != null && e.state != ST_DONE && e.restLeftMs(now) >= 0) {
+            // timed rest: the time left instead of a target, then the next movement by itself
+            var left = Str.clock(e.restLeftMs(now), true);
+            dc.setColor(Theme.REST, Graphics.COLOR_TRANSPARENT);
+            if (_s.coach) {
+                dc.drawText(cx, h * 76 / 100, Graphics.FONT_SMALL, Tr.s("Rest") + " " + left, center);
+            } else {
+                dc.drawText(cx, h * 62 / 100, Graphics.FONT_SMALL, Tr.s("Rest"), center);
+                dc.drawText(cx, h * 75 / 100, Graphics.FONT_MEDIUM, left, center);
+            }
         } else if (b != null && e.state != ST_DONE) {
             var name = b["name"] as String;
             var unit = b["unit"] as String;

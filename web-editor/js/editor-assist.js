@@ -1,7 +1,7 @@
 // Editor helpers: syntax highlighting of the WOD text and movement
 // autocomplete. Pure functions (tested in test/assist.test.js).
 
-import { parseHeader, parseMovement, normalizeName, parseCapLine, parseRestLine, parseTaskLine } from "./wod-parser.js";
+import { parseHeader, parseMovement, normalizeName, parseCapLine, parseRestLine, parseTaskLine, cutNotes } from "./wod-parser.js";
 import { MOVEMENTS, ALIASES } from "./movements.js";
 
 const LOAD_RE = /(@\s*)?\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)*\s*(?:kgs?|lbs?|#|pood|pd)\b|\([^)]*\)|\[[^\]]*\]|@\s*\d+(?:\/\d+)*|\b\d+(?:\/\d+)+\b/gi;
@@ -22,6 +22,8 @@ export function classifyLine(line, isFirstContent) {
   }
   if (line.includes("-") && SCHEME_RE.test(line)) return [[line, "scheme"]];
   if (isFirstContent) return [[line, "bad"]];
+  // intensity note ("RPE 8"): ignored by the parser
+  if (cutNotes(line).trim() === "") return [[line, "name"]];
   // option lines: time cap, rest between sets, every-minute task
   if (parseCapLine(line) > 0 || parseRestLine(line)) return [[line, "hdr"]];
   const task = parseTaskLine(line);

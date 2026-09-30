@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "name": "Strength: Superset",
+  "type": "FOR_TIME",
+  "timeCapSec": null,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 4,
+  "repScheme": null,
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "goblet_squat",
+      "name": "Heel elevated goblet squat",
+      "reps": 20,
+      "unit": "reps",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "rest",
+      "name": "Rest",
+      "reps": 60,
+      "unit": "sec",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "custom",
+      "name": "Weighted side bend",
+      "reps": 12,
+      "unit": "reps",
+      "slot": null,
+      "load": null,
+      "repsAlt": 12
+    },
+    {
+      "movement": "rest",
+      "name": "Rest",
+      "reps": 120,
+      "unit": "sec",
+      "slot": null,
+      "load": null
+    }
+  ]
+}

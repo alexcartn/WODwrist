@@ -30,7 +30,7 @@
       ]
     },
     {
-      "movement": "custom",
+      "movement": "rest",
       "name": "Rest",
       "reps": 60,
       "unit": "sec",

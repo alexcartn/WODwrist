@@ -158,3 +158,32 @@ test("task without 0:00 starts at the first minute", () => {
   assert.equal(codes(ev, E.TASK).length, 1);
   assert.equal(e.currentBlock().movement, "thruster");
 });
+
+// ---------- strength pages ----------
+
+test("sets headers, notes, ranges, feet, kg before lb", () => {
+  assert.deepEqual([wod("3-4 Sets\n5 deadlifts").type, wod("3-4 Sets\n5 deadlifts").rounds], ["FOR_TIME", 4]);
+  assert.equal(wod("4 rounds\n10 burpees").rounds, 4);
+  const b = wod("AMRAP 10\n3 Deadlift @ 145-155 kg (72.5-77.5%)\nRPE 8\n20 goblet squats @ RPE 7-8").blocks;
+  assert.deepEqual(b.map((x) => [x.movement, x.reps, x.load]), [["deadlift", 3, [145]], ["goblet_squat", 20, null]]);
+  assert.deepEqual(wod("AMRAP 10\n100ft sled push").blocks[0].reps, 30);
+  assert.deepEqual(wod("AMRAP 10\n30 KB swings (53/35lbs || 24/16kg)").blocks[0].load, [24, 16]);
+  assert.deepEqual(parseRestLine("1:00 Rest"), { sec: 60, betweenSets: false });
+});
+
+test("timed rest block moves on by itself, with 3-2-1", () => {
+  const e = new TimerEngine(wod("2 Sets\n2 deadlifts\n1:00 Rest"), 0);
+  e.start(0);
+  e.addRep(1, 1000);
+  e.addRep(1, 5000);
+  assert.equal(e.currentBlock().movement, "rest");
+  assert.equal(e.restLeftMs(35000), 30000);
+  assert.equal(e.addRep(1, 6000).length, 0);
+  let ev = run(e, 5250, 64000);
+  assert.deepEqual(codes(ev, E.WARN).map((x) => x[1]), [3, 2, 1]);
+  assert.equal(codes(ev, E.ROUND).length, 0);
+  ev = run(e, 64250, 66000);
+  assert.deepEqual(codes(ev, E.ROUND), [[E.ROUND, 1]]);
+  assert.equal(e.currentBlock().movement, "deadlift");
+  assert.equal(e.restLeftMs(66000), -1);
+});

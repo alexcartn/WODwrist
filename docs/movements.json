@@ -673,7 +673,13 @@
         "echo bike",
         "air bike",
         "cal bike",
-        "bike erg"
+        "bike erg",
+        "fan bike",
+        "c2 bike",
+        "concept2 bike",
+        "bikeerg",
+        "cal fan bike",
+        "cal c2 bike"
       ],
       "counter": null
     },

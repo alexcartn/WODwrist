@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "name": "Metcon",
+  "type": "FOR_TIME",
+  "timeCapSec": null,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 3,
+  "repScheme": null,
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "double_under",
+      "name": "Double-unders",
+      "reps": 100,
+      "unit": "reps",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "custom",
+      "name": "D-ball/ sandbag bear hug carry",
+      "reps": 30,
+      "unit": "m",
+      "slot": null,
+      "load": [
+        70,
+        45
+      ]
+    },
+    {
+      "movement": "kb_swing",
+      "name": "KB swings",
+      "reps": 30,
+      "unit": "reps",
+      "slot": null,
+      "load": [
+        24,
+        16
+      ]
+    },
+    {
+      "movement": "toes_to_bar",
+      "name": "Toes-to-bar",
+      "reps": 30,
+      "unit": "reps",
+      "slot": null,
+      "load": null
+    }
+  ]
+}
