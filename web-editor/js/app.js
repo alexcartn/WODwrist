@@ -9,6 +9,8 @@ const EXAMPLES = {
   emom: "EMOM 10\nodd: 12 kb swings\neven: 10 burpees",
   fortime: "FOR TIME cap 15\n21-15-9\nthrusters\npull-ups",
   tabata: "TABATA 8x20/10\nair squats",
+  deathby: "DEATH BY burpees",
+  ladder: "AMRAP 10\n3-6-9-...\nthrusters\nchest to bar",
   class: "# Warm-up\nEMOM 6\nodd: 10 air squats\neven: 10 push-ups\n---\n# Strength\nE2MOM 10\n3 power cleans\n---\n# Metcon\nAMRAP 12\n10 wall balls\n10 burpees\n200m run",
 };
 
@@ -39,8 +41,12 @@ function fmt(sec) {
 
 function headline(w) {
   switch (w.type) {
-    case "AMRAP": return `AMRAP ${fmt(w.timeCapSec)}`;
-    case "EMOM": return `${w.intervalSec === 60 ? "EMOM" : `E${w.intervalSec / 60}MOM`}: ${w.rounds} intervals of ${fmt(w.intervalSec)} (${fmt(w.timeCapSec)})`;
+    case "AMRAP":
+      return `AMRAP ${fmt(w.timeCapSec)}` + (w.repScheme ? `, ladder ${w.repScheme.join("-")}${w.repStep ? "-..." : ""}` : "");
+    case "EMOM":
+      if (w.repStep) return `Death by: +${w.repStep} rep(s) every minute until you miss`;
+      if (w.intervalSec % 60) return `Every ${fmt(w.intervalSec)} x ${w.rounds} (${fmt(w.timeCapSec)})`;
+      return `${w.intervalSec === 60 ? "EMOM" : `E${w.intervalSec / 60}MOM`}: ${w.rounds} intervals of ${fmt(w.intervalSec)} (${fmt(w.timeCapSec)})`;
     case "FOR_TIME": {
       let h = "For time";
       if (w.repScheme) h += " " + w.repScheme.join("-");
@@ -59,6 +65,9 @@ function blockText(b) {
 }
 
 function plan(w) {
+  if (w.type === "EMOM" && w.repStep) {
+    return [0, 1, 2].map((i) => `${fmt(i * 60)}: ${w.blocks.map((b) => `${b.reps + i * w.repStep} ${b.name}`).join(" + ")}`).join("<br>") + "<br>…";
+  }
   if (w.type !== "EMOM" && w.type !== "TABATA") return "";
   const slots = [...new Set(w.blocks.map((b) => b.slot))].sort((a, b) => a - b);
   const label = w.type === "EMOM" ? "" : "Round ";

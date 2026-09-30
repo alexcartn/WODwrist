@@ -8,6 +8,7 @@
   "restSec": null,
   "rounds": 1,
   "repScheme": null,
+  "repStep": null,
   "blocks": [
     {
       "movement": "run",

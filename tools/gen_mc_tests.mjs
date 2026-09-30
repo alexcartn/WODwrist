@@ -27,7 +27,7 @@ function ${fn}(logger as Test.Logger) as Boolean {
     Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
     var w = r["wod"] as Dictionary;
 `;
-  for (const k of ["name", "type", "timeCapSec", "intervalSec", "workSec", "restSec", "rounds"]) {
+  for (const k of ["name", "type", "timeCapSec", "intervalSec", "workSec", "restSec", "rounds", "repStep"]) {
     src += `    TestUtil.check(logger, w["${k}"], ${mcVal(want[k])}, "${k}");\n`;
   }
   if (want.repScheme) {

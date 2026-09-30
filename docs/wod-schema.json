@@ -4,42 +4,123 @@
   "title": "WODwrist WOD",
   "description": "What the watch consumes. Produced by the text parser (watch or web editor) or written by hand. Derived fields (timeCapSec for EMOM/TABATA, rounds for FOR_TIME) are recomputed by the validator.",
   "type": "object",
-  "required": ["version", "type", "blocks"],
+  "required": [
+    "version",
+    "type",
+    "blocks"
+  ],
   "properties": {
-    "version": { "const": 1 },
-    "name": { "type": "string", "description": "Shown in menus and saved in the FIT file (max 31 chars kept)." },
-    "type": { "enum": ["AMRAP", "EMOM", "FOR_TIME", "TABATA"] },
+    "version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "description": "Shown in menus and saved in the FIT file (max 31 chars kept)."
+    },
+    "type": {
+      "enum": [
+        "AMRAP",
+        "EMOM",
+        "FOR_TIME",
+        "TABATA"
+      ]
+    },
     "timeCapSec": {
-      "type": ["integer", "null"], "minimum": 1,
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
       "description": "AMRAP: duration (required). FOR_TIME: optional cap. EMOM/TABATA: total duration (derived)."
     },
     "intervalSec": {
-      "type": ["integer", "null"], "minimum": 1,
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
       "description": "EMOM: interval length (60 for EMOM, 120 for E2MOM). TABATA: workSec + restSec (derived)."
     },
-    "workSec": { "type": ["integer", "null"], "minimum": 1, "description": "TABATA work, default 20." },
-    "restSec": { "type": ["integer", "null"], "minimum": 0, "description": "TABATA rest, default 10." },
+    "workSec": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "description": "TABATA work, default 20."
+    },
+    "restSec": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "TABATA rest, default 10."
+    },
     "rounds": {
-      "type": ["integer", "null"], "minimum": 1,
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
       "description": "EMOM: number of intervals. TABATA: number of rounds (default 8). FOR_TIME: rounds (default 1, or repScheme length). AMRAP: null."
     },
     "repScheme": {
-      "type": ["array", "null"], "items": { "type": "integer", "minimum": 1 },
-      "description": "FOR_TIME only, e.g. [21, 15, 9]. Blocks with reps = 0 take the round's value."
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "description": "FOR_TIME, e.g. [21, 15, 9], or AMRAP ladder. Blocks with reps = 0 take the round's value."
+    },
+    "repStep": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "description": "AMRAP with repScheme: open ladder, add this after the last value each round (3-6-9-... -> 3). EMOM: Death by, the target of each block grows by this every interval and the WOD ends at the first missed interval."
     },
     "blocks": {
       "type": "array",
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["movement"],
+        "required": [
+          "movement"
+        ],
         "properties": {
-          "movement": { "type": "string", "description": "Movement id from docs/movements.json, or \"custom\"." },
-          "name": { "type": "string", "description": "Display name. Defaults to the catalog name." },
-          "reps": { "type": "integer", "minimum": 0, "description": "Target in `unit`. 0 = max effort / take from repScheme." },
-          "unit": { "enum": ["reps", "m", "cal", "sec"], "default": "reps" },
+          "movement": {
+            "type": "string",
+            "description": "Movement id from docs/movements.json, or \"custom\"."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name. Defaults to the catalog name."
+          },
+          "reps": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Target in `unit`. 0 = max effort / take from repScheme."
+          },
+          "unit": {
+            "enum": [
+              "reps",
+              "m",
+              "cal",
+              "sec"
+            ],
+            "default": "reps"
+          },
           "slot": {
-            "type": ["integer", "null"], "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
             "description": "EMOM/TABATA: blocks with the same slot are done in the same interval; slots rotate in ascending order. null for AMRAP/FOR_TIME."
           }
         }
@@ -48,13 +129,39 @@
   },
   "examples": [
     {
-      "version": 1, "name": "WOD 2026-09-30", "type": "AMRAP", "timeCapSec": 720,
-      "intervalSec": null, "workSec": null, "restSec": null, "rounds": null, "repScheme": null,
+      "version": 1,
+      "name": "WOD 2026-09-30",
+      "type": "AMRAP",
+      "timeCapSec": 720,
+      "intervalSec": null,
+      "workSec": null,
+      "restSec": null,
+      "rounds": null,
+      "repScheme": null,
       "blocks": [
-        { "movement": "wall_ball", "name": "Wall balls", "reps": 10, "unit": "reps", "slot": null },
-        { "movement": "burpee", "name": "Burpees", "reps": 10, "unit": "reps", "slot": null },
-        { "movement": "run", "name": "Run", "reps": 200, "unit": "m", "slot": null }
-      ]
+        {
+          "movement": "wall_ball",
+          "name": "Wall balls",
+          "reps": 10,
+          "unit": "reps",
+          "slot": null
+        },
+        {
+          "movement": "burpee",
+          "name": "Burpees",
+          "reps": 10,
+          "unit": "reps",
+          "slot": null
+        },
+        {
+          "movement": "run",
+          "name": "Run",
+          "reps": 200,
+          "unit": "m",
+          "slot": null
+        }
+      ],
+      "repStep": null
     }
   ]
 }

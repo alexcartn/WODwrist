@@ -1,18 +1,18 @@
 {
   "version": 1,
-  "name": "FOR TIME cap 15",
-  "type": "FOR_TIME",
-  "timeCapSec": 900,
+  "name": "AMRAP 10",
+  "type": "AMRAP",
+  "timeCapSec": 600,
   "intervalSec": null,
   "workSec": null,
   "restSec": null,
-  "rounds": 3,
+  "rounds": null,
   "repScheme": [
-    21,
-    15,
+    3,
+    6,
     9
   ],
-  "repStep": null,
+  "repStep": 3,
   "blocks": [
     {
       "movement": "thruster",
@@ -22,8 +22,8 @@
       "slot": null
     },
     {
-      "movement": "pull_up",
-      "name": "Pull-ups",
+      "movement": "chest_to_bar",
+      "name": "Chest-to-bar",
       "reps": 0,
       "unit": "reps",
       "slot": null

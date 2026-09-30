@@ -25,6 +25,8 @@ module ScoreHistory {
             for (var i = 0; i < (rs as Array).size(); i++) { scheme.add(((rs as Array)[i] as Number).format("%d")); }
         }
         parts.add(Str.join(scheme, "-"));
+        var step = wod["repStep"];
+        parts.add(step == null ? "" : step.toString());
         var blocks = wod["blocks"] as Array<Dictionary>;
         var bs = [] as Array<String>;
         for (var i = 0; i < blocks.size(); i++) {

@@ -12,10 +12,16 @@ module WodFormat {
     function headline(wod as Dictionary) as String {
         var type = wod["type"] as String;
         if (type.equals("AMRAP")) {
-            return "AMRAP " + minutes(wod["timeCapSec"] as Number);
+            var a = "AMRAP " + minutes(wod["timeCapSec"] as Number);
+            if (wod["repStep"] != null) { a += " ladder"; }
+            return a;
         }
         if (type.equals("EMOM")) {
             var iv = wod["intervalSec"] as Number;
+            if (wod["repStep"] != null) { return "Death by"; }
+            if (iv % 60 != 0) {
+                return "Every " + Str.clock(iv * 1000, false) + " x " + (wod["rounds"] as Number).format("%d");
+            }
             var label = iv == 60 ? "EMOM" : "E" + (iv / 60).format("%d") + "MOM";
             return label + " " + minutes(wod["timeCapSec"] as Number);
         }

@@ -155,3 +155,38 @@ function engineNextBlocks(logger as Test.Logger) as Boolean {
     Test.assertEqual(e.nextBlocks().size(), 0);
     return true;
 }
+
+(:test)
+function engineOpenLadder(logger as Test.Logger) as Boolean {
+    var e = new TimerEngine(EngineTestUtil.wod("AMRAP 20\n3-6-9-...\nthrusters\nchest to bar"), 0);
+    e.start(0);
+    var want = [3, 6, 9, 12, 15];
+    for (var r = 0; r < 5; r++) {
+        Test.assertEqual(e.target(e.currentBlock()), want[r]);
+        e.next(0);
+        e.next(0);
+    }
+    Test.assertEqual(e.roundsCompleted, 5);
+    return true;
+}
+
+(:test)
+function engineDeathBy(logger as Test.Logger) as Boolean {
+    var e = new TimerEngine(EngineTestUtil.wod("DEATH BY burpees"), 0);
+    e.start(0);
+    Test.assertEqual(e.totalRounds(), 0);
+    var done = 0;
+    for (var m = 0; m < 5; m++) {
+        var t = m * 60000 + 1000;
+        done += EngineTestUtil.count(e.tick(t), EV_DONE);
+        Test.assertEqual(e.target(e.currentBlock()), m + 1);
+        e.addRep(m < 4 ? m + 1 : 3, t);
+    }
+    done += EngineTestUtil.count(e.tick(300000), EV_DONE);
+    Test.assertEqual(done, 1);
+    Test.assertEqual(e.state, ST_DONE);
+    Test.assertEqual(e.roundsCompleted, 4);
+    Test.assertEqual(e.lapReps, 3);
+    TestUtil.check(logger, e.scoreText(), "4 + 3", "score");
+    return true;
+}

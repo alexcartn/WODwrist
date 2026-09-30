@@ -18,6 +18,7 @@ field is single-line, so there you write `AMRAP 12; 10 wall balls; 10 burpees`.
 | `# Fran` or `name: Fran` | WOD name (optional, defaults to the header line) |
 | header (first other line) | WOD type and timing, see below |
 | `21-15-9` | rep scheme (FOR TIME) |
+| `3-6-9-...` | open ladder (AMRAP): 3, 6, 9, then +3 every round. JSON: `repScheme` + `repStep` |
 | `10 wall balls` | a movement |
 | `odd: ...`, `even: ...`, `min 3: ...` | EMOM slot prefix |
 | `5 power cleans + 10 box jumps` | several movements in the same slot |
@@ -35,6 +36,8 @@ field is single-line, so there you write `AMRAP 12; 10 wall balls; 10 burpees`.
 | `FOR TIME cap 15`, `For time (time cap 15:00)` | with a cap |
 | `TABATA` | 8 x 20 s / 10 s |
 | `TABATA 10x30/15` | rounds x work / rest |
+| `EVERY 2:30 x 6`, `every 90 sec for 12 min`, `every 3 min for 5 rounds` | intervals of any length (EMOM with `intervalSec` = 150, 90, 180) |
+| `DEATH BY burpees`, `Death by: 2 thrusters` | minute 1: 1 rep, minute 2: 2 reps... (or 2, 4, 6...). Ends at the first minute not finished. Score: minutes completed + reps. JSON: EMOM with `repStep` |
 
 Durations: `12` (minutes), `12min`, `12'`, `90s`, `12:30`.
 
@@ -78,5 +81,6 @@ round 1 squats, round 2 push-ups, round 3 squats...
 | --- | --- | --- | --- |
 | AMRAP | counts down the cap | each completed round | rounds + reps |
 | FOR TIME | counts up (stops at cap) | each completed round | time, or `CAP + reps` |
-| EMOM | counts down each interval | each interval | total reps |
+| EMOM / EVERY | counts down each interval | each interval | total reps |
+| DEATH BY | counts down each minute | each minute | minutes completed + reps |
 | TABATA | counts down work / rest | each round (work + rest) | total reps |

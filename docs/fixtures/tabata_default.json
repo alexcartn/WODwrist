@@ -8,6 +8,7 @@
   "restSec": 10,
   "rounds": 8,
   "repScheme": null,
+  "repStep": null,
   "blocks": [
     {
       "movement": "air_squat",

@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "name": "E2MOM 20",
+  "name": "EVERY 2:30 x 6",
   "type": "EMOM",
-  "timeCapSec": 1200,
-  "intervalSec": 120,
+  "timeCapSec": 900,
+  "intervalSec": 150,
   "workSec": null,
   "restSec": null,
-  "rounds": 10,
+  "rounds": 6,
   "repScheme": null,
   "repStep": null,
   "blocks": [
@@ -22,13 +22,6 @@
       "name": "Box jumps",
       "reps": 10,
       "unit": "reps",
-      "slot": 0
-    },
-    {
-      "movement": "row",
-      "name": "Row",
-      "reps": 15,
-      "unit": "cal",
       "slot": 1
     }
   ]

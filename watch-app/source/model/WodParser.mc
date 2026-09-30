@@ -58,8 +58,34 @@ module WodParser {
             "intervalSec" => null,
             "workSec" => null,
             "restSec" => null,
-            "rounds" => null
+            "rounds" => null,
+            "inline" => null,
+            "deathBy" => false
         };
+    }
+
+    function isSecWord(t as String) as Boolean {
+        return t.equals("s") || t.equals("sec") || t.equals("secs") || t.equals("second") || t.equals("seconds");
+    }
+
+    function isMinWord(t as String) as Boolean {
+        return t.equals("min") || t.equals("mins") || t.equals("minute") || t.equals("minutes");
+    }
+
+    function isRoundWord(t as String) as Boolean {
+        return t.equals("rounds") || t.equals("round") || t.equals("sets") || t.equals("set") || t.equals("intervals");
+    }
+
+    // Duration at t[k], possibly followed by a unit word ("90 sec", "3 min").
+    // Returns [seconds, next index] or null.
+    function durationAt(t as Array<String>, k as Number) as Array<Number>? {
+        if (k >= t.size()) { return null; }
+        if (k + 1 < t.size() && Str.isInt(t[k])) {
+            if (isSecWord(t[k + 1])) { return [Str.toInt(t[k]), k + 2]; }
+            if (isMinWord(t[k + 1])) { return [Str.toInt(t[k]) * 60, k + 2]; }
+        }
+        var d = parseDuration(t[k]);
+        return d > 0 ? [d, k + 1] : null;
     }
 
     function err(msg as String) as Dictionary {
@@ -74,6 +100,7 @@ module WodParser {
 
         // AMRAP 12 | 12 min AMRAP | AMRAP 12:30
         var i = Str.indexIn(t, "amrap");
+        if (i >= 0 && Str.indexIn(t, "death") >= 0) { i = -1; }
         if (i >= 0) {
             var d = i + 1 < t.size() ? parseDuration(t[i + 1]) : -1;
             if (d < 0 && i > 0) {
@@ -84,6 +111,54 @@ module WodParser {
             if (d <= 0) { return err("AMRAP needs a duration, e.g. AMRAP 12"); }
             var h = emptyHeader("AMRAP");
             h["timeCapSec"] = d;
+            return h;
+        }
+
+        // DEATH BY burpees: 1 rep the first minute, 2 the second... until failure
+        for (var k = 0; k + 1 < t.size(); k++) {
+            if (t[k].equals("death") && (t[k + 1].equals("by") || t[k + 1].equals("by:"))) {
+                var h = emptyHeader("EMOM");
+                h["intervalSec"] = 60;
+                h["rounds"] = 60;
+                h["timeCapSec"] = 3600;
+                h["deathBy"] = true;
+                var low = line.toLower();
+                var dPos = Str.indexOf(low, "death");
+                var tail = Str.sub(low, dPos + 5, low.length());
+                var at = dPos + 5 + Str.indexOf(tail, "by");
+                var rest = Str.trim(Str.removeChars(Str.sub(line, at + 2, line.length()), ":"));
+                h["inline"] = rest.length() > 0 ? rest : null;
+                return h;
+            }
+        }
+
+        // EVERY 2:30 x 6 | every 90 sec for 12 min | every 3 min for 5 rounds
+        i = Str.indexIn(t, "every");
+        if (i >= 0) {
+            var d = durationAt(t, i + 1);
+            if (d == null) { return err("EVERY needs an interval, e.g. EVERY 2:30 x 6"); }
+            var h = emptyHeader("EMOM");
+            var iv = d[0];
+            var j = d[1];
+            var rounds = 0;
+            if (j + 1 < t.size() && t[j].equals("x") && Str.isInt(t[j + 1])) {
+                rounds = Str.toInt(t[j + 1]);
+            } else if (j < t.size() && Str.startsWith(t[j], "x") && Str.isInt(Str.sub(t[j], 1, t[j].length()))) {
+                rounds = Str.toInt(Str.sub(t[j], 1, t[j].length()));
+            } else if (j < t.size() && t[j].equals("for")) {
+                if (j + 2 < t.size() && Str.isInt(t[j + 1]) && isRoundWord(t[j + 2])) {
+                    rounds = Str.toInt(t[j + 1]);
+                } else {
+                    var total = durationAt(t, j + 1);
+                    if (total != null) { rounds = total[0] / iv; }
+                }
+            } else if (j + 1 < t.size() && Str.isInt(t[j]) && isRoundWord(t[j + 1])) {
+                rounds = Str.toInt(t[j]);
+            }
+            if (rounds <= 0) { return err("EVERY needs a number of rounds, e.g. EVERY 2:30 x 6"); }
+            h["intervalSec"] = iv;
+            h["rounds"] = rounds;
+            h["timeCapSec"] = rounds * iv;
             return h;
         }
 
@@ -276,16 +351,35 @@ module WodParser {
 
     // ---------- rep scheme / slots / lines ----------
 
-    function parseRepScheme(line as String) as Array<Number>? {
+    // "21-15-9" -> [[21, 15, 9], null]
+    // "3-6-9-..." or "3-6-9..." (open ladder) -> [[3, 6, 9], 3]
+    function parseRepScheme(line as String) as Array? {
         var s = Str.removeChars(line, " ");
-        if (!Str.contains(s, "-")) { return null; }
+        var open = false;
+        var tails = ["...", "…", "+"];  // "…" = the ellipsis character
+        for (var k = 0; k < tails.size(); k++) {
+            var tail = tails[k] as String;
+            if (Str.endsWith(s, tail)) {
+                open = true;
+                s = Str.sub(s, 0, s.length() - tail.length());
+                if (Str.endsWith(s, "-")) { s = Str.sub(s, 0, s.length() - 1); }
+                break;
+            }
+        }
+        if (!Str.contains(s, "-") && !(open && Str.isInt(s))) { return null; }
         var parts = Str.splitOn(s, '-');
         var out = [] as Array<Number>;
         for (var i = 0; i < parts.size(); i++) {
             if (!Str.isInt(parts[i])) { return null; }
             out.add(Str.toInt(parts[i]));
         }
-        return out;
+        var step = null;
+        if (open) {
+            var n = out.size();
+            step = n >= 2 ? out[n - 1] - out[n - 2] : out[0];
+            if (step <= 0) { return null; }
+        }
+        return [out, step];
     }
 
     // "odd: x" -> [0, "x"], "even: x" -> [1, "x"], "min 3: x" -> [2, "x"]
@@ -327,6 +421,7 @@ module WodParser {
         var header = null;
         var headerLine = null;
         var repScheme = null;
+        var repStep = null;
         var blocks = [] as Array<Dictionary>;
         var nextSlot = 0;
 
@@ -352,12 +447,23 @@ module WodParser {
                 }
                 header = h;
                 headerLine = line;
+                if (h["inline"] != null) {
+                    var ip = Str.splitOn(h["inline"] as String, '+');
+                    for (var q = 0; q < ip.size(); q++) {
+                        if (Str.trim(ip[q]).length() == 0) { continue; }
+                        var ib = parseMovement(ip[q]);
+                        ib["slot"] = 0;
+                        blocks.add(ib);
+                    }
+                    nextSlot = 1;
+                }
                 continue;
             }
 
             var scheme = parseRepScheme(line);
             if (scheme != null) {
-                repScheme = scheme;
+                repScheme = scheme[0];
+                repStep = scheme[1];
                 continue;
             }
 
@@ -370,6 +476,7 @@ module WodParser {
             }
             var type = header["type"] as String;
             var interval = type.equals("EMOM") || type.equals("TABATA");
+            if (header["deathBy"] == true) { slot = 0; }
             if (interval && slot == null) { slot = nextSlot; }
 
             var parts = Str.splitOn(body, '+');
@@ -396,8 +503,23 @@ module WodParser {
             "restSec" => header["restSec"],
             "rounds" => header["rounds"],
             "repScheme" => null,
+            "repStep" => null,
             "blocks" => blocks
         };
+        if ((header["type"] as String).equals("FOR_TIME") && repStep != null) {
+            return { "error" => "An open ladder (3-6-9-...) needs an AMRAP", "line" => lines.size() };
+        }
+        if ((header["type"] as String).equals("AMRAP") && repScheme != null) {
+            wod["repScheme"] = repScheme;
+            wod["repStep"] = repStep;
+        }
+        if (header["deathBy"] == true) {
+            // start at the written reps (1 by default) and add that much every minute
+            for (var i = 0; i < blocks.size(); i++) {
+                if ((blocks[i]["reps"] as Number) == 0) { blocks[i]["reps"] = 1; }
+            }
+            wod["repStep"] = blocks[0]["reps"];
+        }
         if ((header["type"] as String).equals("FOR_TIME")) {
             if (repScheme != null) {
                 wod["repScheme"] = repScheme;
@@ -428,7 +550,7 @@ module WodParser {
                 || !((type as String).equals("AMRAP") || type.equals("EMOM") || type.equals("FOR_TIME") || type.equals("TABATA"))) {
             return err("Unknown WOD type");
         }
-        var keys = ["timeCapSec", "intervalSec", "workSec", "restSec", "rounds"];
+        var keys = ["timeCapSec", "intervalSec", "workSec", "restSec", "rounds", "repStep"];
         for (var i = 0; i < keys.size(); i++) {
             if (!optInt(o[keys[i]])) { return err(keys[i] + " must be an integer or null"); }
         }
@@ -447,6 +569,7 @@ module WodParser {
             "restSec" => o["restSec"],
             "rounds" => o["rounds"],
             "repScheme" => null,
+            "repStep" => isPosInt(o["repStep"]) ? o["repStep"] : null,
             "blocks" => []
         };
         var rs = o["repScheme"];
@@ -484,6 +607,7 @@ module WodParser {
         var t = type as String;
         if (t.equals("AMRAP")) {
             if (!isPosInt(wod["timeCapSec"])) { return err("AMRAP needs timeCapSec"); }
+            if (wod["repScheme"] == null) { wod["repStep"] = null; }
         } else if (t.equals("EMOM")) {
             if (!isPosInt(wod["intervalSec"])) { return err("EMOM needs intervalSec"); }
             var iv = wod["intervalSec"] as Number;
@@ -493,9 +617,11 @@ module WodParser {
             }
             wod["timeCapSec"] = (wod["rounds"] as Number) * iv;
         } else if (t.equals("FOR_TIME")) {
+            wod["repStep"] = null;
             if (wod["repScheme"] != null) { wod["rounds"] = (wod["repScheme"] as Array).size(); }
             if (!isPosInt(wod["rounds"])) { wod["rounds"] = 1; }
         } else {
+            wod["repStep"] = null;
             if (!isPosInt(wod["workSec"])) { wod["workSec"] = 20; }
             if (wod["restSec"] == null || (wod["restSec"] as Number) < 0) { wod["restSec"] = 10; }
             if (!isPosInt(wod["rounds"])) { wod["rounds"] = 8; }

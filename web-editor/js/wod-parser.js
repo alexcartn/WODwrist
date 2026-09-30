@@ -86,7 +86,23 @@ export function parseDuration(tok) {
 // ---------- header ----------
 
 function emptyHeader(type) {
-  return { type, timeCapSec: null, intervalSec: null, workSec: null, restSec: null, rounds: null };
+  return { type, timeCapSec: null, intervalSec: null, workSec: null, restSec: null, rounds: null, inline: null };
+}
+
+const SEC_WORDS = ["s", "sec", "secs", "second", "seconds"];
+const MIN_WORDS = ["min", "mins", "minute", "minutes"];
+const ROUND_WORDS = ["rounds", "round", "sets", "set", "intervals"];
+
+// Duration at t[k], possibly followed by a unit word ("90 sec", "3 min").
+// Returns [seconds, next index] or null.
+function durationAt(t, k) {
+  if (k >= t.length) return null;
+  if (k + 1 < t.length && isInt(t[k])) {
+    if (SEC_WORDS.includes(t[k + 1])) return [parseInt(t[k], 10), k + 2];
+    if (MIN_WORDS.includes(t[k + 1])) return [parseInt(t[k], 10) * 60, k + 2];
+  }
+  const d = parseDuration(t[k]);
+  return d > 0 ? [d, k + 1] : null;
 }
 
 // Returns a header object, or null when the line is not a WOD header.
@@ -97,6 +113,7 @@ export function parseHeader(line) {
 
   // AMRAP 12 | 12 min AMRAP | AMRAP 12:30
   let i = t.indexOf("amrap");
+  if (i >= 0 && t.includes("death")) i = -1;
   if (i >= 0) {
     let d = i + 1 < t.length ? parseDuration(t[i + 1]) : -1;
     if (d < 0 && i > 0) {
@@ -107,6 +124,49 @@ export function parseHeader(line) {
     if (d <= 0) return { error: "AMRAP needs a duration, e.g. AMRAP 12" };
     const h = emptyHeader("AMRAP");
     h.timeCapSec = d;
+    return h;
+  }
+
+  // DEATH BY burpees: 1 rep the first minute, 2 the second... until failure
+  for (let k = 0; k + 1 < t.length; k++) {
+    if (t[k] === "death" && (t[k + 1] === "by" || t[k + 1] === "by:")) {
+      const h = emptyHeader("EMOM");
+      h.intervalSec = 60;
+      h.rounds = 60;
+      h.timeCapSec = 3600;
+      h.deathBy = true;
+      const low = line.toLowerCase();
+      const at = low.indexOf("by", low.indexOf("death") + 5);
+      const rest = line.substring(at + 2).replace(/^[\s:]+/, "").trim();
+      h.inline = rest.length > 0 ? rest : null;
+      return h;
+    }
+  }
+
+  // EVERY 2:30 x 6 | every 90 sec for 12 min | every 3 min for 5 rounds
+  i = t.indexOf("every");
+  if (i >= 0) {
+    const d = durationAt(t, i + 1);
+    if (!d) return { error: "EVERY needs an interval, e.g. EVERY 2:30 x 6" };
+    const h = emptyHeader("EMOM");
+    h.intervalSec = d[0];
+    let j = d[1];
+    if (j + 1 < t.length && t[j] === "x" && isInt(t[j + 1])) {
+      h.rounds = parseInt(t[j + 1], 10);
+    } else if (j < t.length && t[j][0] === "x" && isInt(t[j].substring(1))) {
+      h.rounds = parseInt(t[j].substring(1), 10);
+    } else if (j < t.length && t[j] === "for") {
+      if (j + 2 < t.length && isInt(t[j + 1]) && ROUND_WORDS.includes(t[j + 2])) {
+        h.rounds = parseInt(t[j + 1], 10);
+      } else {
+        const total = durationAt(t, j + 1);
+        if (total) h.rounds = Math.floor(total[0] / h.intervalSec);
+      }
+    } else if (j + 1 < t.length && isInt(t[j]) && ROUND_WORDS.includes(t[j + 1])) {
+      h.rounds = parseInt(t[j], 10);
+    }
+    if (!(h.rounds > 0)) return { error: "EVERY needs a number of rounds, e.g. EVERY 2:30 x 6" };
+    h.timeCapSec = h.rounds * h.intervalSec;
     return h;
   }
 
@@ -262,16 +322,29 @@ export function parseMovement(raw) {
 
 // ---------- rep scheme ----------
 
+// "21-15-9" -> { scheme: [21, 15, 9], step: null }
+// "3-6-9-..." or "3-6-9..." (open ladder) -> { scheme: [3, 6, 9], step: 3 }
 function parseRepScheme(line) {
-  const s = replaceChars(line, " ", "");
-  if (!s.includes("-")) return null;
-  const parts = s.split("-");
+  let s = replaceChars(line, " ", "");
+  let open = false;
+  for (const tail of ["...", "\u2026", "+"]) {
+    if (s.endsWith(tail)) {
+      open = true;
+      s = s.substring(0, s.length - tail.length);
+      if (s.endsWith("-")) s = s.substring(0, s.length - 1);
+      break;
+    }
+  }
+  if (!s.includes("-") && !(open && isInt(s))) return null;
   const out = [];
-  for (const p of parts) {
+  for (const p of s.split("-")) {
     if (!isInt(p)) return null;
     out.push(parseInt(p, 10));
   }
-  return out;
+  let step = null;
+  if (open) step = out.length >= 2 ? out[out.length - 1] - out[out.length - 2] : out[0];
+  if (open && !(step > 0)) return null;
+  return { scheme: out, step };
 }
 
 // ---------- slot prefixes ----------
@@ -314,6 +387,7 @@ export function parseWod(text) {
   let header = null;
   let headerLine = null;
   let repScheme = null;
+  let repStep = null;
   const blocks = [];
   let nextSlot = 0;
 
@@ -328,17 +402,27 @@ export function parseWod(text) {
       if (h.error) return { error: h.error, line: n + 1 };
       header = h;
       headerLine = line;
+      if (h.inline) {
+        for (const part of h.inline.split("+")) {
+          if (part.trim().length === 0) continue;
+          const b = parseMovement(part);
+          b.slot = 0;
+          blocks.push(b);
+        }
+        nextSlot = 1;
+      }
       continue;
     }
 
     const scheme = parseRepScheme(line);
-    if (scheme) { repScheme = scheme; continue; }
+    if (scheme) { repScheme = scheme.scheme; repStep = scheme.step; continue; }
 
     let slot = null;
     let body = line;
     const sp = parseSlot(line);
     if (sp) { slot = sp[0]; body = sp[1]; }
     const interval = header.type === "EMOM" || header.type === "TABATA";
+    if (header.deathBy) slot = 0;
     if (interval && slot == null) slot = nextSlot;
 
     for (const part of body.split("+")) {
@@ -363,11 +447,22 @@ export function parseWod(text) {
     restSec: header.restSec,
     rounds: header.rounds,
     repScheme: null,
+    repStep: null,
     blocks,
   };
   if (header.type === "FOR_TIME") {
+    if (repStep) return { error: "An open ladder (3-6-9-...) needs an AMRAP", line: lines.length };
     if (repScheme) { wod.repScheme = repScheme; wod.rounds = repScheme.length; }
     else if (wod.rounds == null) wod.rounds = 1;
+  }
+  if (header.type === "AMRAP" && repScheme) {
+    wod.repScheme = repScheme;
+    wod.repStep = repStep;
+  }
+  if (header.deathBy) {
+    // start at the written reps (1 by default) and add that much every minute
+    for (const b of blocks) if (b.reps === 0) b.reps = 1;
+    wod.repStep = blocks[0].reps;
   }
   return { wod };
 }
@@ -381,7 +476,7 @@ export function validateWod(obj) {
   if (obj == null || typeof obj !== "object") return { error: "WOD must be an object" };
   if (obj.version !== 1) return { error: "Unsupported WOD version" };
   if (!TYPES.includes(obj.type)) return { error: "Unknown WOD type" };
-  for (const k of ["timeCapSec", "intervalSec", "workSec", "restSec", "rounds"]) {
+  for (const k of ["timeCapSec", "intervalSec", "workSec", "restSec", "rounds", "repStep"]) {
     if (!optInt(obj[k])) return { error: `${k} must be an integer or null` };
   }
   if (!Array.isArray(obj.blocks) || obj.blocks.length === 0) return { error: "WOD needs at least one block" };
@@ -395,8 +490,10 @@ export function validateWod(obj) {
     restSec: obj.restSec ?? null,
     rounds: obj.rounds ?? null,
     repScheme: null,
+    repStep: obj.repStep ?? null,
     blocks: [],
   };
+  if (wod.repStep != null && wod.repStep <= 0) wod.repStep = null;
   if (obj.repScheme != null) {
     if (!Array.isArray(obj.repScheme) || obj.repScheme.length === 0 || !obj.repScheme.every((r) => isIntValue(r) && r > 0)) {
       return { error: "repScheme must be a list of positive integers" };
@@ -423,6 +520,7 @@ export function validateWod(obj) {
   switch (wod.type) {
     case "AMRAP":
       if (!(wod.timeCapSec > 0)) return { error: "AMRAP needs timeCapSec" };
+      if (!wod.repScheme) wod.repStep = null;
       break;
     case "EMOM":
       if (!(wod.intervalSec > 0)) return { error: "EMOM needs intervalSec" };
@@ -433,10 +531,12 @@ export function validateWod(obj) {
       wod.timeCapSec = wod.rounds * wod.intervalSec;
       break;
     case "FOR_TIME":
+      wod.repStep = null;
       if (wod.repScheme) wod.rounds = wod.repScheme.length;
       if (!(wod.rounds > 0)) wod.rounds = 1;
       break;
     case "TABATA":
+      wod.repStep = null;
       if (!(wod.workSec > 0)) wod.workSec = 20;
       if (wod.restSec == null || wod.restSec < 0) wod.restSec = 10;
       if (!(wod.rounds > 0)) wod.rounds = 8;
@@ -477,8 +577,20 @@ export function wodToText(wod, sep = "\n") {
   const lines = [];
   lines.push(`# ${wod.name}`);
   switch (wod.type) {
-    case "AMRAP": lines.push(`AMRAP ${fmtMin(wod.timeCapSec)}`); break;
+    case "AMRAP":
+      lines.push(`AMRAP ${fmtMin(wod.timeCapSec)}`);
+      if (wod.repScheme) lines.push(wod.repScheme.join("-") + (wod.repStep ? "-..." : ""));
+      break;
     case "EMOM": {
+      if (wod.repStep) {
+        lines.push("DEATH BY");
+        lines.push(wod.blocks.map(fmtBlock).join(" + "));
+        return lines.join(sep);
+      }
+      if (wod.intervalSec % 60 !== 0) {
+        lines.push(`EVERY ${fmtMin(wod.intervalSec)} x ${wod.rounds}`);
+        break;
+      }
       const every = wod.intervalSec / 60;
       lines.push(`${every === 1 ? "EMOM" : `E${every}MOM`} x ${wod.rounds}`);
       break;

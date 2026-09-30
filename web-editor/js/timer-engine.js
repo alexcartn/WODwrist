@@ -45,6 +45,9 @@ export class TimerEngine {
 
   isInterval() { return this.wod.type === "EMOM" || this.wod.type === "TABATA"; }
 
+  // Death by: EMOM whose target grows every minute, ends at the first miss.
+  isDeathBy() { return this.wod.type === "EMOM" && this.wod.repStep > 0; }
+
   // ---------- time ----------
 
   activeMs(now) {
@@ -100,15 +103,19 @@ export class TimerEngine {
 
   target(block) {
     if (block == null) return 0;
+    const step = this.wod.repStep || 0;
+    if (this.isDeathBy()) return block.reps + this.round * step;
     if (block.reps > 0) return block.reps;
     const rs = this.wod.repScheme;
     if (rs && this.round < rs.length) return rs[this.round];
+    // open ladder (3-6-9-...): keep adding the step
+    if (rs && step > 0) return rs[rs.length - 1] + (this.round - rs.length + 1) * step;
     return 0;
   }
 
-  // Rounds shown as "3/10"; null for AMRAP (open-ended).
+  // Rounds shown as "3/10"; null when open-ended (AMRAP, Death by).
   totalRounds() {
-    return this.wod.type === "AMRAP" ? null : this.wod.rounds;
+    return this.wod.type === "AMRAP" || this.isDeathBy() ? null : this.wod.rounds;
   }
 
   // ---------- controls ----------
@@ -192,6 +199,8 @@ export class TimerEngine {
         const iv = w.intervalSec * 1000;
         const idx = Math.floor(a / iv);
         while (this.round < idx && this.round < w.rounds - 1) {
+          // Death by: the minute ended before the target, it is over
+          if (this.isDeathBy() && !this.intervalDone) return ev.concat(this.done((this.round + 1) * iv, false));
           this.closeLap(ev);
           this.nextInterval();
         }
@@ -271,6 +280,7 @@ export class TimerEngine {
     }
     if (this.isInterval()) {
       this.intervalDone = true;
+      if (this.isDeathBy()) this.roundsCompleted++;
       ev.push([E.TARGET_DONE, 0]);
       return;
     }
@@ -292,6 +302,9 @@ export class TimerEngine {
   score() {
     switch (this.wod.type) {
       case "AMRAP": return { kind: "rounds", rounds: this.roundsCompleted, reps: this.lapReps };
+      case "EMOM":
+        if (this.isDeathBy()) return { kind: "rounds", rounds: this.roundsCompleted, reps: this.lapReps };
+        return { kind: "reps", reps: this.totalReps };
       case "FOR_TIME":
         if (this.state === S.DONE && !this.capped) return { kind: "time", ms: this.doneActiveMs };
         return { kind: "reps", reps: this.totalReps };

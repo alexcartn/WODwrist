@@ -8,7 +8,7 @@
 // Same WOD = same structure, whatever its name ("WOD" vs "WOD 2026-09-30").
 export function wodSignature(wod) {
   const head = [wod.type, wod.timeCapSec, wod.intervalSec, wod.workSec, wod.restSec, wod.rounds,
-    wod.repScheme ? wod.repScheme.join("-") : ""].map((v) => (v == null ? "" : String(v)));
+    wod.repScheme ? wod.repScheme.join("-") : "", wod.repStep].map((v) => (v == null ? "" : String(v)));
   const blocks = wod.blocks.map((b) => `${b.movement}:${b.reps}${b.unit}:${b.slot == null ? "" : b.slot}`);
   return head.join("|") + "|" + blocks.join(",");
 }

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "name": "Death by burpees",
+  "type": "EMOM",
+  "timeCapSec": 3600,
+  "intervalSec": 60,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 60,
+  "repScheme": null,
+  "repStep": 1,
+  "blocks": [
+    {
+      "movement": "burpee",
+      "name": "Burpees",
+      "reps": 1,
+      "unit": "reps",
+      "slot": 0
+    }
+  ]
+}

@@ -1,28 +1,28 @@
 {
   "version": 1,
-  "name": "EMOM 10",
+  "name": "Death by: 2 thrusters + 1 burpee",
   "type": "EMOM",
-  "timeCapSec": 600,
+  "timeCapSec": 3600,
   "intervalSec": 60,
   "workSec": null,
   "restSec": null,
-  "rounds": 10,
+  "rounds": 60,
   "repScheme": null,
-  "repStep": null,
+  "repStep": 2,
   "blocks": [
     {
-      "movement": "kb_swing",
-      "name": "KB swings",
-      "reps": 12,
+      "movement": "thruster",
+      "name": "Thrusters",
+      "reps": 2,
       "unit": "reps",
       "slot": 0
     },
     {
       "movement": "burpee",
       "name": "Burpees",
-      "reps": 10,
+      "reps": 1,
       "unit": "reps",
-      "slot": 1
+      "slot": 0
     }
   ]
 }

@@ -1,28 +1,21 @@
 {
   "version": 1,
-  "name": "EMOM 10",
+  "name": "every 90 sec for 12 min",
   "type": "EMOM",
-  "timeCapSec": 600,
-  "intervalSec": 60,
+  "timeCapSec": 720,
+  "intervalSec": 90,
   "workSec": null,
   "restSec": null,
-  "rounds": 10,
+  "rounds": 8,
   "repScheme": null,
   "repStep": null,
   "blocks": [
-    {
-      "movement": "kb_swing",
-      "name": "KB swings",
-      "reps": 12,
-      "unit": "reps",
-      "slot": 0
-    },
     {
       "movement": "burpee",
       "name": "Burpees",
       "reps": 10,
       "unit": "reps",
-      "slot": 1
+      "slot": 0
     }
   ]
 }

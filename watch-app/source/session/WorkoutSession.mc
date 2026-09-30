@@ -334,7 +334,7 @@ class WorkoutSession {
 
     private function buildResult(active as Number) as Dictionary {
         var kind = "reps";
-        if (engine.wodType == WT_AMRAP) {
+        if (engine.wodType == WT_AMRAP || engine.isDeathBy()) {
             kind = "rounds";
         } else if (engine.hasTimeScore()) {
             kind = "time";
@@ -342,7 +342,7 @@ class WorkoutSession {
         return {
             "kind" => kind,
             "rounds" => engine.roundsCompleted,
-            "reps" => engine.wodType == WT_AMRAP ? engine.lapReps : engine.totalReps,
+            "reps" => engine.wodType == WT_AMRAP || engine.isDeathBy() ? engine.lapReps : engine.totalReps,
             "ms" => active,
             "t" => Time.now().value(),
             "laps" => roundTimes,

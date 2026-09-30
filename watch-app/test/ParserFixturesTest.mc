@@ -15,6 +15,7 @@ function fixture_amrap(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], null, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 3, "block count");
@@ -37,6 +38,35 @@ function fixture_amrap(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function fixture_amrap_ladder(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("AMRAP 10\n3-6-9-...\nthrusters\nchest to bar\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "AMRAP 10", "name");
+    TestUtil.check(logger, w["type"], "AMRAP", "type");
+    TestUtil.check(logger, w["timeCapSec"], 600, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], null, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], null, "rounds");
+    TestUtil.check(logger, w["repStep"], 3, "repStep");
+    TestUtil.checkArray(logger, w["repScheme"], [3, 6, 9], "repScheme");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 2, "block count");
+    TestUtil.check(logger, b[0]["movement"], "thruster", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Thrusters", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 0, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], null, "block 0 slot");
+    TestUtil.check(logger, b[1]["movement"], "chest_to_bar", "block 1 movement");
+    TestUtil.check(logger, b[1]["name"], "Chest-to-bar", "block 1 name");
+    TestUtil.check(logger, b[1]["reps"], 0, "block 1 reps");
+    TestUtil.check(logger, b[1]["unit"], "reps", "block 1 unit");
+    TestUtil.check(logger, b[1]["slot"], null, "block 1 slot");
+    return true;
+}
+
+(:test)
 function fixture_amrap_named(logger as Test.Logger) as Boolean {
     var r = WodParser.parse("# Cindy-ish\n20 min AMRAP\n5 pull-ups\n10 push-ups\n15 air squats\n");
     Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
@@ -48,6 +78,7 @@ function fixture_amrap_named(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], null, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 3, "block count");
@@ -70,6 +101,59 @@ function fixture_amrap_named(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function fixture_death_by(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("# Death by burpees\nDEATH BY burpees\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "Death by burpees", "name");
+    TestUtil.check(logger, w["type"], "EMOM", "type");
+    TestUtil.check(logger, w["timeCapSec"], 3600, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], 60, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], 60, "rounds");
+    TestUtil.check(logger, w["repStep"], 1, "repStep");
+    TestUtil.check(logger, w["repScheme"], null, "repScheme");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 1, "block count");
+    TestUtil.check(logger, b[0]["movement"], "burpee", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Burpees", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 1, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], 0, "block 0 slot");
+    return true;
+}
+
+(:test)
+function fixture_death_by_pair(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("Death by: 2 thrusters + 1 burpee\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "Death by: 2 thrusters + 1 burpee", "name");
+    TestUtil.check(logger, w["type"], "EMOM", "type");
+    TestUtil.check(logger, w["timeCapSec"], 3600, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], 60, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], 60, "rounds");
+    TestUtil.check(logger, w["repStep"], 2, "repStep");
+    TestUtil.check(logger, w["repScheme"], null, "repScheme");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 2, "block count");
+    TestUtil.check(logger, b[0]["movement"], "thruster", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Thrusters", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 2, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], 0, "block 0 slot");
+    TestUtil.check(logger, b[1]["movement"], "burpee", "block 1 movement");
+    TestUtil.check(logger, b[1]["name"], "Burpees", "block 1 name");
+    TestUtil.check(logger, b[1]["reps"], 1, "block 1 reps");
+    TestUtil.check(logger, b[1]["unit"], "reps", "block 1 unit");
+    TestUtil.check(logger, b[1]["slot"], 0, "block 1 slot");
+    return true;
+}
+
+(:test)
 function fixture_e2mom_combo(logger as Test.Logger) as Boolean {
     var r = WodParser.parse("E2MOM 20\n5 power cleans (80/55kg) + 10 box jumps\n15 cal row\n");
     Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
@@ -81,6 +165,7 @@ function fixture_e2mom_combo(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], 10, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 3, "block count");
@@ -114,6 +199,7 @@ function fixture_emom(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], 10, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 2, "block count");
@@ -142,6 +228,7 @@ function fixture_emom_min(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], 12, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 3, "block count");
@@ -164,6 +251,59 @@ function fixture_emom_min(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function fixture_every(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("EVERY 2:30 x 6\n5 power cleans (80/55kg)\n10 box jumps\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "EVERY 2:30 x 6", "name");
+    TestUtil.check(logger, w["type"], "EMOM", "type");
+    TestUtil.check(logger, w["timeCapSec"], 900, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], 150, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], 6, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
+    TestUtil.check(logger, w["repScheme"], null, "repScheme");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 2, "block count");
+    TestUtil.check(logger, b[0]["movement"], "power_clean", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Power cleans", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 5, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], 0, "block 0 slot");
+    TestUtil.check(logger, b[1]["movement"], "box_jump", "block 1 movement");
+    TestUtil.check(logger, b[1]["name"], "Box jumps", "block 1 name");
+    TestUtil.check(logger, b[1]["reps"], 10, "block 1 reps");
+    TestUtil.check(logger, b[1]["unit"], "reps", "block 1 unit");
+    TestUtil.check(logger, b[1]["slot"], 1, "block 1 slot");
+    return true;
+}
+
+(:test)
+function fixture_every_sec(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("every 90 sec for 12 min\n10 burpees\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "every 90 sec for 12 min", "name");
+    TestUtil.check(logger, w["type"], "EMOM", "type");
+    TestUtil.check(logger, w["timeCapSec"], 720, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], 90, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], 8, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
+    TestUtil.check(logger, w["repScheme"], null, "repScheme");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 1, "block count");
+    TestUtil.check(logger, b[0]["movement"], "burpee", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Burpees", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 10, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], 0, "block 0 slot");
+    return true;
+}
+
+(:test)
 function fixture_for_time(logger as Test.Logger) as Boolean {
     var r = WodParser.parse("FOR TIME cap 15\n21-15-9\nthrusters\npull-ups\n");
     Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
@@ -175,6 +315,7 @@ function fixture_for_time(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], 3, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.checkArray(logger, w["repScheme"], [21, 15, 9], "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 2, "block count");
@@ -203,6 +344,7 @@ function fixture_for_time_single(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], 1, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 4, "block count");
@@ -241,6 +383,7 @@ function fixture_one_line(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], null, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 3, "block count");
@@ -274,6 +417,7 @@ function fixture_rft(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], null, "workSec");
     TestUtil.check(logger, w["restSec"], null, "restSec");
     TestUtil.check(logger, w["rounds"], 3, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 3, "block count");
@@ -307,6 +451,7 @@ function fixture_tabata(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], 20, "workSec");
     TestUtil.check(logger, w["restSec"], 10, "restSec");
     TestUtil.check(logger, w["rounds"], 8, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 1, "block count");
@@ -330,6 +475,7 @@ function fixture_tabata_default(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, w["workSec"], 20, "workSec");
     TestUtil.check(logger, w["restSec"], 10, "restSec");
     TestUtil.check(logger, w["rounds"], 8, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
     TestUtil.check(logger, w["repScheme"], null, "repScheme");
     var b = w["blocks"] as Array<Dictionary>;
     TestUtil.check(logger, b.size(), 2, "block count");

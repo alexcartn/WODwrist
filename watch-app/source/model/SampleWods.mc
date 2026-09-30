@@ -9,7 +9,10 @@ module SampleWods {
             "# Swing EMOM\nEMOM 10\nodd: 12 kb swings\neven: 10 burpees",
             "# Fran-ish\nFOR TIME cap 10\n21-15-9\nthrusters\npull-ups",
             "# Tabata squats\nTABATA 8x20/10\nair squats",
-            "# DB snatch E2MOM\nE2MOM 12\n20 alt db snatches + 10 burpees"
+            "# DB snatch E2MOM\nE2MOM 12\n20 alt db snatches + 10 burpees",
+            "# Death by burpees\nDEATH BY burpees",
+            "# Clean ladder\nAMRAP 10\n3-6-9-...\nthrusters\nchest to bar",
+            "# Every 2:30\nEVERY 2:30 x 6\n5 power cleans\n10 box jumps"
         ] as Array<String>;
     }
 

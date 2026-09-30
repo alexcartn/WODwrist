@@ -58,6 +58,7 @@ class TimerEngine {
     private var _workMs as Number;
     private var _rounds as Number;
     private var _repScheme as Array<Number>?;
+    private var _repStep as Number = 0;
 
     function initialize(w as Dictionary, countdownSec as Number) {
         wod = w;
@@ -78,6 +79,7 @@ class TimerEngine {
         _workMs = w["workSec"] == null ? 0 : (w["workSec"] as Number) * 1000;
         _rounds = w["rounds"] == null ? 0 : w["rounds"] as Number;
         _repScheme = w["repScheme"] as Array<Number>?;
+        _repStep = w["repStep"] instanceof Number ? w["repStep"] as Number : 0;
 
         _slots = [] as Array<Number>;
         for (var i = 0; i < _blocks.size(); i++) {
@@ -98,6 +100,11 @@ class TimerEngine {
 
     function isInterval() as Boolean {
         return wodType == WT_EMOM || wodType == WT_TABATA;
+    }
+
+    // Death by: EMOM whose target grows every minute, ends at the first miss.
+    function isDeathBy() as Boolean {
+        return wodType == WT_EMOM && _repStep > 0;
     }
 
     // ---------- time ----------
@@ -164,9 +171,13 @@ class TimerEngine {
     function target(b as Dictionary?) as Number {
         if (b == null) { return 0; }
         var reps = b["reps"] as Number;
+        if (isDeathBy()) { return reps + round * _repStep; }
         if (reps > 0) { return reps; }
-        if (_repScheme != null && round < (_repScheme as Array<Number>).size()) {
-            return (_repScheme as Array<Number>)[round];
+        if (_repScheme != null) {
+            var rs = _repScheme as Array<Number>;
+            if (round < rs.size()) { return rs[round]; }
+            // open ladder (3-6-9-...): keep adding the step
+            if (_repStep > 0) { return rs[rs.size() - 1] + (round - rs.size() + 1) * _repStep; }
         }
         return 0;
     }
@@ -176,9 +187,9 @@ class TimerEngine {
         return _capMs;
     }
 
-    // 0 for AMRAP (open-ended)
+    // 0 when open-ended (AMRAP, Death by)
     function totalRounds() as Number {
-        return wodType == WT_AMRAP ? 0 : _rounds;
+        return wodType == WT_AMRAP || isDeathBy() ? 0 : _rounds;
     }
 
     // ---------- controls ----------
@@ -260,6 +271,8 @@ class TimerEngine {
         } else if (wodType == WT_EMOM) {
             var idx = a / _intervalMs;
             while (round < idx && round < _rounds - 1) {
+                // Death by: the minute ended before the target, it is over
+                if (isDeathBy() && !intervalDone) { return appendAll(ev, done((round + 1) * _intervalMs, false)); }
                 closeLap(ev);
                 nextInterval();
             }
@@ -336,6 +349,7 @@ class TimerEngine {
         }
         if (isInterval()) {
             intervalDone = true;
+            if (isDeathBy()) { roundsCompleted++; }
             ev.add([EV_TARGET_DONE, 0]);
             return;
         }
@@ -364,7 +378,7 @@ class TimerEngine {
 
     // "5 + 12" (AMRAP), "4:37" (FOR_TIME), "123 reps"
     function scoreText() as String {
-        if (wodType == WT_AMRAP) {
+        if (wodType == WT_AMRAP || isDeathBy()) {
             return roundsCompleted.format("%d") + " + " + lapReps.format("%d");
         }
         if (hasTimeScore()) {

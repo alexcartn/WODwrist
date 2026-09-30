@@ -68,7 +68,7 @@ class SummaryView extends WatchUi.View {
 
         var lines = [] as Array<String>;
         lines.add("Time " + Str.clock(e.finalActiveMs(), false));
-        if (e.wodType == WT_AMRAP || e.wodType == WT_FOR_TIME) {
+        if (e.wodType == WT_AMRAP || e.wodType == WT_FOR_TIME || e.isDeathBy()) {
             lines.add("Rounds " + e.roundsCompleted.format("%d") + "  Reps " + e.totalReps.format("%d"));
         } else {
             lines.add("Reps " + e.totalReps.format("%d"));

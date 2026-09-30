@@ -192,3 +192,46 @@ test("nextBlocks previews the next interval", () => {
   const a = new TimerEngine(wod("AMRAP 5\n5 burpees"), 0);
   assert.deepEqual(a.nextBlocks(), []);
 });
+
+test("open ladder AMRAP keeps adding the step", () => {
+  const e = new TimerEngine(wod("AMRAP 20\n3-6-9-...\nthrusters\nchest to bar"), 0);
+  e.start(0);
+  const targets = [];
+  for (let r = 0; r < 5; r++) {
+    targets.push(e.target(e.currentBlock()));
+    e.next(0);
+    e.next(0);
+  }
+  assert.deepEqual(targets, [3, 6, 9, 12, 15]);
+  assert.equal(e.roundsCompleted, 5);
+});
+
+test("Death by: target grows every minute, ends at the first miss", () => {
+  const e = new TimerEngine(wod("DEATH BY burpees"), 0);
+  e.start(0);
+  assert.equal(e.totalRounds(), null);
+  const ev = [];
+  // minutes 1-4 done (1, 2, 3, 4 reps), minute 5: only 3 of 5
+  for (let m = 0; m < 5; m++) {
+    const t = m * 60000 + 1000;
+    ev.push(...e.tick(t));
+    assert.equal(e.target(e.currentBlock()), m + 1);
+    ev.push(...e.addRep(m < 4 ? m + 1 : 3, t));
+  }
+  ev.push(...e.tick(300000));
+  assert.equal(e.state, S.DONE);
+  assert.deepEqual(ev.filter((x) => x[0] === E.DONE), [[E.DONE, 3]]);
+  assert.deepEqual(e.score(), { kind: "rounds", rounds: 4, reps: 3 });
+  assert.equal(e.activeMs(999999), 300000);
+});
+
+test("EVERY 2:30 intervals", () => {
+  const e = new TimerEngine(wod("EVERY 2:30 x 4\n5 power cleans"), 0);
+  e.start(0);
+  const ev = run(e, 0, 600000);
+  assert.equal(ev.filter((x) => x[0] === E.LAP).length, 3);
+  assert.equal(ev.filter((x) => x[0] === E.DONE).length, 1);
+  const f = new TimerEngine(wod("EVERY 2:30 x 4\n5 power cleans"), 0);
+  f.start(0);
+  assert.equal(f.clockMs(10000), 140000);
+});
