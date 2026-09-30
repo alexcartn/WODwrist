@@ -37,6 +37,19 @@ Coach mode (class timer): bigger clock, movement line under it, no footer,
 longer vibrations, no activity saved unless "Record activity in coach mode"
 is on.
 
+## Coach menu (main menu > Coach)
+
+| Item | What it does |
+| --- | --- |
+| Class timer | on/off: big clock, strong vibrations, no recording |
+| Run class plan | runs every part of the coach file back to back (warm-up, strength, metcon). In the web editor, separate parts with a line `---`, publish, then Sync WOD on the watch |
+| Start | tap to cycle: now (10 s countdown), next full minute, next :00/:15/:30/:45, in 2 min, in 5 min. Applies to class timer starts and to the plan |
+| Rest between parts | tap to cycle: 0:30, 1:00, 1:30, 2:00, 3:00, none. Countdown before each next part, showing `2/3 Strength` |
+| Halfway alert / 1 min left alert | double long vibration + `HALFWAY` / `1 MIN LEFT` on screen for 2 s (also in athlete mode) |
+
+In a plan, the pause menu's Finish goes to the next part and End class stops
+the plan. Countdowns over a minute show `m:ss`.
+
 ## Score memory
 
 Each saved workout stores last + best per WOD (same structure = same WOD,

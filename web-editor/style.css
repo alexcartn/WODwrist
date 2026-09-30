@@ -113,3 +113,6 @@ pre { overflow-x: auto; font: 13px/1.4 var(--mono); margin: 8px 0 0; }
   font-variant-numeric: tabular-nums;
 }
 .t-move { text-align: center; font-size: clamp(22px, 4.5vw, 64px); min-height: 1.3em; margin-bottom: 16px; }
+hr.part { border: none; border-top: 1px dashed var(--line); margin: 16px 0; }
+select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }

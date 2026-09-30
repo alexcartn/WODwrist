@@ -4,8 +4,11 @@ import Toybox.WatchUi;
 function buildPauseMenu() as WatchUi.Menu2 {
     var menu = new WatchUi.Menu2({ :title => "Paused" });
     menu.addItem(new WatchUi.MenuItem("Resume", null, :resume, {}));
-    menu.addItem(new WatchUi.MenuItem("Finish", "Save the score", :finish, {}));
+    menu.addItem(new WatchUi.MenuItem("Finish", getApp().plan != null ? "Next part" : "Save the score", :finish, {}));
     menu.addItem(new WatchUi.MenuItem("Discard", "Throw away", :discard, {}));
+    if (getApp().plan != null) {
+        menu.addItem(new WatchUi.MenuItem("End class", "Stop the plan here", :endPlan, {}));
+    }
     return menu;
 }
 
@@ -24,6 +27,11 @@ class PauseMenuDelegate extends WatchUi.Menu2InputDelegate {
             _s.resume();
             WatchUi.popView(WatchUi.SLIDE_DOWN);
         } else if (id == :finish) {
+            _s.finishEarly();
+            WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+            getApp().onSessionDone(_s);
+        } else if (id == :endPlan) {
+            getApp().plan = null;
             _s.finishEarly();
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
             _s.showSummary();

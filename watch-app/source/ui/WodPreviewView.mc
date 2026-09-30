@@ -76,11 +76,9 @@ class WodPreviewDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        var app = getApp();
-        var session = new WorkoutSession(_wod, WorkoutSession.propBool("coachMode", false));
-        app.session = session;
-        WatchUi.switchToView(new RunView(session), new RunDelegate(session), WatchUi.SLIDE_UP);
-        session.begin();
+        var coach = WorkoutSession.propBool("coachMode", false);
+        // coach: start at the chosen time (next quarter, in 2 min...)
+        getApp().startWorkout(_wod, coach, coach ? Coach.startDelaySec() : null, true);
         return true;
     }
 

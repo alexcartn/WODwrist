@@ -171,6 +171,11 @@ class TimerEngine {
         return 0;
     }
 
+    // Planned length in ms (0 for For time without cap): used for coach alerts.
+    function totalMs() as Number {
+        return _capMs;
+    }
+
     // 0 for AMRAP (open-ended)
     function totalRounds() as Number {
         return wodType == WT_AMRAP ? 0 : _rounds;

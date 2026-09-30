@@ -7,6 +7,9 @@
     <string id="SetAutoCount">Automatic rep counting</string>
     <string id="SetCoachMode">Class timer (coach mode)</string>
     <string id="SetCoachRecord">Record activity in coach mode</string>
+    <string id="SetPlanRest">Rest between class plan parts (s)</string>
+    <string id="SetAlertHalf">Vibrate at halfway</string>
+    <string id="SetAlertOneMin">Vibrate 1 min before the end</string>
     <string id="SetCapture">Data capture mode (rep-lab)</string>
 
     <string id="FitLapReps">Reps</string>

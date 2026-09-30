@@ -8,6 +8,9 @@ class WodWristApp extends Application.AppBase {
     var session as WorkoutSession? = null;
     // true while the main menu is the visible view (so a background sync can refresh it)
     var menuOnTop as Boolean = true;
+    // class plan being run (coach), null otherwise
+    var plan as Array<Dictionary>? = null;
+    var planIndex as Number = 0;
 
     function initialize() {
         AppBase.initialize();
@@ -48,12 +51,53 @@ class WodWristApp extends Application.AppBase {
         }
     }
 
+    // Show the run screen for a new workout. replace = switch the current
+    // view (preview, previous part), otherwise push over the main menu.
+    function startWorkout(wod as Dictionary, coachMode as Boolean, countdownSec as Number?, replace as Boolean) as Void {
+        var s = new WorkoutSession(wod, coachMode, countdownSec);
+        if (plan != null) {
+            s.partIndex = planIndex;
+            s.partCount = (plan as Array<Dictionary>).size();
+        }
+        session = s;
+        menuOnTop = false;
+        if (replace) {
+            WatchUi.switchToView(new RunView(s), new RunDelegate(s), WatchUi.SLIDE_UP);
+        } else {
+            WatchUi.pushView(new RunView(s), new RunDelegate(s), WatchUi.SLIDE_UP);
+        }
+        s.begin();
+    }
+
+    // Coach: run every part of the stored plan back to back.
+    function startPlan() as Void {
+        var p = Coach.plan();
+        if (p.size() == 0) { return; }
+        plan = p;
+        planIndex = 0;
+        startWorkout(p[0], true, Coach.startDelaySec(), false);
+    }
+
+    // A workout ended (time up, target reached, or Finish in the pause menu).
+    function onSessionDone(s as WorkoutSession) as Void {
+        if (plan != null && planIndex + 1 < (plan as Array<Dictionary>).size()) {
+            // keep the finished part if the coach records, then chain the next one
+            if (s.hasRecording()) { s.save(); }
+            planIndex++;
+            startWorkout((plan as Array<Dictionary>)[planIndex], true, Coach.restSec(), true);
+            return;
+        }
+        plan = null;
+        s.showSummary();
+    }
+
     // Pop `pops` views and show a fresh main menu.
     function backToMenu(pops as Number) as Void {
         for (var i = 0; i < pops; i++) {
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
         }
         session = null;
+        plan = null;
         menuOnTop = true;
         WatchUi.switchToView(buildMainMenu(), new MainMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
     }

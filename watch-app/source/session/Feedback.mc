@@ -45,6 +45,18 @@ module Feedback {
         tone(Attention.TONE_LAP);
     }
 
+    // Coach alerts: two long pulses, hard to miss mid-workout.
+    function alert() as Void {
+        if (Attention has :vibrate) {
+            Attention.vibrate([
+                new Attention.VibeProfile(100, 500),
+                new Attention.VibeProfile(0, 200),
+                new Attention.VibeProfile(100, 500)
+            ]);
+        }
+        tone(Attention.TONE_ALERT_HI);
+    }
+
     function block() as Void {
         vibe(150);
     }

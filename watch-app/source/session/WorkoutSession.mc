@@ -42,11 +42,23 @@ class WorkoutSession {
     private var _lapHrCount as Number = 0;
     private var _lapStartMs as Number = 0;
     private var _summaryFromMenu as Boolean = false;
+    // class plan: this session is part partIndex (0-based) of partCount
+    var partIndex as Number = 0;
+    var partCount as Number = 1;
+    // short message over the run screen ("HALFWAY", "1 MIN LEFT")
+    var flashText as String? = null;
+    private var _flashUntil as Number = 0;
+    private var _lastActive as Number = 0;
+    private var _alertHalf as Boolean = false;
+    private var _alertOneMin as Boolean = true;
 
-    function initialize(wod as Dictionary, coachMode as Boolean) {
+    // countdownSec null = the "Countdown" setting.
+    function initialize(wod as Dictionary, coachMode as Boolean, countdownSec as Number?) {
         coach = coachMode;
         Feedback.strong = coachMode;
-        engine = new TimerEngine(wod, propNumber("countdownSec", 10));
+        engine = new TimerEngine(wod, countdownSec != null ? countdownSec : propNumber("countdownSec", 10));
+        _alertHalf = propBool("alertHalf", false);
+        _alertOneMin = propBool("alertOneMin", true);
         _capture = !coachMode && propBool("captureMode", false);
         if (!coachMode && (_capture || propBool("autoCount", true))) {
             _counter = new RepCounter(method(:onCounterRep), _capture);
@@ -92,14 +104,36 @@ class WorkoutSession {
         var t = now();
         handle(engine.tick(t));
         if (finished) { return; }
+        checkAlerts(t);
         var sec = t / 1000;
         if (sec != _lastHrSec) {
             _lastHrSec = sec;
             sampleHr();
         }
         var shown = engine.clockMs(t) / 1000;
+        if (flashText != null && t >= _flashUntil) {
+            flashText = null;
+            WatchUi.requestUpdate();
+        }
         if (shown != _lastShownSec) {
             _lastShownSec = shown;
+            WatchUi.requestUpdate();
+        }
+    }
+
+    // Halfway / 1 min left: long vibration + a word on screen for 2 s.
+    private function checkAlerts(t as Number) as Void {
+        var a = engine.activeMs(t);
+        if (engine.state != ST_WORK && engine.state != ST_REST) {
+            _lastActive = a;
+            return;
+        }
+        var due = Coach.alertsDue(_lastActive, a, engine.totalMs(), _alertHalf, _alertOneMin);
+        _lastActive = a;
+        for (var i = 0; i < due.size(); i++) {
+            flashText = due[i] == ALERT_HALF ? "HALFWAY" : "1 MIN LEFT";
+            _flashUntil = t + 2000;
+            Feedback.alert();
             WatchUi.requestUpdate();
         }
     }
@@ -295,7 +329,7 @@ class WorkoutSession {
         }
         log("E", engine.scoreText());
         Feedback.done();
-        if (!_summaryFromMenu) { showSummary(); }
+        if (!_summaryFromMenu) { getApp().onSessionDone(self); }
     }
 
     private function buildResult(active as Number) as Dictionary {

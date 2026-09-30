@@ -124,6 +124,14 @@ class SyncService {
             }
         }
         Movements.release();
+        // The file order is the class plan (warm-up, strength, metcon...).
+        var plan = [] as Array<Dictionary>;
+        for (var i = 0; i < items.size(); i++) {
+            var r = WodParser.validate(items[i]);
+            if (r.hasKey("wod")) { plan.add(r["wod"] as Dictionary); }
+        }
+        Movements.release();
+        Application.Storage.setValue("plan", plan as Array<Application.PropertyValueType>);
         if (ok == 0) {
             done(false, err.length() > 0 ? err : "No WOD in file");
             return;

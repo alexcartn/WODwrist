@@ -47,3 +47,26 @@ function historyStats(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, ScoreHistory.formatTenths(24), "2.4 s", "tenths");
     return true;
 }
+
+// Ports of web-editor/test/coach.test.js
+(:test)
+function coachAlerts(logger as Test.Logger) as Boolean {
+    var a = Coach.alertsDue(359000, 360000, 720000, true, true);
+    Test.assertEqual(a.size(), 1);
+    Test.assertEqual(a[0], ALERT_HALF);
+    Test.assertEqual(Coach.alertsDue(360000, 361000, 720000, true, true).size(), 0);
+    Test.assertEqual(Coach.alertsDue(659500, 660250, 720000, true, true)[0], ALERT_ONE_MIN);
+    Test.assertEqual(Coach.alertsDue(0, 720000, 720000, true, true).size(), 2);
+    Test.assertEqual(Coach.alertsDue(59000, 61000, 120000, false, true).size(), 0);
+    Test.assertEqual(Coach.alertsDue(1000, 999999, 0, true, true).size(), 0);
+    return true;
+}
+
+(:test)
+function coachNextSlot(logger as Test.Logger) as Boolean {
+    Test.assertEqual(Coach.secondsToNextSlot(18, 22, 10, 15, 30), 470);
+    Test.assertEqual(Coach.secondsToNextSlot(18, 29, 50, 15, 30), 910);
+    Test.assertEqual(Coach.secondsToNextSlot(18, 29, 50, 1, 30), 70);
+    Test.assertEqual(Coach.secondsToNextSlot(23, 50, 0, 15, 30), 600);
+    return true;
+}

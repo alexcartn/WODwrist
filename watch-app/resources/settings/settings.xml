@@ -17,6 +17,15 @@
     <setting propertyKey="@Properties.coachRecord" title="@Strings.SetCoachRecord">
         <settingConfig type="boolean" />
     </setting>
+    <setting propertyKey="@Properties.planRestSec" title="@Strings.SetPlanRest">
+        <settingConfig type="numeric" min="0" max="600" />
+    </setting>
+    <setting propertyKey="@Properties.alertHalf" title="@Strings.SetAlertHalf">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.alertOneMin" title="@Strings.SetAlertOneMin">
+        <settingConfig type="boolean" />
+    </setting>
     <setting propertyKey="@Properties.captureMode" title="@Strings.SetCapture">
         <settingConfig type="boolean" />
     </setting>

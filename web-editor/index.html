@@ -25,6 +25,7 @@
         <button class="link" data-example="emom">EMOM</button>
         <button class="link" data-example="fortime">For time</button>
         <button class="link" data-example="tabata">Tabata</button>
+        <button class="link" data-example="class">Class plan</button>
       </div>
       <details class="help">
         <summary>Format</summary>
@@ -35,6 +36,7 @@
           <li>Rep scheme for For time: <code>21-15-9</code></li>
           <li>EMOM: lines rotate minute by minute, or use <code>odd:</code> / <code>even:</code> / <code>min 3:</code>. Join movements done in the same minute with <code>+</code></li>
           <li>Lines can also be separated by <code>;</code> (that is what the watch settings field uses)</li>
+          <li>Class plan: separate the parts (warm-up, strength, metcon) with a line <code>---</code>. The coach watch runs them back to back</li>
         </ul>
       </details>
     </section>
@@ -69,6 +71,7 @@
 
   <main id="timer" class="panel">
     <div class="timer">
+      <div class="center"><select id="tPart" hidden></select></div>
       <div id="tState" class="t-state">READY</div>
       <div id="tRound" class="t-round"></div>
       <div id="tClock" class="t-clock">0:00</div>

@@ -47,12 +47,22 @@ class RunView extends WatchUi.View {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h * 11 / 100, Graphics.FONT_TINY, label, center);
 
-        drawRoundLine(dc, e, cx, h * 21 / 100);
+        if (e.state == ST_COUNTDOWN) {
+            // what is about to start (and which part of the class plan)
+            var title = e.wod["name"] as String;
+            if (_s.partCount > 1) {
+                title = (_s.partIndex + 1).format("%d") + "/" + _s.partCount.format("%d") + " " + title;
+            }
+            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 21 / 100, Graphics.FONT_TINY, title, center);
+        } else {
+            drawRoundLine(dc, e, cx, h * 21 / 100);
+        }
 
         // ---- clock ----
         var ms = e.clockMs(now);
         var clock;
-        if (e.state == ST_COUNTDOWN) {
+        if (e.state == ST_COUNTDOWN && ms < 60000) {
             clock = ((ms + 999) / 1000).format("%d");
         } else {
             clock = Str.clock(ms, e.clockCountsDown(now));
@@ -92,6 +102,16 @@ class RunView extends WatchUi.View {
                 dc.drawText(cx, h * 75 / 100, Graphics.FONT_MEDIUM, reps, center);
                 drawConfidence(dc, cx + w * 22 / 100, h * 75 / 100, w);
             }
+        }
+
+        // ---- coach alert flash ----
+        if (_s.flashText != null) {
+            var fh = dc.getFontHeight(Graphics.FONT_MEDIUM);
+            var fy = _s.coach ? h * 79 / 100 : h * 62 / 100;
+            dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_ORANGE);
+            dc.fillRoundedRectangle(w * 15 / 100, fy - fh * 3 / 4, w * 70 / 100, fh * 3 / 2, fh / 3);
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, fy, Graphics.FONT_MEDIUM, _s.flashText as String, center);
         }
 
         // ---- footer ----

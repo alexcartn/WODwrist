@@ -1,5 +1,6 @@
 import { parseWod, wodToText } from "./wod-parser.js";
 import { TimerEngine, S, E } from "./timer-engine.js";
+import { splitParts } from "./coach.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -8,6 +9,7 @@ const EXAMPLES = {
   emom: "EMOM 10\nodd: 12 kb swings\neven: 10 burpees",
   fortime: "FOR TIME cap 15\n21-15-9\nthrusters\npull-ups",
   tabata: "TABATA 8x20/10\nair squats",
+  class: "# Warm-up\nEMOM 6\nodd: 10 air squats\neven: 10 push-ups\n---\n# Strength\nE2MOM 10\n3 power cleans\n---\n# Metcon\nAMRAP 12\n10 wall balls\n10 burpees\n200m run",
 };
 
 const store = {
@@ -19,7 +21,13 @@ const store = {
   },
 };
 
-let current = null; // last valid WOD
+let parts = [];      // valid WODs, one per part of the class plan
+let current = null;  // first part (settings text, default timer)
+
+// What gets published: one WOD, or { wods: [...] } for a class plan.
+function payload() {
+  return parts.length > 1 ? { version: 1, wods: parts } : parts[0];
+}
 
 // ---------- editor ----------
 
@@ -68,38 +76,65 @@ function escapeHtml(s) {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 }
 
-function render() {
-  const text = $("wodText").value;
-  store.set("text", text);
-  const r = parseWod(text);
-  const status = $("status");
-  if (r.error) {
-    current = null;
-    status.className = "status err";
-    status.textContent = r.line ? `Line ${r.line}: ${r.error}` : r.error;
-    $("preview").innerHTML = "";
-    $("json").textContent = "";
-    return;
-  }
-  current = r.wod;
-  const w = r.wod;
-  const custom = w.blocks.filter((b) => b.movement === "custom").length;
-  status.className = "status ok";
-  status.textContent = custom
-    ? `OK, ${custom} movement(s) not in the catalog: counted by hand on the watch`
-    : "OK";
+function partHtml(w) {
   const items = w.blocks
     .map((b) => {
       const tag = b.movement === "custom" ? '<span class="tag">custom</span>' : "";
       return `<li>${escapeHtml(blockText(b))}${tag}</li>`;
     })
     .join("");
-  $("preview").innerHTML = `
+  return `
     <h2>${escapeHtml(w.name)}</h2>
     <div class="headline">${escapeHtml(headline(w))}</div>
     <ol>${items}</ol>
     <div class="plan">${plan(w)}</div>`;
-  $("json").textContent = JSON.stringify(w, null, 2);
+}
+
+function render() {
+  const text = $("wodText").value;
+  store.set("text", text);
+  const status = $("status");
+  const texts = splitParts(text);
+  const parsed = [];
+  for (let i = 0; i < texts.length; i++) {
+    const r = parseWod(texts[i]);
+    if (r.error) {
+      parts = [];
+      current = null;
+      status.className = "status err";
+      const where = texts.length > 1 ? `Part ${i + 1}, ` : "";
+      status.textContent = r.line ? `${where}line ${r.line}: ${r.error}` : `${where}${r.error}`;
+      $("preview").innerHTML = "";
+      $("json").textContent = "";
+      return;
+    }
+    parsed.push(r.wod);
+  }
+  if (parsed.length === 0) {
+    parts = [];
+    current = null;
+    status.className = "status err";
+    status.textContent = "Empty WOD";
+    $("preview").innerHTML = "";
+    $("json").textContent = "";
+    return;
+  }
+  parts = parsed;
+  current = parts[0];
+  const custom = parts.flatMap((w) => w.blocks).filter((b) => b.movement === "custom").length;
+  status.className = "status ok";
+  let msg = parts.length > 1 ? `OK, class plan with ${parts.length} parts` : "OK";
+  if (custom) msg += `, ${custom} movement(s) not in the catalog: counted by hand on the watch`;
+  status.textContent = msg;
+  $("preview").innerHTML = parts.map(partHtml).join('<hr class="part">');
+  $("json").textContent = JSON.stringify(payload(), null, 2);
+  $("copySettings").disabled = parts.length > 1;
+  $("copySettings").title = parts.length > 1
+    ? "The watch settings field takes one WOD: publish the plan to the coach URL instead"
+    : "Paste this into Garmin Connect > WODwrist > Settings > WOD text";
+  const sel = $("tPart");
+  sel.innerHTML = parts.map((w, i) => `<option value="${i}">${i + 1}. ${escapeHtml(w.name)}</option>`).join("");
+  sel.hidden = parts.length < 2;
   resetTimer();
 }
 
@@ -116,7 +151,7 @@ async function copy(text, btn) {
 
 function download() {
   if (!current) return;
-  const blob = new Blob([JSON.stringify(current, null, 2) + "\n"], { type: "application/json" });
+  const blob = new Blob([JSON.stringify(payload(), null, 2) + "\n"], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "today.json";
@@ -168,8 +203,8 @@ async function publish() {
       method: "PUT",
       headers,
       body: JSON.stringify({
-        message: `WOD: ${current.name}`,
-        content: b64(JSON.stringify(current, null, 2) + "\n"),
+        message: `WOD: ${parts.map((w) => w.name).join(" / ")}`,
+        content: b64(JSON.stringify(payload(), null, 2) + "\n"),
         branch,
         sha,
       }),
@@ -216,7 +251,8 @@ function onEvents(ev) {
 
 function resetTimer() {
   cancelAnimationFrame(raf);
-  engine = current ? new TimerEngine(current, 10) : null;
+  const w = parts[Number($("tPart").value) || 0] ?? current;
+  engine = w ? new TimerEngine(w, 10) : null;
   $("tStart").textContent = "Start";
   drawTimer();
 }
@@ -288,7 +324,8 @@ function init() {
     }),
   );
   $("copySettings").addEventListener("click", (e) => current && copy(wodToText(current, "; "), e.target));
-  $("copyJson").addEventListener("click", (e) => current && copy(JSON.stringify(current, null, 2), e.target));
+  $("copyJson").addEventListener("click", (e) => current && copy(JSON.stringify(payload(), null, 2), e.target));
+  $("tPart").addEventListener("change", resetTimer);
   $("downloadJson").addEventListener("click", download);
 
   for (const [id, key, def] of [["ghRepo", "repo", "alexcartn/WODwrist"], ["ghBranch", "branch", "master"], ["ghPath", "path", "web-editor/wod/today.json"], ["ghToken", "token", ""]]) {

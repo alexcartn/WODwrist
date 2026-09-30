@@ -22,8 +22,8 @@ function buildMainMenu() as WatchUi.Menu2 {
     menu.addItem(new WatchUi.MenuItem("Sync WOD", app.sync.hasUrl() ? "From coach page" : "Set URL in settings", MENU_SYNC, {}));
     var tot = ScoreHistory.totals();
     menu.addItem(new WatchUi.MenuItem("My stats", (tot["n"] as Number).format("%d") + " workouts", MENU_STATS, {}));
-    menu.addItem(new WatchUi.ToggleMenuItem("Class timer", "Coach mode, no recording", MENU_COACH,
-        WorkoutSession.propBool("coachMode", false), {}));
+    menu.addItem(new WatchUi.MenuItem("Coach", WorkoutSession.propBool("coachMode", false) ? "Class timer ON" : "Class timer, plan, alerts",
+        MENU_COACH, {}));
     for (var i = 0; i < SampleWods.count(); i++) {
         var w = SampleWods.get(i);
         if (w != null) {
@@ -43,7 +43,8 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         var app = getApp();
         var id = item.getId() as Number;
         if (id == MENU_COACH) {
-            Application.Properties.setValue("coachMode", (item as WatchUi.ToggleMenuItem).isEnabled());
+            app.menuOnTop = false;
+            WatchUi.pushView(buildCoachMenu(), new CoachMenuDelegate(), WatchUi.SLIDE_LEFT);
             return;
         }
         if (id == MENU_ERROR) {
