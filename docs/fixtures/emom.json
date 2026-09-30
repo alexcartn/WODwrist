@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "name": "EMOM 10",
+  "type": "EMOM",
+  "timeCapSec": 600,
+  "intervalSec": 60,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 10,
+  "repScheme": null,
+  "blocks": [
+    {
+      "movement": "kb_swing",
+      "name": "KB swings",
+      "reps": 12,
+      "unit": "reps",
+      "slot": 0
+    },
+    {
+      "movement": "burpee",
+      "name": "Burpees",
+      "reps": 10,
+      "unit": "reps",
+      "slot": 1
+    }
+  ]
+}

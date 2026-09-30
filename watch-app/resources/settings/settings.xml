@@ -1,0 +1,23 @@
+<settings>
+    <setting propertyKey="@Properties.wodText" title="@Strings.SetWodText">
+        <settingConfig type="alphaNumeric" maxLength="500" />
+    </setting>
+    <setting propertyKey="@Properties.wodUrl" title="@Strings.SetWodUrl">
+        <settingConfig type="alphaNumeric" />
+    </setting>
+    <setting propertyKey="@Properties.countdownSec" title="@Strings.SetCountdown">
+        <settingConfig type="numeric" min="0" max="60" />
+    </setting>
+    <setting propertyKey="@Properties.autoCount" title="@Strings.SetAutoCount">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.coachMode" title="@Strings.SetCoachMode">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.coachRecord" title="@Strings.SetCoachRecord">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.captureMode" title="@Strings.SetCapture">
+        <settingConfig type="boolean" />
+    </setting>
+</settings>

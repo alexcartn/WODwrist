@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WODwrist editor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>WODwrist</h1>
+    <nav>
+      <button class="tab active" data-tab="edit">Editor</button>
+      <button class="tab" data-tab="timer">Class timer</button>
+    </nav>
+  </header>
+
+  <main id="edit" class="panel active">
+    <section class="col">
+      <label for="wodText">WOD text</label>
+      <textarea id="wodText" spellcheck="false" rows="12"></textarea>
+      <div class="examples">
+        Examples:
+        <button class="link" data-example="amrap">AMRAP</button>
+        <button class="link" data-example="emom">EMOM</button>
+        <button class="link" data-example="fortime">For time</button>
+        <button class="link" data-example="tabata">Tabata</button>
+      </div>
+      <details class="help">
+        <summary>Format</summary>
+        <ul>
+          <li>Optional name line: <code># Fran</code></li>
+          <li>First line: <code>AMRAP 12</code>, <code>EMOM 10</code>, <code>E2MOM 20</code>, <code>FOR TIME cap 15</code>, <code>3 ROUNDS FOR TIME</code>, <code>TABATA 8x20/10</code></li>
+          <li>One movement per line: <code>10 wall balls</code>, <code>200m run</code>, <code>15 cal row</code>, <code>30s plank</code>. Loads in brackets are ignored: <code>21 thrusters (43/30kg)</code></li>
+          <li>Rep scheme for For time: <code>21-15-9</code></li>
+          <li>EMOM: lines rotate minute by minute, or use <code>odd:</code> / <code>even:</code> / <code>min 3:</code>. Join movements done in the same minute with <code>+</code></li>
+          <li>Lines can also be separated by <code>;</code> (that is what the watch settings field uses)</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="col">
+      <div id="status" class="status"></div>
+      <div id="preview" class="preview"></div>
+      <div class="actions">
+        <button id="copySettings" title="Paste this into Garmin Connect > WODwrist > Settings > WOD text">Copy for watch settings</button>
+        <button id="copyJson">Copy JSON</button>
+        <button id="downloadJson">Download JSON</button>
+      </div>
+      <details id="publishBox" class="publish">
+        <summary>Publish to GitHub Pages</summary>
+        <p class="small">Commits <code>today.json</code> to the repo; the Pages workflow deploys it in about a minute. Athletes put the URL below in the watch app settings once.</p>
+        <div class="grid">
+          <label>Repo <input id="ghRepo" placeholder="owner/repo"></label>
+          <label>Branch <input id="ghBranch" placeholder="main"></label>
+          <label>File <input id="ghPath" placeholder="web-editor/wod/today.json"></label>
+          <label>Token <input id="ghToken" type="password" placeholder="fine-grained PAT, contents: write"></label>
+        </div>
+        <p class="small">The token stays in this browser (localStorage) and is only sent to api.github.com.</p>
+        <button id="publish" class="primary">Publish WOD</button>
+        <p class="small">Watch URL: <code id="watchUrl"></code></p>
+      </details>
+      <details>
+        <summary>JSON</summary>
+        <pre id="json"></pre>
+      </details>
+    </section>
+  </main>
+
+  <main id="timer" class="panel">
+    <div class="timer">
+      <div id="tState" class="t-state">READY</div>
+      <div id="tRound" class="t-round"></div>
+      <div id="tClock" class="t-clock">0:00</div>
+      <div id="tMove" class="t-move"></div>
+      <div class="actions center">
+        <button id="tStart" class="primary">Start</button>
+        <button id="tNext">Next movement</button>
+        <button id="tReset">Reset</button>
+        <button id="tFull">Full screen</button>
+      </div>
+      <p class="small center">Runs the WOD from the editor. Space = start/pause.</p>
+    </div>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

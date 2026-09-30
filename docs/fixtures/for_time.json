@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "name": "FOR TIME cap 15",
+  "type": "FOR_TIME",
+  "timeCapSec": 900,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 3,
+  "repScheme": [
+    21,
+    15,
+    9
+  ],
+  "blocks": [
+    {
+      "movement": "thruster",
+      "name": "Thrusters",
+      "reps": 0,
+      "unit": "reps",
+      "slot": null
+    },
+    {
+      "movement": "pull_up",
+      "name": "Pull-ups",
+      "reps": 0,
+      "unit": "reps",
+      "slot": null
+    }
+  ]
+}

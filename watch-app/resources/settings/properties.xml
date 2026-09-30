@@ -1,0 +1,9 @@
+<properties>
+    <property id="wodText" type="string"></property>
+    <property id="wodUrl" type="string"></property>
+    <property id="countdownSec" type="number">10</property>
+    <property id="autoCount" type="boolean">true</property>
+    <property id="coachMode" type="boolean">false</property>
+    <property id="coachRecord" type="boolean">false</property>
+    <property id="captureMode" type="boolean">false</property>
+</properties>

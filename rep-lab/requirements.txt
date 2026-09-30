@@ -1,0 +1,6 @@
+# The replab package itself is pure Python (stdlib only).
+pytest>=8
+# Optional, for notebooks and plots:
+# numpy
+# matplotlib
+# jupyter

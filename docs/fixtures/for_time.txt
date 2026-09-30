@@ -1,0 +1,4 @@
+FOR TIME cap 15
+21-15-9
+thrusters
+pull-ups

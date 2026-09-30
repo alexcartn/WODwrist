@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "EMOM 12",
+  "type": "EMOM",
+  "timeCapSec": 720,
+  "intervalSec": 60,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 12,
+  "repScheme": null,
+  "blocks": [
+    {
+      "movement": "wall_ball",
+      "name": "Wall balls",
+      "reps": 15,
+      "unit": "reps",
+      "slot": 0
+    },
+    {
+      "movement": "db_snatch",
+      "name": "DB snatches",
+      "reps": 12,
+      "unit": "reps",
+      "slot": 1
+    },
+    {
+      "movement": "plank",
+      "name": "Plank",
+      "reps": 30,
+      "unit": "sec",
+      "slot": 2
+    }
+  ]
+}

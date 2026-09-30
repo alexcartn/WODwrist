@@ -1,0 +1,20 @@
+<strings>
+    <string id="AppName">WODwrist</string>
+
+    <string id="SetWodText">WOD text (one line per movement, or separate with ;)</string>
+    <string id="SetWodUrl">Coach WOD URL (JSON)</string>
+    <string id="SetCountdown">Countdown before start (s)</string>
+    <string id="SetAutoCount">Automatic rep counting</string>
+    <string id="SetCoachMode">Class timer (coach mode)</string>
+    <string id="SetCoachRecord">Record activity in coach mode</string>
+    <string id="SetCapture">Data capture mode (rep-lab)</string>
+
+    <string id="FitLapReps">Reps</string>
+    <string id="FitTotalReps">Total reps</string>
+    <string id="FitRounds">Rounds</string>
+    <string id="FitExtraReps">Extra reps</string>
+    <string id="FitScoreTime">Score time</string>
+    <string id="UnitReps">reps</string>
+    <string id="UnitRounds">rounds</string>
+    <string id="UnitSec">s</string>
+</strings>

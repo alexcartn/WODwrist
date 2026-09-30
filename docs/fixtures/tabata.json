@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "name": "TABATA 8x20/10",
+  "type": "TABATA",
+  "timeCapSec": 230,
+  "intervalSec": 30,
+  "workSec": 20,
+  "restSec": 10,
+  "rounds": 8,
+  "repScheme": null,
+  "blocks": [
+    {
+      "movement": "air_squat",
+      "name": "Air squats",
+      "reps": 0,
+      "unit": "reps",
+      "slot": 0
+    }
+  ]
+}

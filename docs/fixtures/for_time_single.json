@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "name": "FOR TIME",
+  "type": "FOR_TIME",
+  "timeCapSec": null,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 1,
+  "repScheme": null,
+  "blocks": [
+    {
+      "movement": "run",
+      "name": "Run",
+      "reps": 1000,
+      "unit": "m",
+      "slot": null
+    },
+    {
+      "movement": "double_under",
+      "name": "Double-unders",
+      "reps": 50,
+      "unit": "reps",
+      "slot": null
+    },
+    {
+      "movement": "air_squat",
+      "name": "Air squats",
+      "reps": 100,
+      "unit": "reps",
+      "slot": null
+    },
+    {
+      "movement": "custom",
+      "name": "Farmer carry",
+      "reps": 50,
+      "unit": "m",
+      "slot": null
+    }
+  ]
+}

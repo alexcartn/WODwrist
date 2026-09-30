@@ -1,0 +1,41 @@
+# Watch controls
+
+## During the workout
+
+| Input | Action |
+| --- | --- |
+| START (top right) | pause menu: Resume / Finish / Discard |
+| BACK short press | +1 rep. On a run / row / hold block: "done", next movement |
+| BACK long press (0.7 s) | -1 rep |
+| DOWN / UP (5-button Forerunners) | +1 / -1 rep |
+| tap screen | +1 rep (same rule as BACK short) |
+| hold screen | -1 rep |
+| swipe left | next movement, crediting the missing target reps |
+| other swipes | ignored, so a sweaty swipe does not leave the workout |
+
+The next movement starts automatically when the target reps are reached
+(auto count or manual). In EMOM / Tabata, once the interval's work is done the
+screen shows `DONE, WAIT` until the next interval.
+
+To check on the device (M0/M1): some firmwares keep the BACK long press for
+system shortcuts. If it never reaches the app, use hold-screen or UP for -1.
+
+## Screen
+
+```
+      WORK            <- state (GET READY / WORK / REST / PAUSED)
+   Round 2/3          <- round or interval, "Rounds 4" for AMRAP
+      7:42            <- big clock
+   Wall balls         <- current movement
+     7/10  ●          <- reps / target, dot = rep counter confidence
+  Reps 57  HR 162     <- total reps, heart rate
+```
+
+Coach mode (class timer): bigger clock, movement line under it, no footer,
+longer vibrations, no activity saved unless "Record activity in coach mode"
+is on.
+
+## Summary
+
+START saves the activity to Garmin Connect, BACK asks to discard.
+Scroll down for the splits: `R3  1:02  12r  151` = lap, time, reps, avg HR.

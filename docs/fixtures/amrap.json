@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "AMRAP 12",
+  "type": "AMRAP",
+  "timeCapSec": 720,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": null,
+  "repScheme": null,
+  "blocks": [
+    {
+      "movement": "wall_ball",
+      "name": "Wall balls",
+      "reps": 10,
+      "unit": "reps",
+      "slot": null
+    },
+    {
+      "movement": "burpee",
+      "name": "Burpees",
+      "reps": 10,
+      "unit": "reps",
+      "slot": null
+    },
+    {
+      "movement": "run",
+      "name": "Run",
+      "reps": 200,
+      "unit": "m",
+      "slot": null
+    }
+  ]
+}

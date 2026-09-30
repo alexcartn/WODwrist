@@ -1,0 +1,292 @@
+import Toybox.Activity;
+import Toybox.Application;
+import Toybox.Lang;
+import Toybox.Sensor;
+import Toybox.System;
+import Toybox.Timer;
+import Toybox.WatchUi;
+
+// Glue for one workout: TimerEngine (logic) + RepCounter (sensor) +
+// RecordingManager (FIT) + Feedback (vibration). Views only read from here.
+class WorkoutSession {
+
+    var engine as TimerEngine;
+    var coach as Boolean;
+    var hr as Number = 0;
+    var hrMax as Number = 0;
+    // one entry per lap: [durationMs, reps, avgHr]
+    var laps as Array<Array<Number> > = [] as Array<Array<Number> >;
+    var finished as Boolean = false;
+
+    private var _counter as RepCounter? = null;
+    private var _recorder as RecordingManager? = null;
+    private var _capture as Boolean = false;
+    private var _timer as Timer.Timer? = null;
+    private var _lastShownSec as Number = -1;
+    private var _lastHrSec as Number = -1;
+    private var _hrSum as Number = 0;
+    private var _hrCount as Number = 0;
+    private var _lapHrSum as Number = 0;
+    private var _lapHrCount as Number = 0;
+    private var _lapStartMs as Number = 0;
+    private var _summaryFromMenu as Boolean = false;
+
+    function initialize(wod as Dictionary, coachMode as Boolean) {
+        coach = coachMode;
+        Feedback.strong = coachMode;
+        engine = new TimerEngine(wod, propNumber("countdownSec", 10));
+        _capture = !coachMode && propBool("captureMode", false);
+        if (!coachMode && (_capture || propBool("autoCount", true))) {
+            _counter = new RepCounter(method(:onCounterRep), _capture);
+        }
+        if (!coachMode || propBool("coachRecord", false)) {
+            _recorder = new RecordingManager();
+        }
+    }
+
+    // ---------- settings ----------
+
+    static function propBool(key as String, def as Boolean) as Boolean {
+        var v = Application.Properties.getValue(key);
+        return v instanceof Boolean ? v as Boolean : def;
+    }
+
+    static function propNumber(key as String, def as Number) as Number {
+        var v = Application.Properties.getValue(key);
+        return v instanceof Number ? v as Number : def;
+    }
+
+    // ---------- lifecycle ----------
+
+    function now() as Number {
+        return System.getTimer();
+    }
+
+    function begin() as Void {
+        if (Sensor has :setEnabledSensors) {
+            Sensor.setEnabledSensors([Sensor.SENSOR_HEARTRATE]);
+        }
+        log("S", engine.wod["name"] as String);
+        if (_counter != null) { (_counter as RepCounter).start(); }
+        handle(engine.start(now()));
+        _timer = new Timer.Timer();
+        (_timer as Timer.Timer).start(method(:onTick), 250, true);
+    }
+
+    function onTick() as Void {
+        var t = now();
+        handle(engine.tick(t));
+        if (finished) { return; }
+        var sec = t / 1000;
+        if (sec != _lastHrSec) {
+            _lastHrSec = sec;
+            sampleHr();
+        }
+        var shown = engine.clockMs(t) / 1000;
+        if (shown != _lastShownSec) {
+            _lastShownSec = shown;
+            WatchUi.requestUpdate();
+        }
+    }
+
+    private function sampleHr() as Void {
+        var info = Activity.getActivityInfo();
+        if (info == null || info.currentHeartRate == null) { return; }
+        hr = info.currentHeartRate as Number;
+        if (engine.state != ST_WORK && engine.state != ST_REST) { return; }
+        if (hr > hrMax) { hrMax = hr; }
+        _hrSum += hr;
+        _hrCount++;
+        _lapHrSum += hr;
+        _lapHrCount++;
+    }
+
+    function avgHr() as Number {
+        return _hrCount > 0 ? _hrSum / _hrCount : 0;
+    }
+
+    // ---------- events ----------
+
+    private function handle(ev as Array<Array<Number> >) as Void {
+        for (var i = 0; i < ev.size(); i++) {
+            var code = ev[i][0];
+            var arg = ev[i][1];
+            if (code == EV_WARN) {
+                Feedback.warn(arg);
+            } else if (code == EV_START) {
+                Feedback.go();
+                _lapStartMs = 0;
+                if (_recorder != null) { (_recorder as RecordingManager).start(engine.wod["name"] as String); }
+                updateCounter();
+            } else if (code == EV_LAP) {
+                closeLap(arg, engine.activeMs(now()));
+                if (_recorder != null) { (_recorder as RecordingManager).lap(arg); }
+                log("L", arg.format("%d"));
+                if (engine.isInterval()) {
+                    Feedback.interval();
+                    updateCounter();
+                }
+            } else if (code == EV_REST) {
+                Feedback.rest();
+            } else if (code == EV_BLOCK) {
+                Feedback.block();
+                updateCounter();
+            } else if (code == EV_ROUND) {
+                Feedback.round();
+            } else if (code == EV_TARGET_DONE) {
+                Feedback.block();
+                if (_counter != null) { (_counter as RepCounter).setProfile(null); }
+            } else if (code == EV_DONE) {
+                onDone(arg);
+            }
+        }
+        if (ev.size() > 0) { WatchUi.requestUpdate(); }
+    }
+
+    private function closeLap(reps as Number, activeMs as Number) as Void {
+        var avg = _lapHrCount > 0 ? _lapHrSum / _lapHrCount : 0;
+        laps.add([activeMs - _lapStartMs, reps, avg]);
+        _lapStartMs = activeMs;
+        _lapHrSum = 0;
+        _lapHrCount = 0;
+    }
+
+    // Point the rep counter at the current movement (or disable it).
+    private function updateCounter() as Void {
+        var b = engine.currentBlock();
+        var mv = b == null ? "none" : b["movement"] as String;
+        log("B", mv);
+        if (_counter == null) { return; }
+        var profile = null;
+        if (b != null && (b["unit"] as String).equals("reps")) {
+            profile = Movements.profile(mv);
+        }
+        (_counter as RepCounter).setProfile(profile);
+    }
+
+    // ---------- inputs ----------
+
+    function onCounterRep(t as Number) as Void {
+        if (_capture) { System.println("R," + t.format("%d") + ",1"); }
+        // In capture mode the athlete's presses are the ground truth: the
+        // detected reps are only logged, not counted.
+        if (_capture || engine.state != ST_WORK) { return; }
+        handle(engine.addRep(1, now()));
+    }
+
+    // Tap / button. On distance, calorie and time blocks a +1 means "done, next".
+    function manualRep(delta as Number) as Void {
+        var b = engine.currentBlock();
+        if (delta > 0 && b != null && !(b["unit"] as String).equals("reps")) {
+            nextBlock();
+            return;
+        }
+        log("M", delta.format("%d"));
+        handle(engine.addRep(delta, now()));
+    }
+
+    function nextBlock() as Void {
+        log("M", "next");
+        handle(engine.next(now()));
+    }
+
+    function pause() as Void {
+        engine.pause(now());
+        if (_recorder != null) { (_recorder as RecordingManager).pause(); }
+        WatchUi.requestUpdate();
+    }
+
+    function resume() as Void {
+        engine.resume(now());
+        if (_recorder != null) { (_recorder as RecordingManager).resume(); }
+        WatchUi.requestUpdate();
+    }
+
+    function isPaused() as Boolean {
+        return engine.state == ST_PAUSED;
+    }
+
+    // From the pause menu: the menu delegate shows the summary itself.
+    function finishEarly() as Void {
+        _summaryFromMenu = true;
+        handle(engine.finish(now()));
+    }
+
+    function confidence() as Number {
+        if (_counter == null || !(_counter as RepCounter).isEnabled()) { return -1; }
+        return (_counter as RepCounter).confidence();
+    }
+
+    function isAutoCounting() as Boolean {
+        return _counter != null && (_counter as RepCounter).isEnabled() && !_capture;
+    }
+
+    // ---------- end ----------
+
+    private function onDone(lastLapReps as Number) as Void {
+        if (finished) { return; }
+        finished = true;
+        stopTimers();
+        var active = engine.finalActiveMs();
+        closeLap(lastLapReps, active);
+        var timeSec = engine.hasTimeScore() ? active / 1000 : 0;
+        var extra = engine.wodType == WT_AMRAP ? engine.lapReps : 0;
+        if (_recorder != null) {
+            (_recorder as RecordingManager).finish(lastLapReps, engine.totalReps, engine.roundsCompleted, extra, timeSec);
+        }
+        log("E", engine.scoreText());
+        Feedback.done();
+        if (!_summaryFromMenu) { showSummary(); }
+    }
+
+    function showSummary() as Void {
+        var view = new SummaryView(self);
+        var delegate = new SummaryDelegate(self);
+        delegate.setView(view);
+        WatchUi.switchToView(view, delegate, WatchUi.SLIDE_UP);
+    }
+
+    private function stopTimers() as Void {
+        if (_timer != null) {
+            (_timer as Timer.Timer).stop();
+            _timer = null;
+        }
+        if (_counter != null) { (_counter as RepCounter).stop(); }
+    }
+
+    function hasRecording() as Boolean {
+        return _recorder != null && (_recorder as RecordingManager).hasSession();
+    }
+
+    function save() as Void {
+        if (_recorder != null) { (_recorder as RecordingManager).save(); }
+    }
+
+    function discard() as Void {
+        stopTimers();
+        if (_recorder != null) { (_recorder as RecordingManager).discard(); }
+    }
+
+    // App closed mid-workout: keep what was done rather than lose it.
+    function abort() as Void {
+        if (!finished) {
+            _summaryFromMenu = true;
+            handle(engine.finish(now()));
+        }
+        if (hasRecording()) {
+            if (engine.finalActiveMs() >= 60000) {
+                save();
+            } else {
+                discard();
+            }
+        }
+    }
+
+    // ---------- capture log (rep-lab) ----------
+
+    private function log(kind as String, value as String) as Void {
+        if (_capture) {
+            System.println(kind + "," + System.getTimer().format("%d") + "," + value);
+        }
+    }
+}

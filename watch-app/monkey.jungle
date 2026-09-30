@@ -1,0 +1,4 @@
+project.manifest = manifest.xml
+
+# test/ only contains (:test) code, stripped from normal builds.
+base.sourcePath = source;test

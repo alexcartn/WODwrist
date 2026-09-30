@@ -1,0 +1,22 @@
+# Connect IQ
+watch-app/bin/
+*.prg
+*.prg.debug.xml
+*.iq
+developer_key*
+*.der
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+rep-lab/data/*
+!rep-lab/data/README.md
+
+# Node
+node_modules/
+
+# Editors / OS
+.vscode/
+.DS_Store

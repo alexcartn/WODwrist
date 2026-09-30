@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "3 ROUNDS FOR TIME (time cap 20:00)",
+  "type": "FOR_TIME",
+  "timeCapSec": 1200,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 3,
+  "repScheme": null,
+  "blocks": [
+    {
+      "movement": "run",
+      "name": "Run",
+      "reps": 400,
+      "unit": "m",
+      "slot": null
+    },
+    {
+      "movement": "kb_swing",
+      "name": "KB swings",
+      "reps": 21,
+      "unit": "reps",
+      "slot": null
+    },
+    {
+      "movement": "pull_up",
+      "name": "Pull-ups",
+      "reps": 12,
+      "unit": "reps",
+      "slot": null
+    }
+  ]
+}

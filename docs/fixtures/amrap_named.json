@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "Cindy-ish",
+  "type": "AMRAP",
+  "timeCapSec": 1200,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": null,
+  "repScheme": null,
+  "blocks": [
+    {
+      "movement": "pull_up",
+      "name": "Pull-ups",
+      "reps": 5,
+      "unit": "reps",
+      "slot": null
+    },
+    {
+      "movement": "push_up",
+      "name": "Push-ups",
+      "reps": 10,
+      "unit": "reps",
+      "slot": null
+    },
+    {
+      "movement": "air_squat",
+      "name": "Air squats",
+      "reps": 15,
+      "unit": "reps",
+      "slot": null
+    }
+  ]
+}
