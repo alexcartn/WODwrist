@@ -53,7 +53,18 @@ class SummaryView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, e.wod["name"] as String, center);
         dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 30 / 100, Graphics.FONT_LARGE, e.scoreText(), center);
+        dc.drawText(cx, h * 28 / 100, Graphics.FONT_LARGE, e.scoreText(), center);
+        // vs previous attempts at the same WOD
+        if (_s.history != null) {
+            if (_s.isNewBest) {
+                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(cx, h * 38 / 100, Graphics.FONT_XTINY, "NEW BEST", center);
+            } else {
+                dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+                var best = (_s.history as Dictionary)["best"] as Dictionary;
+                dc.drawText(cx, h * 38 / 100, Graphics.FONT_XTINY, "Best " + ScoreHistory.scoreText(best), center);
+            }
+        }
 
         var lines = [] as Array<String>;
         lines.add("Time " + Str.clock(e.finalActiveMs(), false));
@@ -66,7 +77,7 @@ class SummaryView extends WatchUi.View {
             lines.add("HR avg " + _s.avgHr().format("%d") + "  max " + _s.hrMax.format("%d"));
         }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        var y = h * 47 / 100;
+        var y = h * 46 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);
         for (var i = 0; i < lines.size(); i++) {
             dc.drawText(cx, y, Graphics.FONT_TINY, lines[i], center);
@@ -74,7 +85,7 @@ class SummaryView extends WatchUi.View {
         }
         // "8 splits" + a small down arrow: scroll for the per-round table
         if (_s.laps.size() > 1) {
-            var ay = h * 73 / 100;
+            var ay = y - lh / 4;
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx - w * 3 / 100, ay, Graphics.FONT_XTINY, _s.laps.size().format("%d") + " splits", center);
             var ax = cx + w * 13 / 100;

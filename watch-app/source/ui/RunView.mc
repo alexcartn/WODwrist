@@ -47,8 +47,7 @@ class RunView extends WatchUi.View {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h * 11 / 100, Graphics.FONT_TINY, label, center);
 
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 21 / 100, Graphics.FONT_TINY, roundText(e), center);
+        drawRoundLine(dc, e, cx, h * 21 / 100);
 
         // ---- clock ----
         var ms = e.clockMs(now);
@@ -123,6 +122,25 @@ class RunView extends WatchUi.View {
         dc.drawText(cx, h * 61 / 100, Graphics.FONT_XTINY, "NEXT", center);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h * 72 / 100, Graphics.FONT_SMALL, text, center);
+    }
+
+    // "Rounds 3" + your pace vs your best at the same round: "-0:08" green, "+0:14" red.
+    private function drawRoundLine(dc as Graphics.Dc, e as TimerEngine, cx as Number, y as Number) as Void {
+        var text = roundText(e);
+        var delta = e.state == ST_WORK || e.state == ST_PAUSED ? _s.paceDelta() : null;
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        if (delta == null) {
+            dc.drawText(cx, y, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            return;
+        }
+        text += "  ";
+        var d = ScoreHistory.formatDelta(delta);
+        var w1 = dc.getTextWidthInPixels(text, Graphics.FONT_TINY);
+        var w2 = dc.getTextWidthInPixels(d, Graphics.FONT_TINY);
+        var x = cx - (w1 + w2) / 2;
+        dc.drawText(x, y, Graphics.FONT_TINY, text, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor((delta as Number) <= 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x + w1, y, Graphics.FONT_TINY, d, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     private function roundText(e as TimerEngine) as String {

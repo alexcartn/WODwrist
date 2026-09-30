@@ -3,6 +3,7 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.Sensor;
 import Toybox.System;
+import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -17,6 +18,12 @@ class WorkoutSession {
     // one entry per lap: [durationMs, reps, avgHr]
     var laps as Array<Array<Number> > = [] as Array<Array<Number> >;
     var finished as Boolean = false;
+    // score memory: previous entry for this WOD (last / best), this run's result
+    var history as Dictionary? = null;
+    var result as Dictionary? = null;
+    var isNewBest as Boolean = false;
+    // cumulative active ms at the end of each completed round (AMRAP / FOR_TIME)
+    var roundTimes as Array<Number> = [] as Array<Number>;
 
     private var _counter as RepCounter? = null;
     private var _recorder as RecordingManager? = null;
@@ -41,6 +48,9 @@ class WorkoutSession {
         }
         if (!coachMode || propBool("coachRecord", false)) {
             _recorder = new RecordingManager();
+        }
+        if (!coachMode) {
+            history = ScoreHistory.load(wod);
         }
     }
 
@@ -132,6 +142,7 @@ class WorkoutSession {
                 Feedback.block();
                 updateCounter();
             } else if (code == EV_ROUND) {
+                roundTimes.add(engine.activeMs(now()));
                 Feedback.round();
             } else if (code == EV_TARGET_DONE) {
                 Feedback.block();
@@ -234,9 +245,37 @@ class WorkoutSession {
         if (_recorder != null) {
             (_recorder as RecordingManager).finish(lastLapReps, engine.totalReps, engine.roundsCompleted, extra, timeSec);
         }
+        result = buildResult(active);
+        if (history != null) {
+            isNewBest = ScoreHistory.isBetter(result as Dictionary, history["best"] as Dictionary);
+        }
         log("E", engine.scoreText());
         Feedback.done();
         if (!_summaryFromMenu) { showSummary(); }
+    }
+
+    private function buildResult(active as Number) as Dictionary {
+        var kind = "reps";
+        if (engine.wodType == WT_AMRAP) {
+            kind = "rounds";
+        } else if (engine.hasTimeScore()) {
+            kind = "time";
+        }
+        return {
+            "kind" => kind,
+            "rounds" => engine.roundsCompleted,
+            "reps" => engine.wodType == WT_AMRAP ? engine.lapReps : engine.totalReps,
+            "ms" => active,
+            "t" => Time.now().value(),
+            "laps" => roundTimes
+        };
+    }
+
+    // Ahead (<0) / behind (>0) your best at the last completed round, or null.
+    function paceDelta() as Number? {
+        if (history == null || (engine.wodType != WT_AMRAP && engine.wodType != WT_FOR_TIME)) { return null; }
+        var best = (history as Dictionary)["best"] as Dictionary;
+        return ScoreHistory.paceDelta(roundTimes, best["laps"] as Array?);
     }
 
     function showSummary() as Void {
@@ -260,6 +299,9 @@ class WorkoutSession {
 
     function save() as Void {
         if (_recorder != null) { (_recorder as RecordingManager).save(); }
+        if (!coach && result != null) {
+            ScoreHistory.save(engine.wod, result as Dictionary);
+        }
     }
 
     function discard() as Void {

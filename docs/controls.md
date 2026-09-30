@@ -24,7 +24,9 @@ system shortcuts. If it never reaches the app, use hold-screen or UP for -1.
 
 ```
       WORK            <- state (GET READY / WORK / REST / PAUSED)
-   Round 2/3          <- round or interval, "Rounds 4" for AMRAP
+   Round 2/3  -0:08   <- round or interval, "Rounds 4" for AMRAP;
+                         AMRAP / For time: ahead (green) or behind (red)
+                         your best at the same round
       7:42            <- big clock
    Wall balls         <- current movement
      7/10  ●          <- reps / target, dot = rep counter confidence
@@ -34,6 +36,13 @@ system shortcuts. If it never reaches the app, use hold-screen or UP for -1.
 Coach mode (class timer): bigger clock, movement line under it, no footer,
 longer vibrations, no activity saved unless "Record activity in coach mode"
 is on.
+
+## Score memory
+
+Each saved workout stores last + best per WOD (same structure = same WOD,
+whatever its name; 30 WODs kept). The preview shows `Best 8 + 3  Last 7 + 12`,
+the summary shows `NEW BEST` or your best. Logic: `web-editor/js/score-history.js`
+(tested) and its port `watch-app/source/session/ScoreHistory.mc`.
 
 ## Summary
 
