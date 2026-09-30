@@ -35,20 +35,21 @@ export function drawWatch(canvas, wod) {
     return;
   }
   const b = wod.blocks[0];
-  let clock = "0:00", round = "Rounds 0", total = null, done = 0.25;
+  // the screen as it looks at the start: full clock, empty ring
+  let clock = "0:00", round = "Rounds 0";
   switch (wod.type) {
-    case "AMRAP": clock = fmt(Math.round(wod.timeCapSec * 0.75)); total = wod.timeCapSec; break;
+    case "AMRAP":
+      clock = fmt(wod.timeCapSec);
+      if (wod.sets > 1) round = `Set 1/${wod.sets}  Rounds 0`;
+      break;
     case "FOR_TIME":
-      clock = wod.timeCapSec ? fmt(Math.round(wod.timeCapSec * 0.25)) : "1:05";
-      round = `Round 1/${wod.rounds}`;
-      total = wod.timeCapSec;
+      round = wod.rounds ? `Round 1/${wod.rounds}` : "Rounds 0";
       break;
     case "EMOM":
-      clock = fmt(Math.round(wod.intervalSec * 0.75));
+      clock = fmt(wod.intervalSec);
       round = wod.repStep ? "Rounds 0" : `Int 1/${wod.rounds}`;
-      total = wod.intervalSec;
       break;
-    case "TABATA": clock = fmt(Math.round(wod.workSec * 0.75)); round = `Int 1/${wod.rounds}`; total = wod.workSec; break;
+    case "TABATA": clock = fmt(wod.workSec); round = `Int 1/${wod.rounds}`; break;
   }
   // ring
   const rw = 10 * k, r = w / 2 - rw / 2 - 1;
@@ -57,12 +58,6 @@ export function drawWatch(canvas, wod) {
   d.beginPath();
   d.arc(cx, h / 2, r, 0, Math.PI * 2);
   d.stroke();
-  if (total) {
-    d.strokeStyle = C.work;
-    d.beginPath();
-    d.arc(cx, h / 2, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * done);
-    d.stroke();
-  }
   text(d, cx, h * 0.12, 30 * k, C.work, "WORK");
   text(d, cx, h * 0.22, 30 * k, C.muted, round);
   text(d, cx, h * 0.41, 120 * k, C.text, clock, false, true);

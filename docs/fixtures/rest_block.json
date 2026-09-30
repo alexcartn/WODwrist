@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "name": "5 rounds for time",
+  "type": "FOR_TIME",
+  "timeCapSec": null,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 5,
+  "repScheme": null,
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "run",
+      "name": "Run",
+      "reps": 400,
+      "unit": "m",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "kb_swing",
+      "name": "KB swings",
+      "reps": 15,
+      "unit": "reps",
+      "slot": null,
+      "load": [
+        24,
+        16
+      ]
+    },
+    {
+      "movement": "custom",
+      "name": "Rest",
+      "reps": 60,
+      "unit": "sec",
+      "slot": null,
+      "load": null
+    }
+  ]
+}

@@ -35,6 +35,12 @@
         <button class="link" data-example="class">Class plan</button>
         <select id="benchmarks" aria-label="Benchmarks"><option value="">Benchmarks…</option></select>
       </div>
+      <div class="shot">
+        <button id="shotBtn" title="Screenshot of your training app (HWPO...). Read in this browser, the image is not sent anywhere.">&#128247; From a screenshot</button>
+        <input type="file" id="shotFile" accept="image/*" hidden>
+        <span id="shotStatus" class="small">or paste an image in the text box</span>
+        <button id="shotUndo" class="link" hidden>Undo</button>
+      </div>
       <details class="help">
         <summary>Format</summary>
         <ul>
@@ -46,6 +52,9 @@
           <li>Lines can also be separated by <code>;</code> (that is what the watch settings field uses)</li>
           <li>More formats: <code>EVERY 2:30 x 6</code>, <code>every 90 sec for 12 min</code>, <code>DEATH BY burpees</code> (1 rep the first minute, +1 each minute, ends at the first miss), open ladder in an AMRAP: <code>3-6-9-...</code></li>
           <li>Class plan: separate the parts (warm-up, strength, metcon) with a line <code>---</code>. The coach watch runs them back to back</li>
+          <li>Sets: <code>3 x AMRAP 4</code> + <code>Rest 1:00 between sets</code>. Time cap on its own line: <code>Cap: 10:00</code></li>
+          <li>Every-minute task inside a For time / AMRAP: <code>Every minute (including 0:00), 8/6 cal ski</code>. Men / women reps: <code>15/12 cal row</code> (your side in the watch settings)</li>
+          <li>Max reps: <code>Tough set of strict HSPU</code>, <code>Max pull-ups</code>, <code>In remaining time, max plank hold</code></li>
         </ul>
       </details>
     </section>

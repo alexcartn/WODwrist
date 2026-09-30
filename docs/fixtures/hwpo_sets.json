@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "name": "Skill AMRAP",
+  "type": "AMRAP",
+  "timeCapSec": 75,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": null,
+  "repScheme": null,
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "handstand_push_up",
+      "name": "Strict handstand push up",
+      "reps": 0,
+      "unit": "reps",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "ring_dip",
+      "name": "Ring dips",
+      "reps": 0,
+      "unit": "reps",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "custom",
+      "name": "Dual dumbbell overhead hold",
+      "reps": 0,
+      "unit": "sec",
+      "slot": null,
+      "load": null
+    }
+  ],
+  "sets": 3,
+  "setRestSec": 180
+}

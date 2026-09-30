@@ -122,6 +122,46 @@
             ],
             "minimum": 0,
             "description": "EMOM/TABATA: blocks with the same slot are done in the same interval; slots rotate in ascending order. null for AMRAP/FOR_TIME."
+          },
+          "repsAlt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Second rep count of \"15/12 cal row\" (usually women). The watch uses it when its setting \"My numbers\" is on Second. Only present when written."
+          }
+        }
+      }
+    },
+    "sets": {
+      "type": "integer",
+      "minimum": 2,
+      "description": "AMRAP only: \"3 x AMRAP 4\" runs the AMRAP this many times. Only present when > 1."
+    },
+    "setRestSec": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "AMRAP with sets: rest between two sets (\"Rest 1:00 between sets\")."
+    },
+    "task": {
+      "type": "object",
+      "required": [
+        "everySec",
+        "blocks"
+      ],
+      "description": "AMRAP / FOR_TIME only: work that interrupts the main work at a fixed interval (\"Every minute (including 0:00), 8/6 cal ski\"). Task reps count in the total, not in the rounds.",
+      "properties": {
+        "everySec": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "at0": {
+          "type": "boolean",
+          "description": "true: the first task is at 0:00; false: at the end of the first interval."
+        },
+        "blocks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/properties/blocks/items"
           }
         }
       }

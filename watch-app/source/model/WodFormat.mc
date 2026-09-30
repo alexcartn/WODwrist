@@ -48,10 +48,13 @@ module WodFormat {
         var name = b["name"] as String;
         if (reps == 0) { return name; }
         var unit = b["unit"] as String;
-        if (unit.equals("m")) { return reps.format("%d") + " m " + name; }
-        if (unit.equals("cal")) { return reps.format("%d") + " cal " + name; }
-        if (unit.equals("sec")) { return reps.format("%d") + " s " + name; }
-        return reps.format("%d") + " " + name;
+        // "15/12 cal Row" while both numbers are there
+        var n = reps.format("%d");
+        if (b["repsAlt"] instanceof Number) { n += "/" + (b["repsAlt"] as Number).format("%d"); }
+        if (unit.equals("m")) { return n + " m " + name; }
+        if (unit.equals("cal")) { return n + " cal " + name; }
+        if (unit.equals("sec")) { return n + " s " + name; }
+        return n + " " + name;
     }
 
     // Target text for the run screen: "10", "200 m", "30 s", "max"

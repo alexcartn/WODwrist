@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "name": "AMRAP 14",
+  "type": "AMRAP",
+  "timeCapSec": 840,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": null,
+  "repScheme": null,
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "row",
+      "name": "Row",
+      "reps": 15,
+      "unit": "cal",
+      "slot": null,
+      "load": null,
+      "repsAlt": 12
+    },
+    {
+      "movement": "burpee",
+      "name": "Burpees",
+      "reps": 10,
+      "unit": "reps",
+      "slot": null,
+      "load": null
+    }
+  ],
+  "task": {
+    "everySec": 180,
+    "at0": false,
+    "blocks": [
+      {
+        "movement": "thruster",
+        "name": "Thrusters",
+        "reps": 5,
+        "unit": "reps",
+        "slot": null,
+        "load": [
+          40,
+          30
+        ]
+      }
+    ]
+  }
+}

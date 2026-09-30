@@ -11,7 +11,11 @@ export function wodSignature(wod, scaled = false) {
   const head = [wod.type, wod.timeCapSec, wod.intervalSec, wod.workSec, wod.restSec, wod.rounds,
     wod.repScheme ? wod.repScheme.join("-") : "", wod.repStep].map((v) => (v == null ? "" : String(v)));
   const blocks = wod.blocks.map((b) => `${b.movement}:${b.reps}${b.unit}:${b.slot == null ? "" : b.slot}`);
-  return head.join("|") + "|" + blocks.join(",") + (scaled ? "|scaled" : "");
+  // sets and every-minute task only when used, so older signatures stay the same
+  let extra = "";
+  if (wod.sets > 1) extra += `|sets${wod.sets}/${wod.setRestSec || 0}`;
+  if (wod.task) extra += `|task${wod.task.everySec}${wod.task.at0 ? "a" : ""}:` + wod.task.blocks.map((b) => `${b.movement}:${b.reps}${b.unit}`).join(",");
+  return head.join("|") + "|" + blocks.join(",") + extra + (scaled ? "|scaled" : "");
 }
 
 // Higher is better. A finished For time always beats a capped one.

@@ -10,7 +10,7 @@
     <string id="SetPlanRest">Repos entre les parties du plan (s)</string>
     <string id="SetAlertHalf">Vibrer à mi-temps</string>
     <string id="SetAlertOneMin">Vibrer 1 min avant la fin</string>
-    <string id="SetLoadSide">Ma charge dans "43/30kg"</string>
+    <string id="SetLoadSide">Mes chiffres dans "43/30kg" et "15/12 cal"</string>
     <string id="LoadFirst">Première (43)</string>
     <string id="LoadSecond">Seconde (30)</string>
     <string id="SetCapture">Mode capture de données (rep-lab)</string>

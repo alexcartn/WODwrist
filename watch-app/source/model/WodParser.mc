@@ -60,7 +60,9 @@ module WodParser {
             "restSec" => null,
             "rounds" => null,
             "inline" => null,
-            "deathBy" => false
+            "deathBy" => false,
+            "sets" => 1,
+            "setRestSec" => 0
         };
     }
 
@@ -111,6 +113,26 @@ module WodParser {
             if (d <= 0) { return err("AMRAP needs a duration, e.g. AMRAP 12"); }
             var h = emptyHeader("AMRAP");
             h["timeCapSec"] = d;
+            // sets: "3 x AMRAP 4", "3x AMRAP 4", "3 sets of AMRAP 4", optional "rest 1:00"
+            var sets = 0;
+            if (i >= 2 && t[i - 1].equals("x") && Str.isInt(t[i - 2])) {
+                sets = Str.toInt(t[i - 2]);
+            } else if (i >= 1 && t[i - 1].length() > 1 && Str.endsWith(t[i - 1], "x")
+                    && Str.isInt(Str.sub(t[i - 1], 0, t[i - 1].length() - 1))) {
+                sets = Str.toInt(Str.sub(t[i - 1], 0, t[i - 1].length() - 1));
+            } else if (i >= 3 && t[i - 1].equals("of") && isRoundWord(t[i - 2]) && Str.isInt(t[i - 3])) {
+                sets = Str.toInt(t[i - 3]);
+            }
+            if (sets > 1) {
+                h["sets"] = sets;
+                for (var r = i + 1; r < t.size(); r++) {
+                    if (t[r].equals("rest")) {
+                        var rd = durationAt(t, r + 1);
+                        if (rd != null) { h["setRestSec"] = rd[0]; }
+                        break;
+                    }
+                }
+            }
             return h;
         }
 
@@ -358,8 +380,58 @@ module WodParser {
         return StringUtil.charArrayToString(out);
     }
 
-    function parseMovement(raw as String) as Dictionary {
+    // "Tough set of", "Max", "In remaining time, max": the movement is done for max reps.
+    const MAX_PREFIXES = [
+        "in the remaining time", "in remaining time", "with the remaining time", "with remaining time",
+        "tough set of", "tough set", "max reps of", "max reps", "max rep", "max effort", "max set of", "max"
+    ];
+    // Words that name a variant of a catalog movement: "strict HSPU" is still HSPU.
+    const VARIANT_WORDS = ["strict", "kipping", "butterfly", "unbroken", "tempo", "deficit", "banded"];
+
+    function isSepChar(c as Char) as Boolean {
+        return c == ' ' || c == ',' || c == ':';
+    }
+
+    // [rest of the line, true] when it starts with a max qualifier.
+    function stripMax(raw as String) as Array {
+        var s = Str.trim(raw);
+        var found = false;
+        var again = true;
+        while (again) {
+            again = false;
+            var low = s.toLower();
+            for (var i = 0; i < MAX_PREFIXES.size(); i++) {
+                var p = MAX_PREFIXES[i] as String;
+                if (Str.startsWith(low, p) && (low.length() == p.length() || isSepChar(low.toCharArray()[p.length()]))) {
+                    s = Str.sub(s, p.length(), s.length());
+                    while (s.length() > 0 && isSepChar(s.toCharArray()[0])) { s = Str.sub(s, 1, s.length()); }
+                    found = true;
+                    again = true;
+                    break;
+                }
+            }
+        }
+        return [s, found];
+    }
+
+    // "8/6 cal ski": men / women reps, left first. Returns [reps, alt] or null.
+    function repsPair(tok as String) as Array<Number>? {
+        var parts = Str.splitOn(tok, '/');
+        if (parts.size() != 2 || !Str.isInt(parts[0]) || !Str.isInt(parts[1])) { return null; }
+        return [Str.toInt(parts[0]), Str.toInt(parts[1])];
+    }
+
+    function parseMovement(raw0 as String) as Dictionary {
+        var sm = stripMax(raw0);
+        var raw = sm[0] as String;
+        var isMax = sm[1] as Boolean;
         var t0 = Str.tokens(stripBrackets(raw).toLower());
+        // a pair first on the line is a men / women rep count, not a load
+        var pair = null;
+        if (t0.size() > 1 && Str.indexIn(WEIGHT_UNITS as Array<String>, t0[1]) < 0) {
+            pair = repsPair(t0[0]);
+            if (pair != null) { t0 = t0.slice(1, null); }
+        }
         var load = findLoad(t0, false);
         if (load == null) { load = findLoad(Str.tokens(bracketText(raw).toLower()), true); }
 
@@ -375,6 +447,12 @@ module WodParser {
                 continue;
             }
             t1.add(tok);
+        }
+
+        if (pair != null) {
+            var withPair = [(pair as Array<Number>)[0].format("%d")] as Array<String>;
+            withPair.addAll(t1);
+            t1 = withPair;
         }
 
         // split "200m" -> "200" "m", "10x" -> "10" "x"
@@ -412,6 +490,7 @@ module WodParser {
             }
             if (k > 0 && t[k - 1].equals("x")) { used[k - 1] = true; }
             reps = value == null ? 0 : Math.round(value * mult).toNumber();
+            if (pair != null) { (pair as Array<Number>)[1] = (pair as Array<Number>)[1] * mult; }
             break;
         }
 
@@ -424,12 +503,23 @@ module WodParser {
         var name;
         if (id != null) {
             name = Movements.name(id);
-        } else if (text.length() > 0) {
-            name = Str.capitalize(text);
         } else {
-            name = Str.trim(raw);
+            name = text.length() > 0 ? Str.capitalize(text) : Str.trim(raw);
+            // "strict ring dip": the catalog movement, the written name
+            var core = [] as Array<String>;
+            for (var k = 0; k < rest.size(); k++) {
+                if (Str.indexIn(VARIANT_WORDS as Array<String>, rest[k]) < 0) { core.add(rest[k]); }
+            }
+            var coreText = Str.join(core, " ");
+            if (coreText.length() > 0 && !coreText.equals(text)) { id = Movements.lookup(coreText); }
         }
-        return {
+        if (isMax) {
+            reps = 0;
+            pair = null;
+        }
+        // "max hold": a time, not reps
+        if (reps == 0 && unit.equals("reps") && rest.size() > 0 && rest[rest.size() - 1].equals("hold")) { unit = "sec"; }
+        var b = {
             "movement" => id == null ? "custom" : id,
             "name" => name,
             "reps" => reps,
@@ -437,6 +527,102 @@ module WodParser {
             "slot" => null,
             "load" => load
         };
+        if (pair != null && reps > 0) { b["repsAlt"] = (pair as Array<Number>)[1]; }
+        return b;
+    }
+
+    // ---------- option lines: time cap, rest, every-minute task ----------
+
+    // Tokens of a line without brackets, commas, lone colons and trailing colons.
+    function optionTokens(line as String) as Array<String> {
+        var out = [] as Array<String>;
+        var t = Str.tokens(Str.replaceChars(line.toLower(), "()[],", ' '));
+        for (var k = 0; k < t.size(); k++) {
+            var tok = t[k];
+            while (Str.endsWith(tok, ":")) { tok = Str.sub(tok, 0, tok.length() - 1); }
+            if (tok.length() > 0) { out.add(tok); }
+        }
+        return out;
+    }
+
+    // "Cap: 10:00", "Time cap 12 min", "TC 15" -> seconds, or -1.
+    function parseCapLine(line as String) as Number {
+        var t = optionTokens(line);
+        var k = -1;
+        if (t.size() >= 2 && t[0].equals("time") && t[1].equals("cap")) {
+            k = 2;
+        } else if (t.size() >= 1 && (t[0].equals("cap") || t[0].equals("tc") || t[0].equals("timecap"))) {
+            k = 1;
+        }
+        if (k < 0) { return -1; }
+        var d = durationAt(t, k);
+        return d != null && d[1] == t.size() ? d[0] : -1;
+    }
+
+    // "Rest 3:00 between sets", "Rest 90 sec" -> [sec, betweenSets], or null.
+    function parseRestLine(line as String) as Array? {
+        var t = optionTokens(line);
+        if (t.size() < 2 || !t[0].equals("rest")) { return null; }
+        var d = durationAt(t, 1);
+        if (d == null) { return null; }
+        var ok = ["between", "sets", "set", "rounds", "round", "each", "after"] as Array<String>;
+        for (var k = d[1]; k < t.size(); k++) {
+            if (Str.indexIn(ok, t[k]) < 0) { return null; }
+        }
+        return [d[0], d[1] < t.size()];
+    }
+
+    // "Every minute on the minute (including 0:00), complete 8/6 cal ski",
+    // "EMOM: 5 burpees", "Every 2:00, 10 wall balls" inside an AMRAP / For time.
+    // Returns [everySec, at0, body] or null.
+    function parseTaskLine(line as String) as Array? {
+        var low = line.toLower();
+        var cs = low.toCharArray();
+        // split at the first "," or ":" that is not inside a time like 2:00
+        var p = -1;
+        for (var i = 0; i < cs.size(); i++) {
+            var c = cs[i];
+            if (c == ',' || (c == ':' && !(i > 0 && Str.isDigitChar(cs[i - 1]) && i + 1 < cs.size() && Str.isDigitChar(cs[i + 1])))) {
+                p = i;
+                break;
+            }
+        }
+        if (p <= 0) { return null; }
+        var head = optionTokens(Str.sub(low, 0, p));
+        var every = -1;
+        for (var k = 0; k < head.size(); k++) {
+            var tok = head[k];
+            if (tok.length() >= 4 && Str.startsWith(tok, "e") && Str.endsWith(tok, "mom")) {
+                var mid = Str.sub(tok, 1, tok.length() - 3);
+                if (mid.length() == 0) {
+                    every = 60;
+                } else if (Str.isInt(mid)) {
+                    every = Str.toInt(mid) * 60;
+                }
+                break;
+            }
+            if (tok.equals("every") && k + 1 < head.size()) {
+                var nx = head[k + 1];
+                if (nx.equals("minute") || nx.equals("min")) {
+                    every = 60;
+                } else if (nx.equals("other") && k + 2 < head.size() && (head[k + 2].equals("minute") || head[k + 2].equals("min"))) {
+                    every = 120;
+                } else {
+                    var d = durationAt(head, k + 1);
+                    if (d != null) { every = d[0]; }
+                }
+                break;
+            }
+        }
+        if (every <= 0) { return null; }
+        var body = Str.trim(Str.sub(line, p + 1, line.length()));
+        var bt = Str.tokens(body);
+        if (bt.size() > 0) {
+            var f = bt[0].toLower();
+            if (f.equals("complete") || f.equals("do") || f.equals("perform")) { body = Str.join(bt.slice(1, null), " "); }
+        }
+        if (body.length() == 0) { return null; }
+        return [every, Str.indexIn(head, "0:00") >= 0, body];
     }
 
     // ---------- rep scheme / slots / lines ----------
@@ -514,6 +700,7 @@ module WodParser {
         var repStep = null;
         var blocks = [] as Array<Dictionary>;
         var nextSlot = 0;
+        var task = null;
 
         for (var n = 0; n < lines.size(); n++) {
             var line = lines[n];
@@ -555,6 +742,34 @@ module WodParser {
                 repScheme = scheme[0];
                 repStep = scheme[1];
                 continue;
+            }
+
+            var htype = header["type"] as String;
+            var cap = parseCapLine(line);
+            if (cap > 0) {
+                if (htype.equals("FOR_TIME")) { header["timeCapSec"] = cap; }
+                continue;
+            }
+            var restLine = parseRestLine(line);
+            if (restLine != null) {
+                if ((header["sets"] as Number) > 1) {
+                    header["setRestSec"] = restLine[0];
+                } else {
+                    blocks.add({ "movement" => "custom", "name" => "Rest", "reps" => restLine[0], "unit" => "sec", "slot" => null, "load" => null });
+                }
+                continue;
+            }
+            if (htype.equals("AMRAP") || htype.equals("FOR_TIME")) {
+                var tl = parseTaskLine(line);
+                if (tl != null) {
+                    var tb = [] as Array<Dictionary>;
+                    var tp = Str.splitOn(tl[2] as String, '+');
+                    for (var q = 0; q < tp.size(); q++) {
+                        if (Str.trim(tp[q]).length() > 0) { tb.add(parseMovement(tp[q])); }
+                    }
+                    task = { "everySec" => tl[0], "at0" => tl[1], "blocks" => tb };
+                    continue;
+                }
             }
 
             var slot = null;
@@ -618,6 +833,12 @@ module WodParser {
                 wod["rounds"] = 1;
             }
         }
+        // optional keys, only when used (older files stay valid)
+        if ((header["sets"] as Number) > 1) {
+            wod["sets"] = header["sets"];
+            wod["setRestSec"] = header["setRestSec"];
+        }
+        if (task != null && ((task as Dictionary)["blocks"] as Array).size() > 0) { wod["task"] = task; }
         return { "wod" => wod };
     }
 
@@ -629,6 +850,69 @@ module WodParser {
 
     function optInt(v) as Boolean {
         return v == null || v instanceof Number;
+    }
+
+    // The athlete's side of "15/12 cal": side 1 takes the second number.
+    // Returns a copy, the stored WOD is left as written.
+    function forSide(wod as Dictionary, side as Number) as Dictionary {
+        if (side != 1) { return wod; }
+        var out = {} as Dictionary;
+        var keys = wod.keys();
+        for (var i = 0; i < keys.size(); i++) { out[keys[i]] = wod[keys[i]]; }
+        out["blocks"] = sideBlocks(wod["blocks"] as Array<Dictionary>);
+        var tk = wod["task"];
+        if (tk instanceof Dictionary) {
+            out["task"] = { "everySec" => (tk as Dictionary)["everySec"], "at0" => (tk as Dictionary)["at0"],
+                "blocks" => sideBlocks((tk as Dictionary)["blocks"] as Array<Dictionary>) };
+        }
+        return out;
+    }
+
+    function sideBlocks(blocks as Array<Dictionary>) as Array<Dictionary> {
+        var out = [] as Array<Dictionary>;
+        for (var i = 0; i < blocks.size(); i++) {
+            var b = blocks[i];
+            if (b["repsAlt"] instanceof Number) {
+                b = { "movement" => b["movement"], "name" => b["name"], "reps" => b["repsAlt"], "unit" => b["unit"],
+                    "slot" => b["slot"], "load" => b["load"] };
+            }
+            out.add(b);
+        }
+        return out;
+    }
+
+    function validateBlock(raw) as Dictionary {
+        if (!(raw instanceof Dictionary)) { return err("Each block needs a movement"); }
+        var b = raw as Dictionary;
+        var mv = b["movement"];
+        if (!(mv instanceof String)) { return err("Each block needs a movement"); }
+        var reps = b["reps"] == null ? 0 : b["reps"];
+        if (!(reps instanceof Number) || (reps as Number) < 0) { return err("Block reps must be an integer >= 0"); }
+        var unit = b["unit"] == null ? "reps" : b["unit"];
+        if (!(unit instanceof String)
+                || !((unit as String).equals("reps") || unit.equals("m") || unit.equals("cal") || unit.equals("sec"))) {
+            return err("Unknown unit");
+        }
+        if (!optInt(b["slot"])) { return err("Block slot must be an integer or null"); }
+        var bl = b["load"];
+        if (bl != null) {
+            if (!(bl instanceof Array) || (bl as Array).size() < 1 || (bl as Array).size() > 2) {
+                return err("Block load must be a list of 1 or 2 positive integers (kg)");
+            }
+            for (var j = 0; j < (bl as Array).size(); j++) {
+                if (!isPosInt((bl as Array)[j])) { return err("Block load must be a list of 1 or 2 positive integers (kg)"); }
+            }
+        }
+        var alt = b["repsAlt"];
+        if (alt != null && (!(alt instanceof Number) || (alt as Number) < 0)) { return err("Block repsAlt must be an integer >= 0"); }
+        var bname = b["name"];
+        if (!(bname instanceof String) || (bname as String).length() == 0) {
+            bname = Movements.name(mv as String);
+            if (bname == null) { bname = mv; }
+        }
+        var out = { "movement" => mv, "name" => bname, "reps" => reps, "unit" => unit, "slot" => b["slot"], "load" => bl };
+        if (alt != null) { out["repsAlt"] = alt; }
+        return out;
     }
 
     function validate(obj) as Dictionary {
@@ -673,35 +957,34 @@ module WodParser {
         var blocks = [] as Array<Dictionary>;
         var rb = rawBlocks as Array;
         for (var i = 0; i < rb.size(); i++) {
-            if (!(rb[i] instanceof Dictionary)) { return err("Each block needs a movement"); }
-            var b = rb[i] as Dictionary;
-            var mv = b["movement"];
-            if (!(mv instanceof String)) { return err("Each block needs a movement"); }
-            var reps = b["reps"] == null ? 0 : b["reps"];
-            if (!(reps instanceof Number) || (reps as Number) < 0) { return err("Block reps must be an integer >= 0"); }
-            var unit = b["unit"] == null ? "reps" : b["unit"];
-            if (!(unit instanceof String)
-                    || !((unit as String).equals("reps") || unit.equals("m") || unit.equals("cal") || unit.equals("sec"))) {
-                return err("Unknown unit");
-            }
-            if (!optInt(b["slot"])) { return err("Block slot must be an integer or null"); }
-            var bl = b["load"];
-            if (bl != null) {
-                if (!(bl instanceof Array) || (bl as Array).size() < 1 || (bl as Array).size() > 2) {
-                    return err("Block load must be a list of 1 or 2 positive integers (kg)");
-                }
-                for (var j = 0; j < (bl as Array).size(); j++) {
-                    if (!isPosInt((bl as Array)[j])) { return err("Block load must be a list of 1 or 2 positive integers (kg)"); }
-                }
-            }
-            var bname = b["name"];
-            if (!(bname instanceof String) || (bname as String).length() == 0) {
-                bname = Movements.name(mv as String);
-                if (bname == null) { bname = mv; }
-            }
-            blocks.add({ "movement" => mv, "name" => bname, "reps" => reps, "unit" => unit, "slot" => b["slot"], "load" => bl });
+            var v = validateBlock(rb[i]);
+            if (v.hasKey("error")) { return v; }
+            blocks.add(v);
         }
         wod["blocks"] = blocks;
+        if ((type as String).equals("AMRAP") && o["sets"] != null) {
+            if (!isPosInt(o["sets"])) { return err("sets must be an integer >= 1"); }
+            var sr = o["setRestSec"] == null ? 0 : o["setRestSec"];
+            if (!(sr instanceof Number) || (sr as Number) < 0) { return err("setRestSec must be an integer >= 0"); }
+            if ((o["sets"] as Number) > 1) {
+                wod["sets"] = o["sets"];
+                wod["setRestSec"] = sr;
+            }
+        }
+        if (((type as String).equals("AMRAP") || type.equals("FOR_TIME")) && o["task"] != null) {
+            var tk = o["task"];
+            if (!(tk instanceof Dictionary) || !isPosInt((tk as Dictionary)["everySec"])) { return err("task needs everySec > 0"); }
+            var trb = (tk as Dictionary)["blocks"];
+            if (!(trb instanceof Array) || (trb as Array).size() == 0) { return err("task needs at least one block"); }
+            var tbs = [] as Array<Dictionary>;
+            for (var i = 0; i < (trb as Array).size(); i++) {
+                var v = validateBlock((trb as Array)[i]);
+                if (v.hasKey("error")) { return v; }
+                v["slot"] = null;
+                tbs.add(v);
+            }
+            wod["task"] = { "everySec" => (tk as Dictionary)["everySec"], "at0" => (tk as Dictionary)["at0"] == true, "blocks" => tbs };
+        }
 
         var t = type as String;
         if (t.equals("AMRAP")) {

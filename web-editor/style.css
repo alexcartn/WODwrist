@@ -105,6 +105,7 @@ code { font-family: var(--mono); font-size: 0.92em; }
 .preview h2 { margin: 0 0 4px; font-size: 20px; }
 .preview .headline { color: var(--accent); font-weight: 600; margin-bottom: 8px; }
 .preview ol { margin: 0; padding-left: 20px; }
+.preview .task { margin-top: 8px; color: var(--hl-sep); font-weight: 600; }
 .preview .plan { margin-top: 10px; font-size: 14px; color: var(--muted); }
 .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 6px; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -210,6 +211,8 @@ button.big { padding: 12px 22px; font-size: 17px; }
 .icon-btn { padding: 6px 10px; font-size: 18px; line-height: 1; }
 .examples select { margin-left: 6px; font-size: 14px; padding: 3px 6px; }
 .qr { text-align: center; padding-top: 10px; }
+.shot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.shot button:first-child { padding: 6px 12px; }
 .qr img { background: #fff; padding: 10px; border-radius: 8px; width: 220px; height: 220px; image-rendering: pixelated; }
 @media (max-width: 760px) {
   header { padding: 10px 12px; }

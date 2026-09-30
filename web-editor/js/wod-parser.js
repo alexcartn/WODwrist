@@ -86,7 +86,7 @@ export function parseDuration(tok) {
 // ---------- header ----------
 
 function emptyHeader(type) {
-  return { type, timeCapSec: null, intervalSec: null, workSec: null, restSec: null, rounds: null, inline: null };
+  return { type, timeCapSec: null, intervalSec: null, workSec: null, restSec: null, rounds: null, inline: null, sets: 1, setRestSec: 0 };
 }
 
 const SEC_WORDS = ["s", "sec", "secs", "second", "seconds"];
@@ -124,6 +124,20 @@ export function parseHeader(line) {
     if (d <= 0) return { error: "AMRAP needs a duration, e.g. AMRAP 12" };
     const h = emptyHeader("AMRAP");
     h.timeCapSec = d;
+    // sets: "3 x AMRAP 4", "3x AMRAP 4", "3 sets of AMRAP 4", optional "rest 1:00"
+    let sets = 0;
+    if (i >= 2 && t[i - 1] === "x" && isInt(t[i - 2])) sets = parseInt(t[i - 2], 10);
+    else if (i >= 1 && t[i - 1].length > 1 && t[i - 1].endsWith("x") && isInt(t[i - 1].substring(0, t[i - 1].length - 1))) {
+      sets = parseInt(t[i - 1].substring(0, t[i - 1].length - 1), 10);
+    } else if (i >= 3 && t[i - 1] === "of" && ROUND_WORDS.includes(t[i - 2]) && isInt(t[i - 3])) sets = parseInt(t[i - 3], 10);
+    if (sets > 1) {
+      h.sets = sets;
+      const r = t.indexOf("rest", i);
+      if (r >= 0) {
+        const rd = durationAt(t, r + 1);
+        if (rd) h.setRestSec = rd[0];
+      }
+    }
     return h;
   }
 
@@ -323,8 +337,53 @@ function bracketText(s) {
   return out;
 }
 
-export function parseMovement(raw) {
-  const t0 = tokens(stripBrackets(raw).toLowerCase());
+// "Tough set of", "Max", "In remaining time, max": the movement is done for max reps.
+const MAX_PREFIXES = [
+  "in the remaining time", "in remaining time", "with the remaining time", "with remaining time",
+  "tough set of", "tough set", "max reps of", "max reps", "max rep", "max effort", "max set of", "max",
+];
+// Words that name a variant of a catalog movement: "strict HSPU" is still HSPU.
+const VARIANT_WORDS = ["strict", "kipping", "butterfly", "unbroken", "tempo", "deficit", "banded"];
+
+// Returns [rest of the line, true] when it starts with a max qualifier.
+function stripMax(raw) {
+  let s = raw.trim();
+  let found = false;
+  let again = true;
+  while (again) {
+    again = false;
+    const low = s.toLowerCase();
+    for (const p of MAX_PREFIXES) {
+      if (low.startsWith(p) && (low.length === p.length || " ,:".includes(low[p.length]))) {
+        s = s.substring(p.length);
+        while (s.length > 0 && " ,:".includes(s[0])) s = s.substring(1);
+        found = true;
+        again = true;
+        break;
+      }
+    }
+  }
+  return [s, found];
+}
+
+// "8/6 cal ski": men / women reps, left first. Returns [reps, alt] or null.
+function repsPair(tok) {
+  const sl = tok.indexOf("/");
+  if (sl <= 0 || tok.indexOf("/", sl + 1) >= 0) return null;
+  const a = tok.substring(0, sl);
+  const b = tok.substring(sl + 1);
+  return isInt(a) && isInt(b) ? [parseInt(a, 10), parseInt(b, 10)] : null;
+}
+
+export function parseMovement(raw0) {
+  const [raw, isMax] = stripMax(raw0);
+  let t0 = tokens(stripBrackets(raw).toLowerCase());
+  // a pair first on the line is a men / women rep count, not a load
+  let pair = null;
+  if (t0.length > 1 && !WEIGHT_UNITS.includes(t0[1])) {
+    pair = repsPair(t0[0]);
+    if (pair) t0 = t0.slice(1);
+  }
   const load = findLoad(t0) ?? findLoad(tokens(bracketText(raw).toLowerCase()), true);
 
   // drop loads: "43/30kg", "20/14", "24 kg", "@", "@60kg"
@@ -341,6 +400,8 @@ export function parseMovement(raw) {
     if (WEIGHT_UNITS.includes(tok) && t1.length > 0 && isWeightNumber(t1[t1.length - 1])) { t1.pop(); continue; }
     t1.push(tok);
   }
+
+  if (pair) t1.unshift(String(pair[0]));
 
   // split "200m" -> "200" "m", "10x" -> "10" "x"
   const t = [];
@@ -370,17 +431,109 @@ export function parseMovement(raw) {
     if (k + 1 < t.length && t[k + 1] === "x") used[k + 1] = true;
     if (k > 0 && t[k - 1] === "x") used[k - 1] = true;
     reps = Math.round(value * mult);
+    if (pair) pair[1] = Math.round(pair[1] * mult);
     break;
   }
 
   const rest = [];
   for (let k = 0; k < t.length; k++) if (!used[k]) rest.push(t[k]);
   const text = rest.join(" ");
-  const id = lookupMovement(text);
+  let id = lookupMovement(text);
   let name;
   if (id) name = MOVEMENTS[id].name;
-  else name = text.length > 0 ? capitalize(text) : raw.trim();
-  return { movement: id || "custom", name, reps, unit, slot: null, load };
+  else {
+    name = text.length > 0 ? capitalize(text) : raw.trim();
+    // "strict ring dip": the catalog movement, the written name
+    const core = rest.filter((w) => !VARIANT_WORDS.includes(w)).join(" ");
+    if (core.length > 0 && core !== text) id = lookupMovement(core);
+  }
+  if (isMax) {
+    reps = 0;
+    pair = null;
+  }
+  // "max hold": a time, not reps
+  if (reps === 0 && unit === "reps" && rest.length > 0 && rest[rest.length - 1] === "hold") unit = "sec";
+  const b = { movement: id || "custom", name, reps, unit, slot: null, load };
+  if (pair && reps > 0) b.repsAlt = pair[1];
+  return b;
+}
+
+// ---------- option lines: time cap, rest, every-minute task ----------
+
+// Tokens of a line without brackets, commas, lone colons and trailing colons.
+function optionTokens(line) {
+  const out = [];
+  for (let tok of tokens(replaceChars(line.toLowerCase(), "()[],", " "))) {
+    while (tok.endsWith(":")) tok = tok.substring(0, tok.length - 1);
+    if (tok.length > 0) out.push(tok);
+  }
+  return out;
+}
+
+// "Cap: 10:00", "Time cap 12 min", "TC 15" -> seconds, or -1.
+export function parseCapLine(line) {
+  const t = optionTokens(line);
+  let k = -1;
+  if (t.length >= 2 && t[0] === "time" && t[1] === "cap") k = 2;
+  else if (t.length >= 1 && (t[0] === "cap" || t[0] === "tc" || t[0] === "timecap")) k = 1;
+  if (k < 0) return -1;
+  const d = durationAt(t, k);
+  return d && d[1] === t.length ? d[0] : -1;
+}
+
+// "Rest 3:00 between sets", "Rest 90 sec" -> { sec, betweenSets }, or null.
+export function parseRestLine(line) {
+  const t = optionTokens(line);
+  if (t.length < 2 || t[0] !== "rest") return null;
+  const d = durationAt(t, 1);
+  if (!d) return null;
+  for (let k = d[1]; k < t.length; k++) {
+    if (!["between", "sets", "set", "rounds", "round", "each", "after"].includes(t[k])) return null;
+  }
+  return { sec: d[0], betweenSets: d[1] < t.length };
+}
+
+// "Every minute on the minute (including 0:00), complete 8/6 cal ski",
+// "EMOM: 5 burpees", "Every 2:00, 10 wall balls" inside an AMRAP / For time.
+// Returns { everySec, at0, body } or null.
+export function parseTaskLine(line) {
+  const low = line.toLowerCase();
+  // split at the first "," or ":" that is not inside a time like 2:00
+  let p = -1;
+  for (let i = 0; i < low.length; i++) {
+    const c = low[i];
+    if (c === "," || (c === ":" && !(i > 0 && isDigit(low[i - 1]) && i + 1 < low.length && isDigit(low[i + 1])))) {
+      p = i;
+      break;
+    }
+  }
+  if (p <= 0) return null;
+  const head = optionTokens(low.substring(0, p));
+  let every = -1;
+  for (let k = 0; k < head.length; k++) {
+    const tok = head[k];
+    if (tok.length >= 4 && tok[0] === "e" && tok.endsWith("mom")) {
+      const mid = tok.substring(1, tok.length - 3);
+      if (mid === "") every = 60;
+      else if (isInt(mid)) every = parseInt(mid, 10) * 60;
+      break;
+    }
+    if (tok === "every" && k + 1 < head.length) {
+      if (head[k + 1] === "minute" || head[k + 1] === "min") every = 60;
+      else if (head[k + 1] === "other" && k + 2 < head.length && (head[k + 2] === "minute" || head[k + 2] === "min")) every = 120;
+      else {
+        const d = durationAt(head, k + 1);
+        if (d) every = d[0];
+      }
+      break;
+    }
+  }
+  if (every <= 0) return null;
+  let body = line.substring(p + 1).trim();
+  const [first, ...more] = tokens(body);
+  if (first && ["complete", "do", "perform"].includes(first.toLowerCase())) body = more.join(" ");
+  if (body.length === 0) return null;
+  return { everySec: every, at0: head.includes("0:00"), body };
 }
 
 // ---------- rep scheme ----------
@@ -453,6 +606,7 @@ export function parseWod(text) {
   let repStep = null;
   const blocks = [];
   let nextSlot = 0;
+  let task = null;
 
   for (let n = 0; n < lines.length; n++) {
     const line = lines[n];
@@ -479,6 +633,27 @@ export function parseWod(text) {
 
     const scheme = parseRepScheme(line);
     if (scheme) { repScheme = scheme.scheme; repStep = scheme.step; continue; }
+
+    const cap = parseCapLine(line);
+    if (cap > 0) {
+      if (header.type === "FOR_TIME") header.timeCapSec = cap;
+      continue;
+    }
+    const restLine = parseRestLine(line);
+    if (restLine && header.sets > 1) { header.setRestSec = restLine.sec; continue; }
+    if (restLine) {
+      blocks.push({ movement: "custom", name: "Rest", reps: restLine.sec, unit: "sec", slot: null, load: null });
+      continue;
+    }
+    if (header.type === "AMRAP" || header.type === "FOR_TIME") {
+      const tl = parseTaskLine(line);
+      if (tl) {
+        const tb = [];
+        for (const part of tl.body.split("+")) if (part.trim().length > 0) tb.push(parseMovement(part));
+        task = { everySec: tl.everySec, at0: tl.at0, blocks: tb };
+        continue;
+      }
+    }
 
     let slot = null;
     let body = line;
@@ -527,6 +702,12 @@ export function parseWod(text) {
     for (const b of blocks) if (b.reps === 0) b.reps = 1;
     wod.repStep = blocks[0].reps;
   }
+  // optional keys, only when used (older watches and files stay valid)
+  if (header.sets > 1) {
+    wod.sets = header.sets;
+    wod.setRestSec = header.setRestSec;
+  }
+  if (task && task.blocks.length > 0) wod.task = task;
   return { wod };
 }
 
@@ -534,6 +715,31 @@ export function parseWod(text) {
 
 function isIntValue(v) { return typeof v === "number" && Number.isInteger(v); }
 function optInt(v) { return v === undefined || v === null || isIntValue(v); }
+
+function validateBlock(b) {
+  if (b == null || typeof b.movement !== "string") return { error: "Each block needs a movement" };
+  const reps = b.reps ?? 0;
+  if (!isIntValue(reps) || reps < 0) return { error: "Block reps must be an integer >= 0" };
+  const unit = b.unit ?? "reps";
+  if (!UNITS.includes(unit)) return { error: `Unknown unit ${unit}` };
+  if (!optInt(b.slot)) return { error: "Block slot must be an integer or null" };
+  const load = b.load ?? null;
+  if (load != null && !(Array.isArray(load) && load.length >= 1 && load.length <= 2 && load.every((x) => isIntValue(x) && x > 0))) {
+    return { error: "Block load must be a list of 1 or 2 positive integers (kg)" };
+  }
+  if (b.repsAlt != null && (!isIntValue(b.repsAlt) || b.repsAlt < 0)) return { error: "Block repsAlt must be an integer >= 0" };
+  const known = MOVEMENTS[b.movement];
+  const out = {
+    movement: b.movement,
+    name: typeof b.name === "string" && b.name.length > 0 ? b.name : known ? known.name : b.movement,
+    reps,
+    unit,
+    slot: b.slot ?? null,
+    load,
+  };
+  if (b.repsAlt != null) out.repsAlt = b.repsAlt;
+  return out;
+}
 
 export function validateWod(obj) {
   if (obj == null || typeof obj !== "object") return { error: "WOD must be an object" };
@@ -564,25 +770,31 @@ export function validateWod(obj) {
     wod.repScheme = obj.repScheme.slice();
   }
   for (const b of obj.blocks) {
-    if (b == null || typeof b.movement !== "string") return { error: "Each block needs a movement" };
-    const reps = b.reps ?? 0;
-    if (!isIntValue(reps) || reps < 0) return { error: "Block reps must be an integer >= 0" };
-    const unit = b.unit ?? "reps";
-    if (!UNITS.includes(unit)) return { error: `Unknown unit ${unit}` };
-    if (!optInt(b.slot)) return { error: "Block slot must be an integer or null" };
-    const load = b.load ?? null;
-    if (load != null && !(Array.isArray(load) && load.length >= 1 && load.length <= 2 && load.every((x) => isIntValue(x) && x > 0))) {
-      return { error: "Block load must be a list of 1 or 2 positive integers (kg)" };
+    const v = validateBlock(b);
+    if (v.error) return v;
+    wod.blocks.push(v);
+  }
+  if (wod.type === "AMRAP" && obj.sets != null) {
+    if (!isIntValue(obj.sets) || obj.sets < 1) return { error: "sets must be an integer >= 1" };
+    const rest = obj.setRestSec ?? 0;
+    if (!isIntValue(rest) || rest < 0) return { error: "setRestSec must be an integer >= 0" };
+    if (obj.sets > 1) {
+      wod.sets = obj.sets;
+      wod.setRestSec = rest;
     }
-    const known = MOVEMENTS[b.movement];
-    wod.blocks.push({
-      movement: b.movement,
-      name: typeof b.name === "string" && b.name.length > 0 ? b.name : known ? known.name : b.movement,
-      reps,
-      unit,
-      slot: b.slot ?? null,
-      load,
-    });
+  }
+  if ((wod.type === "AMRAP" || wod.type === "FOR_TIME") && obj.task != null) {
+    const tk = obj.task;
+    if (typeof tk !== "object" || !isIntValue(tk.everySec) || tk.everySec <= 0) return { error: "task needs everySec > 0" };
+    if (!Array.isArray(tk.blocks) || tk.blocks.length === 0) return { error: "task needs at least one block" };
+    const tb = [];
+    for (const b of tk.blocks) {
+      const v = validateBlock(b);
+      if (v.error) return v;
+      v.slot = null;
+      tb.push(v);
+    }
+    wod.task = { everySec: tk.everySec, at0: tk.at0 === true, blocks: tb };
   }
 
   switch (wod.type) {
@@ -627,6 +839,10 @@ export function validateWod(obj) {
 
 // ---------- back to text (for the Garmin Connect settings field) ----------
 
+function fmtClock(sec) {
+  return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+}
+
 function fmtMin(sec) {
   if (sec % 60 === 0) return String(sec / 60);
   const s = sec % 60;
@@ -636,10 +852,11 @@ function fmtMin(sec) {
 function fmtBlock(b) {
   const load = b.load ? ` (${b.load.join("/")}kg)` : "";
   if (b.reps === 0) return b.name + load;
-  if (b.unit === "m") return `${b.reps}m ${b.name}${load}`;
-  if (b.unit === "cal") return `${b.reps} cal ${b.name}${load}`;
-  if (b.unit === "sec") return `${b.reps}s ${b.name}${load}`;
-  return `${b.reps} ${b.name}${load}`;
+  const n = b.repsAlt != null ? `${b.reps}/${b.repsAlt}` : `${b.reps}`;
+  if (b.unit === "m") return `${n}m ${b.name}${load}`;
+  if (b.unit === "cal") return `${n} cal ${b.name}${load}`;
+  if (b.unit === "sec") return `${n}s ${b.name}${load}`;
+  return `${n} ${b.name}${load}`;
 }
 
 export function wodToText(wod, sep = "\n") {
@@ -647,7 +864,8 @@ export function wodToText(wod, sep = "\n") {
   lines.push(`# ${wod.name}`);
   switch (wod.type) {
     case "AMRAP":
-      lines.push(`AMRAP ${fmtMin(wod.timeCapSec)}`);
+      lines.push(`${wod.sets > 1 ? `${wod.sets} x ` : ""}AMRAP ${fmtMin(wod.timeCapSec)}`);
+      if (wod.sets > 1 && wod.setRestSec > 0) lines.push(`Rest ${fmtClock(wod.setRestSec)} between sets`);
       if (wod.repScheme) lines.push(wod.repScheme.join("-") + (wod.repStep ? "-..." : ""));
       break;
     case "EMOM": {
@@ -681,6 +899,10 @@ export function wodToText(wod, sep = "\n") {
     });
   } else {
     for (const b of wod.blocks) lines.push(fmtBlock(b));
+  }
+  if (wod.task) {
+    const every = wod.task.everySec === 60 ? "minute" : fmtClock(wod.task.everySec);
+    lines.push(`Every ${every}${wod.task.at0 ? " (including 0:00)" : ""}, ${wod.task.blocks.map(fmtBlock).join(" + ")}`);
   }
   return lines.join(sep);
 }

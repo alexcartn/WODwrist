@@ -1,7 +1,7 @@
 // Editor helpers: syntax highlighting of the WOD text and movement
 // autocomplete. Pure functions (tested in test/assist.test.js).
 
-import { parseHeader, parseMovement, normalizeName } from "./wod-parser.js";
+import { parseHeader, parseMovement, normalizeName, parseCapLine, parseRestLine, parseTaskLine } from "./wod-parser.js";
 import { MOVEMENTS, ALIASES } from "./movements.js";
 
 const LOAD_RE = /(@\s*)?\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)*\s*(?:kgs?|lbs?|#|pood|pd)\b|\([^)]*\)|\[[^\]]*\]|@\s*\d+(?:\/\d+)*|\b\d+(?:\/\d+)+\b/gi;
@@ -22,6 +22,15 @@ export function classifyLine(line, isFirstContent) {
   }
   if (line.includes("-") && SCHEME_RE.test(line)) return [[line, "scheme"]];
   if (isFirstContent) return [[line, "bad"]];
+  // option lines: time cap, rest between sets, every-minute task
+  if (parseCapLine(line) > 0 || parseRestLine(line)) return [[line, "hdr"]];
+  const task = parseTaskLine(line);
+  if (task) {
+    // "Every minute (including 0:00)," in the option color, then the movements
+    const start = line.lastIndexOf(task.body);
+    if (start > 0) return [[line.substring(0, start), "slot"], ...movementTokens(line.substring(start))];
+    return [[line, "slot"]];
+  }
 
   const out = [];
   let rest = line;
@@ -59,7 +68,13 @@ function movementTokens(part) {
   let last = 0;
   // loads first, then the leading number, the rest is the movement name
   const spans = [];
-  for (const m of part.matchAll(LOAD_RE)) spans.push([m.index, m.index + m[0].length, "load"]);
+  // "15/12 cal row": a leading pair is men / women reps, not a load
+  const pair = part.match(/^\s*(\d+\/\d+)(?=\s+(?!(?:kgs?|lbs?|#|pood|pd)\b)\S)/i);
+  if (pair) spans.push([part.indexOf(pair[1]), part.indexOf(pair[1]) + pair[1].length, "num"]);
+  for (const m of part.matchAll(LOAD_RE)) {
+    if (pair && m.index < part.indexOf(pair[1]) + pair[1].length) continue;
+    spans.push([m.index, m.index + m[0].length, "load"]);
+  }
   const num = part.match(NUM_RE);
   if (num) {
     const at = part.indexOf(num[1]);

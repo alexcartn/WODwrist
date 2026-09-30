@@ -14,6 +14,12 @@
 | swipe up / down | data page: clock (default), reps in giant digits, heart rate and zone |
 | swipe right | ignored, so a sweaty swipe does not leave the workout |
 
+Every-minute task (`Every minute, 8/6 cal ski` in a For time / AMRAP): at each
+interval the screen shows `TASK` in orange, a strong double vibration and the
+task; count it like any movement (BACK = done for cal / m), then the main
+movement comes back where you left it. `3 x AMRAP 4`: `Set 2/3` next to the
+rounds, blue rest ring between sets, `SET 2/3` banner at each start.
+
 The next movement starts automatically when the target reps are reached
 (auto count or manual). In EMOM / Tabata, once the interval's work is done the
 screen shows `DONE, WAIT` until the next interval.

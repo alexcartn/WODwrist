@@ -247,6 +247,16 @@ mk("N. AMRAP rapide en cours",W,W,0,(d,w,h)=>quickRun(d,w,h,{frac:0.37,color:C.g
 mk("O. Chrono (pas d'anneau, monte)",W,W,0,(d,w,h)=>quickRun(d,w,h,{color:C.green,label:"EFFORT",round:"Tours 5",clock:"6:12",hint:"RETOUR = +1 tour",foot:"FC 171"}));
 mk("P. EMOM : fait, attends",W,W,0,(d,w,h)=>quickRun(d,w,h,{frac:0.63,color:C.blue,label:"FINI, ATTENDS",round:"Int 4/10",clock:"0:22",foot:"FC 149"}));
 mk("Q. Page tours (swipe haut)",W,W,0,(d,w,h)=>quickRun(d,w,h,{page:1,frac:0.37,color:C.green,label:"EFFORT",round:"Tours 7",clock:"12:41",big:["Tours","7"]}));
+function hwRun(d,w,h,o){const cx=w/2;ringUx(d,w,h,o.frac,o.color,w/40);t(d,cx,h*0.12,F.tiny,o.color,o.label);t(d,cx,h*0.22,F.tiny,C.lt,o.round);
+  segClock(d,o.clock,cx,h*0.41,h*0.22,C.white);
+  if(o.next){t(d,cx,h*0.61,F.xtiny,C.lt,o.next);}
+  if(o.name){nameIcon(d,w,h,o.icon,o.name,h*0.62);t(d,cx,h*0.75,F.medium,C.yellow,o.reps,{bold:1});}
+  if(o.banner){const fh=F.medium+6,fy=h*0.62,bw=w*0.78;d.fillStyle=o.bannerColor;d.beginPath();d.roundRect(cx-bw/2,fy-fh*0.75,bw,fh*1.5,fh/3);d.fill();t(d,cx,fy,F.medium,"#000",o.banner,{bold:1});}
+  t(d,cx,h*0.87,F.xtiny,C.lt,o.foot);dotsUx(d,w,h,0,3);}
+mk("R. For time : la tâche de la minute tombe",W,W,0,(d,w,h)=>hwRun(d,w,h,{frac:0.1,color:C.orange,label:"TÂCHE",round:"Tour 1/1",clock:"1:00",banner:"8 CAL SKI ERG",bannerColor:C.orange,foot:"Reps 23  FC 158"}));
+mk("S. Tâche en cours puis retour aux push-ups",W,W,0,(d,w,h)=>hwRun(d,w,h,{frac:0.12,color:C.orange,label:"TÂCHE",round:"Tour 1/1",clock:"1:14",name:"Ski erg",reps:"8 cal",foot:"Reps 23  FC 164"}));
+mk("T. 3 x AMRAP : série 2",W,W,0,(d,w,h)=>hwRun(d,w,h,{frac:0.4,color:C.green,label:"EFFORT",round:"Série 2/3  Tours 0",clock:"0:45",name:"Strict handstand push up",reps:"4",foot:"Reps 17  FC 151"}));
+mk("U. Repos entre séries",W,W,0,(d,w,h)=>hwRun(d,w,h,{frac:0.35,color:C.blue,label:"REPOS",round:"Série 1/3  Tours 0",clock:"1:57",next:"SUIVANT : Série 2/3",foot:"Reps 13  FC 132"}));
 }
 const names=["ball","kb","m_play","m_list","m_stats","m_quick"];let left=names.length;
 names.forEach(n=>{const im=new Image();im.onload=()=>{ICON[n]=im;if(--left==0){later();document.body.dataset.ready=1;}};im.src="../../watch-app/resources/drawables/icons/"+n+".png";});

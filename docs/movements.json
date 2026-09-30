@@ -189,6 +189,20 @@
       "counter": null
     },
     {
+      "id": "ring_push_up",
+      "name": "Ring push-ups",
+      "domain": "G",
+      "refTenths": 22,
+      "icon": "hold",
+      "aliases": [
+        "ring push up",
+        "ring push ups",
+        "ring pushup",
+        "ring pushups"
+      ],
+      "counter": null
+    },
+    {
       "id": "sit_up",
       "name": "Sit-ups",
       "domain": "G",
@@ -543,7 +557,10 @@
         "handstand push up",
         "handstand push ups",
         "hspu",
-        "hspus"
+        "hspus",
+        "handstand push-up",
+        "strict hspu",
+        "strict hspus"
       ],
       "counter": null
     },

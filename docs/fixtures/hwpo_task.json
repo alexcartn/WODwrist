@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "name": "Ring Push-Up",
+  "type": "FOR_TIME",
+  "timeCapSec": 600,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 1,
+  "repScheme": null,
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "ring_push_up",
+      "name": "Ring push-ups",
+      "reps": 50,
+      "unit": "reps",
+      "slot": null,
+      "load": null
+    }
+  ],
+  "task": {
+    "everySec": 60,
+    "at0": true,
+    "blocks": [
+      {
+        "movement": "ski",
+        "name": "Ski erg",
+        "reps": 8,
+        "unit": "cal",
+        "slot": null,
+        "load": null,
+        "repsAlt": 6
+      }
+    ]
+  }
+}

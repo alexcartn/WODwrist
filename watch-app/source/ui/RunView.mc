@@ -52,6 +52,10 @@ class RunView extends WatchUi.View {
         } else if (e.intervalDone) {
             label = "DONE, WAIT";
             color = Theme.REST;
+        } else if (e.taskActive) {
+            // every-minute task on top of the main work
+            label = "TASK";
+            color = Theme.WARN;
         }
 
         // ---- progress ring: countdown, cap, interval or tabata phase ----
@@ -241,6 +245,13 @@ class RunView extends WatchUi.View {
 
     // While waiting (EMOM work done, Tabata rest): what comes next.
     private function drawNext(dc as Graphics.Dc, e as TimerEngine, cx as Number, h as Number, center as Number) as Void {
+        if (!e.isInterval()) {
+            // rest between the sets of a "3 x AMRAP"
+            dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * (_s.coach ? 76 : 61) / 100, _s.coach ? Graphics.FONT_SMALL : Graphics.FONT_XTINY,
+                Tr.s("NEXT") + ": " + Tr.s("Set") + " " + (e.set + 2).format("%d") + "/" + e.sets.format("%d"), center);
+            return;
+        }
         var next = e.nextBlocks();
         if (QuickTimer.isQuick(e.wod) && next.size() > 0) { return; }   // nothing to announce
         var parts = [] as Array<String>;
@@ -283,6 +294,10 @@ class RunView extends WatchUi.View {
 
     private function roundText(e as TimerEngine) as String {
         var total = e.totalRounds();
+        if (e.sets > 1) {
+            return Tr.s("Set") + " " + (e.set + 1).format("%d") + "/" + e.sets.format("%d") + "  "
+                + Tr.s("Rounds") + " " + e.roundsCompleted.format("%d");
+        }
         if (total == 0) {
             return Tr.s("Rounds") + " " + e.roundsCompleted.format("%d");
         }

@@ -14,6 +14,9 @@ export const E = {
   ROUND: 6,         // round completed (AMRAP / FOR_TIME), arg = rounds completed
   TARGET_DONE: 7,   // EMOM / TABATA interval work finished early
   DONE: 8,          // workout over
+  SET: 9,           // next set of a "3 x AMRAP" starts, arg = set index
+  TASK: 10,         // every-minute task starts (For time / AMRAP), arg = how many so far
+  TASK_DONE: 11,    // task finished, back to the main work
 };
 
 export class TimerEngine {
@@ -36,6 +39,19 @@ export class TimerEngine {
     this.roundsCompleted = 0;
     this.intervalDone = false;
     this.lastWarnKey = -1;
+
+    // "3 x AMRAP 4, rest 1:00": sets of the same AMRAP with rest between
+    this.sets = wod.type === "AMRAP" && wod.sets > 1 ? wod.sets : 1;
+    this.setRestMs = this.sets > 1 ? (wod.setRestSec || 0) * 1000 : 0;
+    this.set = 0;
+    this.partialReps = 0;   // reps of the unfinished round of the sets already over
+
+    // "every minute, 8 cal ski" inside a For time / AMRAP: interrupts the main work
+    this.task = (wod.type === "AMRAP" || wod.type === "FOR_TIME") && wod.task && wod.task.blocks.length > 0 ? wod.task : null;
+    this.taskActive = false;
+    this.taskIdx = 0;
+    this.taskFired = 0;
+    this.savedBlockReps = 0;
 
     const slots = [];
     for (const b of wod.blocks) if (b.slot != null && !slots.includes(b.slot)) slots.push(b.slot);
@@ -63,7 +79,11 @@ export class TimerEngine {
     if (a < 0) return -a;
     const w = this.wod;
     switch (w.type) {
-      case "AMRAP": return Math.max(0, w.timeCapSec * 1000 - a);
+      case "AMRAP": {
+        const cap = w.timeCapSec * 1000;
+        const within = this.setWithin(a);
+        return within < cap ? cap - within : Math.max(0, this.setPeriod() - within);
+      }
       case "FOR_TIME": return w.timeCapSec ? Math.min(a, w.timeCapSec * 1000) : a;
       case "EMOM": {
         if (this.state === S.DONE) return 0;
@@ -90,7 +110,9 @@ export class TimerEngine {
     switch (w.type) {
       case "AMRAP": {
         const cap = w.timeCapSec * 1000;
-        return [Math.min(a, cap), cap];
+        const within = this.setWithin(a);
+        if (within < cap || done || this.setRestMs === 0) return [Math.min(within, cap), cap];
+        return [within - cap, this.setRestMs];
       }
       case "FOR_TIME": {
         if (!w.timeCapSec) return null;
@@ -111,6 +133,63 @@ export class TimerEngine {
     return null;
   }
 
+  // ---------- sets ----------
+
+  setPeriod() { return this.wod.timeCapSec * 1000 + this.setRestMs; }
+
+  // Total length of an AMRAP, sets and rests included.
+  amrapTotalMs() { return this.sets * this.wod.timeCapSec * 1000 + (this.sets - 1) * this.setRestMs; }
+
+  // Time since the start of the current set.
+  setWithin(a) {
+    if (this.sets === 1) return a;
+    const idx = Math.min(Math.floor(a / this.setPeriod()), this.sets - 1);
+    return a - idx * this.setPeriod();
+  }
+
+  endSet(ev) {
+    if (this.taskActive) this.endTask(null);
+    this.partialReps += this.lapReps;
+    this.closeLap(ev);
+    this.round = 0;
+    this.blockIdx = 0;
+    this.blockReps = 0;
+  }
+
+  // ---------- every-minute task ----------
+
+  tickTask(within, ev) {
+    if (!this.task || this.state !== S.WORK) return;
+    const n = Math.floor(within / (this.task.everySec * 1000)) + (this.task.at0 ? 1 : 0);
+    if (n <= this.taskFired) return;
+    this.taskFired = n;
+    // a task still going (missed) simply restarts
+    if (!this.taskActive) this.savedBlockReps = this.blockReps;
+    this.taskActive = true;
+    this.taskIdx = 0;
+    this.blockReps = 0;
+    ev.push([E.TASK, n]);
+  }
+
+  advanceTask(ev) {
+    this.taskIdx++;
+    this.blockReps = 0;
+    if (this.taskIdx < this.task.blocks.length) {
+      ev.push([E.BLOCK, this.taskIdx]);
+      return;
+    }
+    this.endTask(ev);
+  }
+
+  endTask(ev) {
+    this.taskActive = false;
+    this.blockReps = this.savedBlockReps;
+    if (ev) {
+      ev.push([E.TASK_DONE, 0]);
+      ev.push([E.BLOCK, this.blockIdx]);
+    }
+  }
+
   // ---------- blocks ----------
 
   currentBlocks() {
@@ -120,6 +199,7 @@ export class TimerEngine {
   }
 
   currentBlock() {
+    if (this.taskActive) return this.task.blocks[this.taskIdx];
     const bl = this.currentBlocks();
     return this.blockIdx < bl.length ? bl[this.blockIdx] : null;
   }
@@ -134,6 +214,7 @@ export class TimerEngine {
 
   target(block) {
     if (block == null) return 0;
+    if (this.taskActive) return block.reps;
     const step = this.wod.repStep || 0;
     if (this.isDeathBy()) return block.reps + this.round * step;
     if (block.reps > 0) return block.reps;
@@ -220,8 +301,28 @@ export class TimerEngine {
     switch (w.type) {
       case "AMRAP": {
         const cap = w.timeCapSec * 1000;
-        if (a >= cap) return ev.concat(this.done(cap, true));
-        this.warn(0, cap - a, ev);
+        const total = this.amrapTotalMs();
+        if (a >= total) return ev.concat(this.done(total, true));
+        const idx = Math.floor(a / this.setPeriod());
+        const within = a - idx * this.setPeriod();
+        while (this.set < idx) {
+          if (this.state === S.WORK) this.endSet(ev);
+          this.set++;
+          this.state = S.WORK;
+          this.taskFired = 0;
+          ev.push([E.SET, this.set]);
+        }
+        if (within >= cap) {
+          if (this.state === S.WORK) {
+            this.endSet(ev);
+            this.state = S.REST;
+            ev.push([E.REST, 0]);
+          }
+          this.warn(idx * 2 + 1, this.setPeriod() - within, ev);
+        } else {
+          this.warn(idx * 2, cap - within, ev);
+          this.tickTask(within, ev);
+        }
         break;
       }
       case "FOR_TIME": {
@@ -230,6 +331,7 @@ export class TimerEngine {
           if (a >= cap) return ev.concat(this.done(cap, true));
           this.warn(0, cap - a, ev);
         }
+        this.tickTask(a, ev);
         break;
       }
       case "EMOM": {
@@ -282,6 +384,13 @@ export class TimerEngine {
     if (b == null || b.unit !== "reps") return ev;
     if (delta < 0 && this.blockReps + delta < 0) delta = -this.blockReps;
     if (delta === 0) return ev;
+    if (this.taskActive) {
+      // task reps count in the total, not in the round / lap
+      this.blockReps += delta;
+      this.totalReps += delta;
+      if (b.reps > 0 && this.blockReps >= b.reps) this.advanceTask(ev);
+      return ev;
+    }
     this.blockReps += delta;
     this.lapReps += delta;
     this.totalReps += delta;
@@ -296,6 +405,11 @@ export class TimerEngine {
     if (this.state !== S.WORK || this.intervalDone) return ev;
     const b = this.currentBlock();
     if (b == null) return ev;
+    if (this.taskActive) {
+      if (b.unit === "reps" && b.reps > this.blockReps) this.totalReps += b.reps - this.blockReps;
+      this.advanceTask(ev);
+      return ev;
+    }
     if (b.unit === "reps") {
       const missing = this.target(b) - this.blockReps;
       if (missing > 0) {
@@ -338,7 +452,7 @@ export class TimerEngine {
   // { kind: "rounds", rounds, reps } | { kind: "time", ms } | { kind: "reps", reps }
   score() {
     switch (this.wod.type) {
-      case "AMRAP": return { kind: "rounds", rounds: this.roundsCompleted, reps: this.lapReps };
+      case "AMRAP": return { kind: "rounds", rounds: this.roundsCompleted, reps: this.partialReps + this.lapReps };
       case "EMOM":
         if (this.isDeathBy()) return { kind: "rounds", rounds: this.roundsCompleted, reps: this.lapReps };
         return { kind: "reps", reps: this.totalReps };

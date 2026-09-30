@@ -22,6 +22,9 @@ const EV_BLOCK = 5;       // next movement, arg = block index
 const EV_ROUND = 6;       // round completed (AMRAP / FOR_TIME), arg = rounds completed
 const EV_TARGET_DONE = 7; // EMOM / TABATA interval work done early
 const EV_DONE = 8;        // workout over, arg = reps of the last (open) lap
+const EV_SET = 9;         // next set of a "3 x AMRAP" starts, arg = set index
+const EV_TASK = 10;       // every-minute task starts (For time / AMRAP), arg = how many so far
+const EV_TASK_DONE = 11;  // task finished, back to the main work
 
 // WOD types
 const WT_AMRAP = 0;
@@ -42,6 +45,19 @@ class TimerEngine {
     var roundsCompleted as Number = 0;
     var intervalDone as Boolean = false;
     var capped as Boolean = false;
+
+    // "3 x AMRAP 4, rest 1:00": sets of the same AMRAP with rest between
+    var sets as Number = 1;
+    var set as Number = 0;
+    var partialReps as Number = 0;   // reps of the unfinished round of the sets already over
+    private var _setRestMs as Number = 0;
+
+    // "every minute, 8 cal ski" inside a For time / AMRAP: interrupts the main work
+    var taskActive as Boolean = false;
+    private var _task as Dictionary? = null;
+    private var _taskIdx as Number = 0;
+    private var _taskFired as Number = 0;
+    private var _savedBlockReps as Number = 0;
 
     private var _countdownMs as Number;
     private var _pausedFrom as Number = ST_IDLE;
@@ -80,6 +96,15 @@ class TimerEngine {
         _rounds = w["rounds"] == null ? 0 : w["rounds"] as Number;
         _repScheme = w["repScheme"] as Array<Number>?;
         _repStep = w["repStep"] instanceof Number ? w["repStep"] as Number : 0;
+        if (wodType == WT_AMRAP && w["sets"] instanceof Number && (w["sets"] as Number) > 1) {
+            sets = w["sets"] as Number;
+            _setRestMs = w["setRestSec"] instanceof Number ? (w["setRestSec"] as Number) * 1000 : 0;
+        }
+        var tk = w["task"];
+        if ((wodType == WT_AMRAP || wodType == WT_FOR_TIME) && tk instanceof Dictionary
+                && ((tk as Dictionary)["blocks"] as Array).size() > 0) {
+            _task = tk as Dictionary;
+        }
 
         _slots = [] as Array<Number>;
         for (var i = 0; i < _blocks.size(); i++) {
@@ -121,7 +146,10 @@ class TimerEngine {
         var a = activeMs(now);
         if (a < 0) { return -a; }
         if (wodType == WT_AMRAP) {
-            return _capMs - a > 0 ? _capMs - a : 0;
+            var within = setWithin(a);
+            if (within < _capMs) { return _capMs - within; }
+            var left = setPeriod() - within;
+            return left > 0 ? left : 0;
         }
         if (wodType == WT_FOR_TIME) {
             return (_capMs > 0 && a > _capMs) ? _capMs : a;
@@ -145,7 +173,12 @@ class TimerEngine {
         var a = activeMs(now);
         if (a < 0) { return [_countdownMs + a, _countdownMs]; }
         var done = state == ST_DONE;
-        if (wodType == WT_AMRAP || wodType == WT_FOR_TIME) {
+        if (wodType == WT_AMRAP) {
+            var within = setWithin(a);
+            if (within < _capMs || done || _setRestMs == 0) { return [within < _capMs ? within : _capMs, _capMs]; }
+            return [within - _capMs, _setRestMs];
+        }
+        if (wodType == WT_FOR_TIME) {
             if (_capMs <= 0) { return null; }
             return [a < _capMs ? a : _capMs, _capMs];
         }
@@ -155,6 +188,77 @@ class TimerEngine {
         if (done) { return [_workMs, _workMs]; }
         var within = a % _intervalMs;
         return within < _workMs ? [within, _workMs] : [within - _workMs, _intervalMs - _workMs];
+    }
+
+    // ---------- sets ----------
+
+    function setPeriod() as Number {
+        return _capMs + _setRestMs;
+    }
+
+    // Total length of an AMRAP, sets and rests included.
+    function amrapTotalMs() as Number {
+        return sets * _capMs + (sets - 1) * _setRestMs;
+    }
+
+    // Time since the start of the current set.
+    function setWithin(a as Number) as Number {
+        if (sets == 1) { return a; }
+        var idx = a / setPeriod();
+        if (idx > sets - 1) { idx = sets - 1; }
+        return a - idx * setPeriod();
+    }
+
+    private function endSet(ev as Array<Array<Number> >) as Void {
+        if (taskActive) { endTask(null); }
+        partialReps += lapReps;
+        closeLap(ev);
+        round = 0;
+        blockIdx = 0;
+        blockReps = 0;
+    }
+
+    // ---------- every-minute task ----------
+
+    function hasTask() as Boolean {
+        return _task != null;
+    }
+
+    private function tickTask(within as Number, ev as Array<Array<Number> >) as Void {
+        if (_task == null || state != ST_WORK) { return; }
+        var t = _task as Dictionary;
+        var n = within / ((t["everySec"] as Number) * 1000) + (t["at0"] == true ? 1 : 0);
+        if (n <= _taskFired) { return; }
+        _taskFired = n;
+        // a task still going (missed) simply restarts
+        if (!taskActive) { _savedBlockReps = blockReps; }
+        taskActive = true;
+        _taskIdx = 0;
+        blockReps = 0;
+        ev.add([EV_TASK, n]);
+    }
+
+    private function taskBlocks() as Array<Dictionary> {
+        return (_task as Dictionary)["blocks"] as Array<Dictionary>;
+    }
+
+    private function advanceTask(ev as Array<Array<Number> >) as Void {
+        _taskIdx++;
+        blockReps = 0;
+        if (_taskIdx < taskBlocks().size()) {
+            ev.add([EV_BLOCK, _taskIdx]);
+            return;
+        }
+        endTask(ev);
+    }
+
+    private function endTask(ev as Array<Array<Number> >?) as Void {
+        taskActive = false;
+        blockReps = _savedBlockReps;
+        if (ev != null) {
+            ev.add([EV_TASK_DONE, 0]);
+            ev.add([EV_BLOCK, blockIdx]);
+        }
     }
 
     // ---------- blocks ----------
@@ -170,6 +274,7 @@ class TimerEngine {
     }
 
     function currentBlock() as Dictionary? {
+        if (taskActive) { return taskBlocks()[_taskIdx]; }
         var bl = currentBlocks();
         return blockIdx < bl.size() ? bl[blockIdx] : null;
     }
@@ -189,6 +294,7 @@ class TimerEngine {
     function target(b as Dictionary?) as Number {
         if (b == null) { return 0; }
         var reps = b["reps"] as Number;
+        if (taskActive) { return reps; }
         if (isDeathBy()) { return reps + round * _repStep; }
         if (reps > 0) { return reps; }
         if (_repScheme != null) {
@@ -206,7 +312,7 @@ class TimerEngine {
 
     // Planned length in ms (0 for For time without cap): used for coach alerts.
     function totalMs() as Number {
-        return _capMs;
+        return wodType == WT_AMRAP ? amrapTotalMs() : _capMs;
     }
 
     // 0 when open-ended (AMRAP, Death by, stopwatch)
@@ -289,13 +395,34 @@ class TimerEngine {
             ev.add([EV_START, 0]);
         }
         if (wodType == WT_AMRAP) {
-            if (a >= _capMs) { return appendAll(ev, done(_capMs, true)); }
-            warn(0, _capMs - a, ev);
+            var total = amrapTotalMs();
+            if (a >= total) { return appendAll(ev, done(total, true)); }
+            var idx = a / setPeriod();
+            var within = a - idx * setPeriod();
+            while (set < idx) {
+                if (state == ST_WORK) { endSet(ev); }
+                set++;
+                state = ST_WORK;
+                _taskFired = 0;
+                ev.add([EV_SET, set]);
+            }
+            if (within >= _capMs) {
+                if (state == ST_WORK) {
+                    endSet(ev);
+                    state = ST_REST;
+                    ev.add([EV_REST, 0]);
+                }
+                warn(idx * 2 + 1, setPeriod() - within, ev);
+            } else {
+                warn(idx * 2, _capMs - within, ev);
+                tickTask(within, ev);
+            }
         } else if (wodType == WT_FOR_TIME) {
             if (_capMs > 0) {
                 if (a >= _capMs) { return appendAll(ev, done(_capMs, true)); }
                 warn(0, _capMs - a, ev);
             }
+            tickTask(a, ev);
         } else if (wodType == WT_EMOM) {
             var idx = a / _intervalMs;
             while (round < idx && round < _rounds - 1) {
@@ -343,6 +470,14 @@ class TimerEngine {
         if (b == null || !(b["unit"] as String).equals("reps")) { return ev; }
         if (delta < 0 && blockReps + delta < 0) { delta = -blockReps; }
         if (delta == 0) { return ev; }
+        if (taskActive) {
+            // task reps count in the total, not in the round / lap
+            blockReps += delta;
+            totalReps += delta;
+            var tr = b["reps"] as Number;
+            if (tr > 0 && blockReps >= tr) { advanceTask(ev); }
+            return ev;
+        }
         blockReps += delta;
         lapReps += delta;
         totalReps += delta;
@@ -357,6 +492,12 @@ class TimerEngine {
         if (state != ST_WORK || intervalDone) { return ev; }
         var b = currentBlock();
         if (b == null) { return ev; }
+        if (taskActive) {
+            var tr = b["reps"] as Number;
+            if ((b["unit"] as String).equals("reps") && tr > blockReps) { totalReps += tr - blockReps; }
+            advanceTask(ev);
+            return ev;
+        }
         if ((b["unit"] as String).equals("reps")) {
             var missing = target(b) - blockReps;
             if (missing > 0) {
@@ -406,7 +547,10 @@ class TimerEngine {
 
     // "5 + 12" (AMRAP), "4:37" (FOR_TIME), "123 reps"
     function scoreText() as String {
-        if (wodType == WT_AMRAP || isDeathBy()) {
+        if (wodType == WT_AMRAP) {
+            return roundsCompleted.format("%d") + " + " + (partialReps + lapReps).format("%d");
+        }
+        if (isDeathBy()) {
             return roundsCompleted.format("%d") + " + " + lapReps.format("%d");
         }
         if (hasTimeScore()) {

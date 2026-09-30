@@ -35,18 +35,34 @@ function ${fn}(logger as Test.Logger) as Boolean {
   } else {
     src += `    TestUtil.check(logger, w["repScheme"], null, "repScheme");\n`;
   }
+  // optional keys: sets of AMRAP, every-minute task, men / women reps
+  src += `    TestUtil.check(logger, w["sets"], ${mcVal(want.sets ?? null)}, "sets");\n`;
+  src += `    TestUtil.check(logger, w["setRestSec"], ${mcVal(want.setRestSec ?? null)}, "setRestSec");\n`;
+  const blocksCheck = (arr, v, label) => {
+    src += `    TestUtil.check(logger, ${v}.size(), ${arr.length}, "${label} count");\n`;
+    arr.forEach((blk, i) => {
+      for (const k of ["movement", "name", "reps", "unit", "slot"]) {
+        src += `    TestUtil.check(logger, ${v}[${i}]["${k}"], ${mcVal(blk[k])}, "${label} ${i} ${k}");\n`;
+      }
+      if (blk.load) {
+        src += `    TestUtil.checkArray(logger, ${v}[${i}]["load"], [${blk.load.join(", ")}], "${label} ${i} load");\n`;
+      } else {
+        src += `    TestUtil.check(logger, ${v}[${i}]["load"], null, "${label} ${i} load");\n`;
+      }
+      src += `    TestUtil.check(logger, ${v}[${i}]["repsAlt"], ${mcVal(blk.repsAlt ?? null)}, "${label} ${i} repsAlt");\n`;
+    });
+  };
   src += `    var b = w["blocks"] as Array<Dictionary>;\n`;
-  src += `    TestUtil.check(logger, b.size(), ${want.blocks.length}, "block count");\n`;
-  want.blocks.forEach((blk, i) => {
-    for (const k of ["movement", "name", "reps", "unit", "slot"]) {
-      src += `    TestUtil.check(logger, b[${i}]["${k}"], ${mcVal(blk[k])}, "block ${i} ${k}");\n`;
-    }
-    if (blk.load) {
-      src += `    TestUtil.checkArray(logger, b[${i}]["load"], [${blk.load.join(", ")}], "block ${i} load");\n`;
-    } else {
-      src += `    TestUtil.check(logger, b[${i}]["load"], null, "block ${i} load");\n`;
-    }
-  });
+  blocksCheck(want.blocks, "b", "block");
+  if (want.task) {
+    src += `    var tk = w["task"] as Dictionary;\n`;
+    src += `    TestUtil.check(logger, tk["everySec"], ${want.task.everySec}, "task everySec");\n`;
+    src += `    TestUtil.check(logger, tk["at0"], ${want.task.at0}, "task at0");\n`;
+    src += `    var tb = tk["blocks"] as Array<Dictionary>;\n`;
+    blocksCheck(want.task.blocks, "tb", "task block");
+  } else {
+    src += `    TestUtil.check(logger, w["task"], null, "task");\n`;
+  }
   src += `    return true;\n}\n\n`;
 }
 

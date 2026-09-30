@@ -109,6 +109,11 @@ purple, errors underlined), movement autocomplete (Tab), benchmark library,
 live watch preview, QR code of the WOD URL for athletes, class timer in gym
 mode, dark theme by default. `vendor/qrcode.js` is qrcode-generator (MIT).
 
+From a screenshot: the button (or pasting an image in the text box) reads the
+text of a training app page (HWPO...) with tesseract.js, in the browser: the
+image is not uploaded. App menus are dropped, cut lines joined, one WOD per
+section (`---`). Check the result: OCR can misread small italic text.
+
 ```bash
 cd web-editor
 npm test                      # parser + engine reference tests

@@ -14,7 +14,8 @@ const sheets = {
   "wodwrist-perf2.png": (i) => i >= 28 && i < 36,
   "wodwrist-ux.png": (i) => i >= 36 && i < 49,
   "wodwrist-ux2.png": (i) => i >= 49 && i < 58,
-  "wodwrist-quick.png": (i) => i >= 58,
+  "wodwrist-quick.png": (i) => i >= 58 && i < 66,
+  "wodwrist-hwpo.png": (i) => i >= 66,
 };
 const b = await chromium.launch();
 for (const [file, keep] of Object.entries(sheets)) {

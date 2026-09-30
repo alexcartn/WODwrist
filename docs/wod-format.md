@@ -62,6 +62,26 @@ The remaining words are looked up in `docs/movements.json` (normalized:
 lowercase, `-` `_` `.` become spaces, a trailing `s`/`es` is tried). Unknown
 names become `"movement": "custom"` and are counted by hand.
 
+## Training app wording (HWPO and co.)
+
+Pages copied from a training app (or read from a screenshot in the web
+editor) use these forms, all understood:
+
+| Text | Result |
+| --- | --- |
+| `3 x AMRAP 1:15`, `3x AMRAP 4`, `3 sets of AMRAP 4` | the AMRAP 3 times. JSON: `sets` |
+| `Rest 3:00 between sets` (own line), `3x AMRAP 4 rest 1` | rest between the sets. JSON: `setRestSec`. Without sets, `Rest 1:00` is a timed block |
+| `Cap: 10:00`, `Time cap 12 min`, `TC 15` (own line) | time cap of a For time |
+| `Tough set of strict HSPU`, `Max pull-ups`, `In remaining time, max plank hold` | max reps (reps 0). A name ending in `hold` is timed |
+| `Strict ring dip`, `Kipping HSPU` | catalog movement (stats), written name kept |
+| `15/12 cal row`, `8/6 cal ski` | men / women reps: `reps` 15, `repsAlt` 12. The watch setting "My numbers in 43/30kg and 15/12 cal" picks the side |
+| `Every minute on the minute (including 0:00), complete 8/6 cal ski`, `EMOM: 5 burpees`, `Every 2:00, 10 wall balls` | inside a For time / AMRAP: a task that interrupts the main work at each interval (first one at 0:00 only when written). JSON: `task` |
+
+On the watch a task shows `TASK` in orange with a strong double vibration and
+the task movement; when it is done (reps reached, or BACK for cal / m) the
+main movement comes back with its rep count. Sets show `Set 2/3`, a rest ring
+in blue between sets, and the score adds up the sets.
+
 ## Interval rotation (EMOM, TABATA)
 
 Every movement line gets its own slot, and slots rotate each interval:

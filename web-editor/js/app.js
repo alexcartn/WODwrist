@@ -4,6 +4,7 @@ import { splitParts } from "./coach.js";
 import { drawWatch } from "./watch-preview.js";
 import { highlight, suggest, applySuggestion } from "./editor-assist.js";
 import { BENCHMARKS } from "./benchmarks.js";
+import { cleanOcr } from "./shot-import.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -45,7 +46,9 @@ function fmt(sec) {
 function headline(w) {
   switch (w.type) {
     case "AMRAP":
-      return `AMRAP ${fmt(w.timeCapSec)}` + (w.repScheme ? `, ladder ${w.repScheme.join("-")}${w.repStep ? "-..." : ""}` : "");
+      return (w.sets > 1 ? `${w.sets} x ` : "") + `AMRAP ${fmt(w.timeCapSec)}`
+        + (w.sets > 1 ? `, rest ${fmt(w.setRestSec)} between sets` : "")
+        + (w.repScheme ? `, ladder ${w.repScheme.join("-")}${w.repStep ? "-..." : ""}` : "");
     case "EMOM":
       if (w.repStep) return `Death by: +${w.repStep} rep(s) every minute until you miss`;
       if (w.intervalSec % 60) return `Every ${fmt(w.intervalSec)} x ${w.rounds} (${fmt(w.timeCapSec)})`;
@@ -65,7 +68,8 @@ function headline(w) {
 function blockText(b) {
   const unit = { m: " m", cal: " cal", sec: " s", reps: "" }[b.unit];
   const load = b.load ? ` @ ${b.load.join("/")} kg` : "";
-  return (b.reps > 0 ? `${b.reps}${unit} ${b.name}` : `${b.name} (max)`) + load;
+  const n = b.repsAlt != null ? `${b.reps}/${b.repsAlt}` : `${b.reps}`;
+  return (b.reps > 0 ? `${n}${unit} ${b.name}` : `${b.name} (max)`) + load;
 }
 
 function plan(w) {
@@ -100,6 +104,7 @@ function partHtml(w) {
     <h2>${escapeHtml(w.name)}</h2>
     <div class="headline">${escapeHtml(headline(w))}</div>
     <ol>${items}</ol>
+    ${w.task ? `<div class="task">Every ${w.task.everySec === 60 ? "minute" : fmt(w.task.everySec)}${w.task.at0 ? " from 0:00" : ""}: ${escapeHtml(w.task.blocks.map(blockText).join(" + "))}</div>` : ""}
     <div class="plan">${plan(w)}</div>`;
 }
 
@@ -301,6 +306,8 @@ function onEvents(ev) {
     else if (code === E.REST) beep(440, 300);
     else if (code === E.DONE) beep(1200, 900);
     else if (code === E.ROUND) beep(880, 200);
+    else if (code === E.SET) beep(1000, 400);
+    else if (code === E.TASK) { beep(880, 250); setTimeout(() => beep(880, 250), 350); }
   }
 }
 
@@ -326,7 +333,7 @@ function drawTimer() {
   onEvents(engine.tick(now));
   const labels = { [S.IDLE]: "READY", [S.COUNTDOWN]: "GET READY", [S.WORK]: "WORK", [S.REST]: "REST", [S.PAUSED]: "PAUSED", [S.DONE]: "DONE" };
   const cls = { [S.COUNTDOWN]: "countdown", [S.WORK]: "work", [S.REST]: "rest" };
-  st.textContent = labels[engine.state];
+  st.textContent = engine.taskActive && engine.state === S.WORK ? "EVERY-MINUTE TASK" : labels[engine.state];
   st.className = "t-state " + (cls[engine.state] ?? "");
   $("timer").dataset.state = engine.intervalDone ? "rest" : (cls[engine.state] ?? "idle");
   const ms = engine.clockMs(now);
@@ -334,13 +341,14 @@ function drawTimer() {
   const sec = down ? Math.ceil(ms / 1000) : Math.floor(ms / 1000);
   $("tClock").textContent = engine.state === S.COUNTDOWN ? String(sec) : fmt(sec);
   const total = engine.totalRounds();
-  $("tRound").textContent = total
+  $("tRound").textContent = (engine.sets > 1 ? `Set ${engine.set + 1} / ${engine.sets}  ` : "") + (total
     ? `${engine.isInterval() ? "Interval" : "Round"} ${Math.min(engine.round + 1, total)} / ${total}`
-    : `Rounds done: ${engine.roundsCompleted}`;
+    : `Rounds done: ${engine.roundsCompleted}`);
   const b = engine.currentBlock() ?? engine.currentBlocks()[0];
   $("tMove").textContent =
     engine.state === S.DONE ? engine.wod.name
       : engine.intervalDone ? "Rest until next interval"
+      : engine.state === S.REST && !engine.isInterval() ? `Next: set ${engine.set + 2} / ${engine.sets}`
       : b ? blockText({ ...b, reps: engine.target(b) }) : "";
   // what comes next, readable from across the room
   let next = "";
@@ -441,6 +449,62 @@ function toggleQr() {
   box.hidden = false;
 }
 
+// ---------- screenshot import (OCR in the browser, image never uploaded) ----------
+
+const TESSERACT = "https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+let tesseractLoading = null;
+
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve(window.Tesseract);
+  tesseractLoading ??= new Promise((ok, ko) => {
+    const s = document.createElement("script");
+    s.src = TESSERACT;
+    s.onload = () => ok(window.Tesseract);
+    s.onerror = () => {
+      tesseractLoading = null;
+      ko(new Error("Could not load the text reader (offline?)"));
+    };
+    document.head.appendChild(s);
+  });
+  return tesseractLoading;
+}
+
+async function importShot(file) {
+  const st = $("shotStatus");
+  const undo = $("shotUndo");
+  undo.hidden = true;
+  $("shotBtn").disabled = true;
+  try {
+    st.textContent = "Loading the text reader…";
+    const T = await loadTesseract();
+    const r = await T.recognize(file, "eng", {
+      logger: (m) => {
+        if (m.status === "recognizing text") st.textContent = `Reading the screenshot… ${Math.round(m.progress * 100)}%`;
+      },
+    });
+    const out = cleanOcr(r.data.text);
+    if (!out.wods) {
+      st.textContent = "No WOD found in this image. Try a sharper screenshot, or copy the text with Live Text / Google Lens.";
+      return;
+    }
+    const before = $("wodText").value;
+    $("wodText").value = out.text;
+    render();
+    st.textContent = out.wods === 1 ? "1 WOD imported: check it below." : `${out.wods} WODs imported as a class plan: check them below.`;
+    undo.hidden = false;
+    undo.onclick = () => {
+      $("wodText").value = before;
+      render();
+      undo.hidden = true;
+      st.textContent = "";
+    };
+  } catch (e) {
+    st.textContent = e.message;
+  } finally {
+    $("shotBtn").disabled = false;
+  }
+}
+
 function init() {
   $("wodText").value = store.get("text", EXAMPLES.amrap);
   $("wodText").addEventListener("input", () => {
@@ -472,6 +536,17 @@ function init() {
   applyTheme(store.get("theme", "dark"));
   $("themeBtn").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
   $("qrBtn").addEventListener("click", toggleQr);
+  $("shotBtn").addEventListener("click", () => $("shotFile").click());
+  $("shotFile").addEventListener("change", (e) => {
+    if (e.target.files[0]) importShot(e.target.files[0]);
+    e.target.value = "";
+  });
+  $("wodText").addEventListener("paste", (e) => {
+    const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith("image/"));
+    if (!item) return;
+    e.preventDefault();
+    importShot(item.getAsFile());
+  });
   document.querySelectorAll("[data-example]").forEach((b) =>
     b.addEventListener("click", () => {
       $("wodText").value = EXAMPLES[b.dataset.example];

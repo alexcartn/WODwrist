@@ -94,6 +94,8 @@ class WorkoutSession {
     function initialize(wod as Dictionary, coachMode as Boolean, countdownSec as Number?) {
         coach = coachMode;
         Feedback.strong = coachMode;
+        // "15/12 cal": the athlete's number (coach mode shows the first one)
+        if (!coachMode) { wod = WodParser.forSide(wod, propNumber("loadSide", 0)); }
         engine = new TimerEngine(wod, countdownSec != null ? countdownSec : propNumber("countdownSec", 10));
         _zoneBounds = Perf.bounds();
         _alertHalf = propBool("alertHalf", false);
@@ -285,6 +287,22 @@ class WorkoutSession {
                 }
                 mvClose();
                 if (_counter != null) { (_counter as RepCounter).setProfile(null); }
+            } else if (code == EV_SET) {
+                // next set of a "3 x AMRAP": like a new start
+                Feedback.go();
+                updateCounter();
+                showFlash(Tr.s("SET") + " " + (arg + 1).format("%d") + "/" + engine.sets.format("%d"), Theme.WORK, 1500);
+                mvOpen();
+            } else if (code == EV_TASK) {
+                // every-minute task: strong alert and what to do
+                Feedback.alert();
+                mvClose();
+                updateCounter();
+                var tb = engine.currentBlock();
+                if (tb != null) { showFlash(WodFormat.block(tb).toUpper(), Theme.WARN, 2500); }
+                mvOpen();
+            } else if (code == EV_TASK_DONE) {
+                mvClose();
             } else if (code == EV_DONE) {
                 mvClose();
                 onDone(arg);
@@ -462,7 +480,7 @@ class WorkoutSession {
         var active = engine.finalActiveMs();
         closeLap(lastLapReps, active);
         var timeSec = engine.hasTimeScore() ? active / 1000 : 0;
-        var extra = engine.wodType == WT_AMRAP ? engine.lapReps : 0;
+        var extra = engine.wodType == WT_AMRAP ? engine.partialReps + engine.lapReps : 0;
         if (_recorder != null) {
             (_recorder as RecordingManager).finish(lastLapReps, engine.totalReps, engine.roundsCompleted, extra, timeSec);
         }
@@ -486,7 +504,8 @@ class WorkoutSession {
         return {
             "kind" => kind,
             "rounds" => engine.roundsCompleted,
-            "reps" => engine.wodType == WT_AMRAP || engine.isDeathBy() ? engine.lapReps : engine.totalReps,
+            "reps" => engine.wodType == WT_AMRAP ? engine.partialReps + engine.lapReps
+                : (engine.isDeathBy() ? engine.lapReps : engine.totalReps),
             "ms" => active,
             "t" => Time.now().value(),
             "laps" => roundTimes,

@@ -36,7 +36,24 @@ module ScoreHistory {
             bs.add((b["movement"] as String) + ":" + (b["reps"] as Number).format("%d") + (b["unit"] as String)
                 + ":" + (slot == null ? "" : (slot as Number).format("%d")));
         }
-        return Str.join(parts, "|") + "|" + Str.join(bs, ",") + (scaled ? "|scaled" : "");
+        // sets and every-minute task only when used, so older signatures stay the same
+        var extra = "";
+        var sets = wod["sets"];
+        if (sets instanceof Number && (sets as Number) > 1) {
+            var sr = wod["setRestSec"];
+            extra += "|sets" + (sets as Number).format("%d") + "/" + (sr instanceof Number ? (sr as Number) : 0).format("%d");
+        }
+        var tk = wod["task"];
+        if (tk instanceof Dictionary) {
+            var t = tk as Dictionary;
+            var tb = t["blocks"] as Array<Dictionary>;
+            var ts = [] as Array<String>;
+            for (var i = 0; i < tb.size(); i++) {
+                ts.add((tb[i]["movement"] as String) + ":" + (tb[i]["reps"] as Number).format("%d") + (tb[i]["unit"] as String));
+            }
+            extra += "|task" + (t["everySec"] as Number).format("%d") + (t["at0"] == true ? "a" : "") + ":" + Str.join(ts, ",");
+        }
+        return Str.join(parts, "|") + "|" + Str.join(bs, ",") + extra + (scaled ? "|scaled" : "");
     }
 
     // Higher is better. A finished For time always beats a capped one.
