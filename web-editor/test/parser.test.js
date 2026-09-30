@@ -50,13 +50,17 @@ test("durations", () => {
 });
 
 test("movement lines", () => {
-  assert.deepEqual(parseMovement("wall balls x 10"), { movement: "wall_ball", name: "Wall balls", reps: 10, unit: "reps", slot: null });
-  assert.deepEqual(parseMovement("run 1.5km"), { movement: "run", name: "Run", reps: 1500, unit: "m", slot: null });
-  assert.deepEqual(parseMovement("10x Burpees"), { movement: "burpee", name: "Burpees", reps: 10, unit: "reps", slot: null });
-  assert.deepEqual(parseMovement("Thrusters @ 43/30kg"), { movement: "thruster", name: "Thrusters", reps: 0, unit: "reps", slot: null });
-  assert.deepEqual(parseMovement("15 deadlifts 100 kg"), { movement: "deadlift", name: "Deadlifts", reps: 15, unit: "reps", slot: null });
-  assert.deepEqual(parseMovement("1 min plank"), { movement: "plank", name: "Plank", reps: 60, unit: "sec", slot: null });
-  assert.deepEqual(parseMovement("20 push presses"), { movement: "push_press", name: "Push press", reps: 20, unit: "reps", slot: null });
+  assert.deepEqual(parseMovement("wall balls x 10"), { movement: "wall_ball", name: "Wall balls", reps: 10, unit: "reps", slot: null, load: null });
+  assert.deepEqual(parseMovement("run 1.5km"), { movement: "run", name: "Run", reps: 1500, unit: "m", slot: null, load: null });
+  assert.deepEqual(parseMovement("10x Burpees"), { movement: "burpee", name: "Burpees", reps: 10, unit: "reps", slot: null, load: null });
+  assert.deepEqual(parseMovement("Thrusters @ 43/30kg"), { movement: "thruster", name: "Thrusters", reps: 0, unit: "reps", slot: null, load: [43, 30] });
+  assert.deepEqual(parseMovement("15 deadlifts 100 kg"), { movement: "deadlift", name: "Deadlifts", reps: 15, unit: "reps", slot: null, load: [100] });
+  assert.deepEqual(parseMovement("1 min plank"), { movement: "plank", name: "Plank", reps: 60, unit: "sec", slot: null, load: null });
+  assert.deepEqual(parseMovement("20 push presses"), { movement: "push_press", name: "Push press", reps: 20, unit: "reps", slot: null, load: null });
+  assert.deepEqual(parseMovement("21 thrusters (43/30kg)").load, [43, 30]);
+  assert.deepEqual(parseMovement("10 kbs (1.5 pood)").load, [25]);
+  assert.deepEqual(parseMovement("5 cleans (135/95 lb)").load, [61, 43]);
+  assert.equal(parseMovement("wall balls 20/14").load, null);
   assert.equal(parseMovement("12 sandbag cleans").movement, "custom");
   assert.equal(parseMovement("12 sandbag cleans").name, "Sandbag cleans");
 });

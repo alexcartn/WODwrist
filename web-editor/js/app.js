@@ -61,7 +61,8 @@ function headline(w) {
 
 function blockText(b) {
   const unit = { m: " m", cal: " cal", sec: " s", reps: "" }[b.unit];
-  return b.reps > 0 ? `${b.reps}${unit} ${b.name}` : `${b.name} (max)`;
+  const load = b.load ? ` @ ${b.load.join("/")} kg` : "";
+  return (b.reps > 0 ? `${b.reps}${unit} ${b.name}` : `${b.name} (max)`) + load;
 }
 
 function plan(w) {

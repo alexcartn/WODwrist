@@ -15,14 +15,16 @@
       "name": "Thrusters",
       "reps": 2,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": null
     },
     {
       "movement": "burpee",
       "name": "Burpees",
       "reps": 1,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": null
     }
   ]
 }

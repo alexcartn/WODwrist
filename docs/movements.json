@@ -1,55 +1,635 @@
 {
   "version": 1,
-  "comment": "Single source of truth for movement IDs. Run `python3 tools/gen_movements.py` after editing to regenerate the Monkey C and JS catalogs. `counter` holds rep-counter parameters (null = manual counting). Values marked untuned are starting points until rep-lab tuning replaces them.",
+  "comment": "Single source of truth for movement IDs. Run `python3 tools/gen_movements.py` after editing to regenerate the Monkey C and JS catalogs. `counter` holds rep-counter parameters (null = manual counting). Values marked untuned are starting points until rep-lab tuning replaces them. `domain`: G gymnastics, W weightlifting (incl. KB, DB, wall balls), M monostructural. `refTenths`: rough reference pace in tenths of a second per rep for an intermediate athlete inside a WOD (used for strengths / weaknesses, edit freely).",
   "movements": [
-    { "id": "wall_ball", "name": "Wall balls", "aliases": ["wall ball", "wall balls", "wall ball shot", "wall ball shots", "wb", "wbs", "wallball", "wallballs"],
-      "counter": { "alphaQ8": 64, "hiMg": 450, "loMg": 100, "minGapMs": 1100, "tuned": false } },
-    { "id": "thruster", "name": "Thrusters", "aliases": ["thruster", "thrusters", "bb thruster", "barbell thruster", "db thruster", "db thrusters", "dumbbell thruster", "dumbbell thrusters"],
-      "counter": { "alphaQ8": 64, "hiMg": 400, "loMg": 80, "minGapMs": 1000, "tuned": false } },
-    { "id": "kb_swing", "name": "KB swings", "aliases": ["kb swing", "kb swings", "kbs", "kettlebell swing", "kettlebell swings", "american kb swing", "american kb swings", "russian kb swing", "russian kb swings", "swing", "swings"],
-      "counter": { "alphaQ8": 64, "hiMg": 500, "loMg": 100, "minGapMs": 900, "tuned": false } },
-    { "id": "burpee", "name": "Burpees", "aliases": ["burpee", "burpees", "bar facing burpee", "bar facing burpees", "bfb"],
-      "counter": { "alphaQ8": 48, "hiMg": 550, "loMg": 120, "minGapMs": 1500, "tuned": false } },
-    { "id": "db_snatch", "name": "DB snatches", "aliases": ["db snatch", "db snatches", "dumbbell snatch", "dumbbell snatches", "alt db snatch", "alt db snatches", "alternating db snatch", "alternating db snatches", "alternating dumbbell snatch", "alternating dumbbell snatches"],
-      "counter": { "alphaQ8": 64, "hiMg": 500, "loMg": 100, "minGapMs": 1000, "tuned": false } },
-
-    { "id": "air_squat", "name": "Air squats", "aliases": ["air squat", "air squats", "squat", "squats"], "counter": null },
-    { "id": "pull_up", "name": "Pull-ups", "aliases": ["pull up", "pull ups", "pullup", "pullups", "kipping pull up", "kipping pull ups", "strict pull up", "strict pull ups"], "counter": null },
-    { "id": "chest_to_bar", "name": "Chest-to-bar", "aliases": ["chest to bar", "chest to bar pull up", "chest to bar pull ups", "c2b", "ctb"], "counter": null },
-    { "id": "push_up", "name": "Push-ups", "aliases": ["push up", "push ups", "pushup", "pushups", "hand release push up", "hand release push ups", "hrpu"], "counter": null },
-    { "id": "sit_up", "name": "Sit-ups", "aliases": ["sit up", "sit ups", "situp", "situps", "abmat sit up", "abmat sit ups"], "counter": null },
-    { "id": "ghd_sit_up", "name": "GHD sit-ups", "aliases": ["ghd sit up", "ghd sit ups", "ghd"], "counter": null },
-    { "id": "v_up", "name": "V-ups", "aliases": ["v up", "v ups", "vup", "vups"], "counter": null },
-    { "id": "toes_to_bar", "name": "Toes-to-bar", "aliases": ["toes to bar", "t2b", "ttb"], "counter": null },
-    { "id": "box_jump", "name": "Box jumps", "aliases": ["box jump", "box jumps", "bj", "box jump over", "box jump overs", "bjo"], "counter": null },
-    { "id": "burpee_box_jump", "name": "Burpee box jumps", "aliases": ["burpee box jump", "burpee box jumps", "burpee box jump over", "burpee box jump overs", "bbjo"], "counter": null },
-    { "id": "box_step_up", "name": "Box step-ups", "aliases": ["box step up", "box step ups", "step up", "step ups"], "counter": null },
-    { "id": "double_under", "name": "Double-unders", "aliases": ["double under", "double unders", "du", "dus", "dubs"], "counter": null },
-    { "id": "single_under", "name": "Single-unders", "aliases": ["single under", "single unders", "su", "sus", "jump rope"], "counter": null },
-    { "id": "lunge", "name": "Lunges", "aliases": ["lunge", "lunges", "walking lunge", "walking lunges", "alternating lunge", "alternating lunges", "db lunge", "db lunges"], "counter": null },
-    { "id": "pistol", "name": "Pistols", "aliases": ["pistol", "pistols", "pistol squat", "pistol squats"], "counter": null },
-    { "id": "deadlift", "name": "Deadlifts", "aliases": ["deadlift", "deadlifts", "dl", "sumo deadlift", "sumo deadlifts"], "counter": null },
-    { "id": "clean", "name": "Cleans", "aliases": ["clean", "cleans", "squat clean", "squat cleans"], "counter": null },
-    { "id": "power_clean", "name": "Power cleans", "aliases": ["power clean", "power cleans", "pc", "hang power clean", "hang power cleans", "hpc"], "counter": null },
-    { "id": "clean_and_jerk", "name": "Clean & jerks", "aliases": ["clean and jerk", "clean and jerks", "clean & jerk", "clean & jerks", "c&j", "cnj"], "counter": null },
-    { "id": "snatch", "name": "Snatches", "aliases": ["snatch", "snatches", "squat snatch", "squat snatches", "power snatch", "power snatches"], "counter": null },
-    { "id": "push_press", "name": "Push press", "aliases": ["push press", "push presses"], "counter": null },
-    { "id": "push_jerk", "name": "Push jerks", "aliases": ["push jerk", "push jerks", "split jerk", "split jerks"], "counter": null },
-    { "id": "shoulder_to_overhead", "name": "Shoulder-to-overhead", "aliases": ["shoulder to overhead", "s2oh", "sto"], "counter": null },
-    { "id": "overhead_squat", "name": "Overhead squats", "aliases": ["overhead squat", "overhead squats", "ohs"], "counter": null },
-    { "id": "front_squat", "name": "Front squats", "aliases": ["front squat", "front squats", "fs"], "counter": null },
-    { "id": "back_squat", "name": "Back squats", "aliases": ["back squat", "back squats", "bs"], "counter": null },
-    { "id": "goblet_squat", "name": "Goblet squats", "aliases": ["goblet squat", "goblet squats", "kb goblet squat", "kb goblet squats"], "counter": null },
-    { "id": "devil_press", "name": "Devil press", "aliases": ["devil press", "devils press", "devil presses"], "counter": null },
-    { "id": "handstand_push_up", "name": "HSPU", "aliases": ["handstand push up", "handstand push ups", "hspu", "hspus"], "counter": null },
-    { "id": "muscle_up", "name": "Muscle-ups", "aliases": ["muscle up", "muscle ups", "bar muscle up", "bar muscle ups", "ring muscle up", "ring muscle ups", "bmu", "rmu", "mu"], "counter": null },
-    { "id": "ring_dip", "name": "Ring dips", "aliases": ["ring dip", "ring dips", "dip", "dips"], "counter": null },
-    { "id": "wall_walk", "name": "Wall walks", "aliases": ["wall walk", "wall walks"], "counter": null },
-    { "id": "rope_climb", "name": "Rope climbs", "aliases": ["rope climb", "rope climbs", "rc"], "counter": null },
-    { "id": "plank", "name": "Plank", "aliases": ["plank", "plank hold"], "counter": null },
-    { "id": "run", "name": "Run", "aliases": ["run", "running"], "counter": null },
-    { "id": "row", "name": "Row", "aliases": ["row", "rowing", "rower", "cal row", "calorie row"], "counter": null },
-    { "id": "bike", "name": "Bike", "aliases": ["bike", "assault bike", "echo bike", "air bike", "cal bike", "bike erg"], "counter": null },
-    { "id": "ski", "name": "Ski erg", "aliases": ["ski", "ski erg", "skierg", "cal ski"], "counter": null }
+    {
+      "id": "wall_ball",
+      "name": "Wall balls",
+      "domain": "W",
+      "refTenths": 25,
+      "aliases": [
+        "wall ball",
+        "wall balls",
+        "wall ball shot",
+        "wall ball shots",
+        "wb",
+        "wbs",
+        "wallball",
+        "wallballs"
+      ],
+      "counter": {
+        "alphaQ8": 64,
+        "hiMg": 450,
+        "loMg": 100,
+        "minGapMs": 1100,
+        "tuned": false
+      }
+    },
+    {
+      "id": "thruster",
+      "name": "Thrusters",
+      "domain": "W",
+      "refTenths": 28,
+      "aliases": [
+        "thruster",
+        "thrusters",
+        "bb thruster",
+        "barbell thruster",
+        "db thruster",
+        "db thrusters",
+        "dumbbell thruster",
+        "dumbbell thrusters"
+      ],
+      "counter": {
+        "alphaQ8": 64,
+        "hiMg": 400,
+        "loMg": 80,
+        "minGapMs": 1000,
+        "tuned": false
+      }
+    },
+    {
+      "id": "kb_swing",
+      "name": "KB swings",
+      "domain": "W",
+      "refTenths": 20,
+      "aliases": [
+        "kb swing",
+        "kb swings",
+        "kbs",
+        "kettlebell swing",
+        "kettlebell swings",
+        "american kb swing",
+        "american kb swings",
+        "russian kb swing",
+        "russian kb swings",
+        "swing",
+        "swings"
+      ],
+      "counter": {
+        "alphaQ8": 64,
+        "hiMg": 500,
+        "loMg": 100,
+        "minGapMs": 900,
+        "tuned": false
+      }
+    },
+    {
+      "id": "burpee",
+      "name": "Burpees",
+      "domain": "G",
+      "refTenths": 35,
+      "aliases": [
+        "burpee",
+        "burpees",
+        "bar facing burpee",
+        "bar facing burpees",
+        "bfb"
+      ],
+      "counter": {
+        "alphaQ8": 48,
+        "hiMg": 550,
+        "loMg": 120,
+        "minGapMs": 1500,
+        "tuned": false
+      }
+    },
+    {
+      "id": "db_snatch",
+      "name": "DB snatches",
+      "domain": "W",
+      "refTenths": 22,
+      "aliases": [
+        "db snatch",
+        "db snatches",
+        "dumbbell snatch",
+        "dumbbell snatches",
+        "alt db snatch",
+        "alt db snatches",
+        "alternating db snatch",
+        "alternating db snatches",
+        "alternating dumbbell snatch",
+        "alternating dumbbell snatches"
+      ],
+      "counter": {
+        "alphaQ8": 64,
+        "hiMg": 500,
+        "loMg": 100,
+        "minGapMs": 1000,
+        "tuned": false
+      }
+    },
+    {
+      "id": "air_squat",
+      "name": "Air squats",
+      "domain": "G",
+      "refTenths": 15,
+      "aliases": [
+        "air squat",
+        "air squats",
+        "squat",
+        "squats"
+      ],
+      "counter": null
+    },
+    {
+      "id": "pull_up",
+      "name": "Pull-ups",
+      "domain": "G",
+      "refTenths": 20,
+      "aliases": [
+        "pull up",
+        "pull ups",
+        "pullup",
+        "pullups",
+        "kipping pull up",
+        "kipping pull ups",
+        "strict pull up",
+        "strict pull ups"
+      ],
+      "counter": null
+    },
+    {
+      "id": "chest_to_bar",
+      "name": "Chest-to-bar",
+      "domain": "G",
+      "refTenths": 25,
+      "aliases": [
+        "chest to bar",
+        "chest to bar pull up",
+        "chest to bar pull ups",
+        "c2b",
+        "ctb"
+      ],
+      "counter": null
+    },
+    {
+      "id": "push_up",
+      "name": "Push-ups",
+      "domain": "G",
+      "refTenths": 18,
+      "aliases": [
+        "push up",
+        "push ups",
+        "pushup",
+        "pushups",
+        "hand release push up",
+        "hand release push ups",
+        "hrpu"
+      ],
+      "counter": null
+    },
+    {
+      "id": "sit_up",
+      "name": "Sit-ups",
+      "domain": "G",
+      "refTenths": 18,
+      "aliases": [
+        "sit up",
+        "sit ups",
+        "situp",
+        "situps",
+        "abmat sit up",
+        "abmat sit ups"
+      ],
+      "counter": null
+    },
+    {
+      "id": "ghd_sit_up",
+      "name": "GHD sit-ups",
+      "domain": "G",
+      "refTenths": 20,
+      "aliases": [
+        "ghd sit up",
+        "ghd sit ups",
+        "ghd"
+      ],
+      "counter": null
+    },
+    {
+      "id": "v_up",
+      "name": "V-ups",
+      "domain": "G",
+      "refTenths": 20,
+      "aliases": [
+        "v up",
+        "v ups",
+        "vup",
+        "vups"
+      ],
+      "counter": null
+    },
+    {
+      "id": "toes_to_bar",
+      "name": "Toes-to-bar",
+      "domain": "G",
+      "refTenths": 22,
+      "aliases": [
+        "toes to bar",
+        "t2b",
+        "ttb"
+      ],
+      "counter": null
+    },
+    {
+      "id": "box_jump",
+      "name": "Box jumps",
+      "domain": "G",
+      "refTenths": 25,
+      "aliases": [
+        "box jump",
+        "box jumps",
+        "bj",
+        "box jump over",
+        "box jump overs",
+        "bjo"
+      ],
+      "counter": null
+    },
+    {
+      "id": "burpee_box_jump",
+      "name": "Burpee box jumps",
+      "domain": "G",
+      "refTenths": 50,
+      "aliases": [
+        "burpee box jump",
+        "burpee box jumps",
+        "burpee box jump over",
+        "burpee box jump overs",
+        "bbjo"
+      ],
+      "counter": null
+    },
+    {
+      "id": "box_step_up",
+      "name": "Box step-ups",
+      "domain": "G",
+      "refTenths": 22,
+      "aliases": [
+        "box step up",
+        "box step ups",
+        "step up",
+        "step ups"
+      ],
+      "counter": null
+    },
+    {
+      "id": "double_under",
+      "name": "Double-unders",
+      "domain": "M",
+      "refTenths": 6,
+      "aliases": [
+        "double under",
+        "double unders",
+        "du",
+        "dus",
+        "dubs"
+      ],
+      "counter": null
+    },
+    {
+      "id": "single_under",
+      "name": "Single-unders",
+      "domain": "M",
+      "refTenths": 4,
+      "aliases": [
+        "single under",
+        "single unders",
+        "su",
+        "sus",
+        "jump rope"
+      ],
+      "counter": null
+    },
+    {
+      "id": "lunge",
+      "name": "Lunges",
+      "domain": "G",
+      "refTenths": 22,
+      "aliases": [
+        "lunge",
+        "lunges",
+        "walking lunge",
+        "walking lunges",
+        "alternating lunge",
+        "alternating lunges",
+        "db lunge",
+        "db lunges"
+      ],
+      "counter": null
+    },
+    {
+      "id": "pistol",
+      "name": "Pistols",
+      "domain": "G",
+      "refTenths": 30,
+      "aliases": [
+        "pistol",
+        "pistols",
+        "pistol squat",
+        "pistol squats"
+      ],
+      "counter": null
+    },
+    {
+      "id": "deadlift",
+      "name": "Deadlifts",
+      "domain": "W",
+      "refTenths": 25,
+      "aliases": [
+        "deadlift",
+        "deadlifts",
+        "dl",
+        "sumo deadlift",
+        "sumo deadlifts"
+      ],
+      "counter": null
+    },
+    {
+      "id": "clean",
+      "name": "Cleans",
+      "domain": "W",
+      "refTenths": 35,
+      "aliases": [
+        "clean",
+        "cleans",
+        "squat clean",
+        "squat cleans"
+      ],
+      "counter": null
+    },
+    {
+      "id": "power_clean",
+      "name": "Power cleans",
+      "domain": "W",
+      "refTenths": 30,
+      "aliases": [
+        "power clean",
+        "power cleans",
+        "pc",
+        "hang power clean",
+        "hang power cleans",
+        "hpc"
+      ],
+      "counter": null
+    },
+    {
+      "id": "clean_and_jerk",
+      "name": "Clean & jerks",
+      "domain": "W",
+      "refTenths": 50,
+      "aliases": [
+        "clean and jerk",
+        "clean and jerks",
+        "clean & jerk",
+        "clean & jerks",
+        "c&j",
+        "cnj"
+      ],
+      "counter": null
+    },
+    {
+      "id": "snatch",
+      "name": "Snatches",
+      "domain": "W",
+      "refTenths": 40,
+      "aliases": [
+        "snatch",
+        "snatches",
+        "squat snatch",
+        "squat snatches",
+        "power snatch",
+        "power snatches"
+      ],
+      "counter": null
+    },
+    {
+      "id": "push_press",
+      "name": "Push press",
+      "domain": "W",
+      "refTenths": 25,
+      "aliases": [
+        "push press",
+        "push presses"
+      ],
+      "counter": null
+    },
+    {
+      "id": "push_jerk",
+      "name": "Push jerks",
+      "domain": "W",
+      "refTenths": 28,
+      "aliases": [
+        "push jerk",
+        "push jerks",
+        "split jerk",
+        "split jerks"
+      ],
+      "counter": null
+    },
+    {
+      "id": "shoulder_to_overhead",
+      "name": "Shoulder-to-overhead",
+      "domain": "W",
+      "refTenths": 28,
+      "aliases": [
+        "shoulder to overhead",
+        "s2oh",
+        "sto"
+      ],
+      "counter": null
+    },
+    {
+      "id": "overhead_squat",
+      "name": "Overhead squats",
+      "domain": "W",
+      "refTenths": 30,
+      "aliases": [
+        "overhead squat",
+        "overhead squats",
+        "ohs"
+      ],
+      "counter": null
+    },
+    {
+      "id": "front_squat",
+      "name": "Front squats",
+      "domain": "W",
+      "refTenths": 30,
+      "aliases": [
+        "front squat",
+        "front squats",
+        "fs"
+      ],
+      "counter": null
+    },
+    {
+      "id": "back_squat",
+      "name": "Back squats",
+      "domain": "W",
+      "refTenths": 30,
+      "aliases": [
+        "back squat",
+        "back squats",
+        "bs"
+      ],
+      "counter": null
+    },
+    {
+      "id": "goblet_squat",
+      "name": "Goblet squats",
+      "domain": "W",
+      "refTenths": 22,
+      "aliases": [
+        "goblet squat",
+        "goblet squats",
+        "kb goblet squat",
+        "kb goblet squats"
+      ],
+      "counter": null
+    },
+    {
+      "id": "devil_press",
+      "name": "Devil press",
+      "domain": "W",
+      "refTenths": 50,
+      "aliases": [
+        "devil press",
+        "devils press",
+        "devil presses"
+      ],
+      "counter": null
+    },
+    {
+      "id": "handstand_push_up",
+      "name": "HSPU",
+      "domain": "G",
+      "refTenths": 35,
+      "aliases": [
+        "handstand push up",
+        "handstand push ups",
+        "hspu",
+        "hspus"
+      ],
+      "counter": null
+    },
+    {
+      "id": "muscle_up",
+      "name": "Muscle-ups",
+      "domain": "G",
+      "refTenths": 60,
+      "aliases": [
+        "muscle up",
+        "muscle ups",
+        "bar muscle up",
+        "bar muscle ups",
+        "ring muscle up",
+        "ring muscle ups",
+        "bmu",
+        "rmu",
+        "mu"
+      ],
+      "counter": null
+    },
+    {
+      "id": "ring_dip",
+      "name": "Ring dips",
+      "domain": "G",
+      "refTenths": 25,
+      "aliases": [
+        "ring dip",
+        "ring dips",
+        "dip",
+        "dips"
+      ],
+      "counter": null
+    },
+    {
+      "id": "wall_walk",
+      "name": "Wall walks",
+      "domain": "G",
+      "refTenths": 120,
+      "aliases": [
+        "wall walk",
+        "wall walks"
+      ],
+      "counter": null
+    },
+    {
+      "id": "rope_climb",
+      "name": "Rope climbs",
+      "domain": "G",
+      "refTenths": 150,
+      "aliases": [
+        "rope climb",
+        "rope climbs",
+        "rc"
+      ],
+      "counter": null
+    },
+    {
+      "id": "plank",
+      "name": "Plank",
+      "domain": "G",
+      "refTenths": null,
+      "aliases": [
+        "plank",
+        "plank hold"
+      ],
+      "counter": null
+    },
+    {
+      "id": "run",
+      "name": "Run",
+      "domain": "M",
+      "refTenths": null,
+      "aliases": [
+        "run",
+        "running"
+      ],
+      "counter": null
+    },
+    {
+      "id": "row",
+      "name": "Row",
+      "domain": "M",
+      "refTenths": null,
+      "aliases": [
+        "row",
+        "rowing",
+        "rower",
+        "cal row",
+        "calorie row"
+      ],
+      "counter": null
+    },
+    {
+      "id": "bike",
+      "name": "Bike",
+      "domain": "M",
+      "refTenths": null,
+      "aliases": [
+        "bike",
+        "assault bike",
+        "echo bike",
+        "air bike",
+        "cal bike",
+        "bike erg"
+      ],
+      "counter": null
+    },
+    {
+      "id": "ski",
+      "name": "Ski erg",
+      "domain": "M",
+      "refTenths": null,
+      "aliases": [
+        "ski",
+        "ski erg",
+        "skierg",
+        "cal ski"
+      ],
+      "counter": null
+    }
   ]
 }

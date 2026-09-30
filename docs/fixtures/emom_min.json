@@ -15,21 +15,24 @@
       "name": "Wall balls",
       "reps": 15,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": null
     },
     {
       "movement": "db_snatch",
       "name": "DB snatches",
       "reps": 12,
       "unit": "reps",
-      "slot": 1
+      "slot": 1,
+      "load": null
     },
     {
       "movement": "plank",
       "name": "Plank",
       "reps": 30,
       "unit": "sec",
-      "slot": 2
+      "slot": 2,
+      "load": null
     }
   ]
 }

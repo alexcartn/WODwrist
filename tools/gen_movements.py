@@ -44,6 +44,10 @@ def load():
             if n in aliases and aliases[n] != m["id"]:
                 sys.exit(f"alias '{n}' used by {aliases[n]} and {m['id']}")
             aliases[n] = m["id"]
+        if m.get("domain") not in ("G", "W", "M"):
+            sys.exit(f"{m['id']}: domain must be G, W or M")
+        if m.get("refTenths") is not None and not isinstance(m["refTenths"], int):
+            sys.exit(f"{m['id']}: refTenths must be an int or null")
         c = m.get("counter")
         if c is not None:
             for k in ("alphaQ8", "hiMg", "loMg", "minGapMs"):
@@ -60,7 +64,9 @@ def gen_js(movements, aliases) -> str:
     out = [f"// {HEADER}", ""]
     out.append("export const MOVEMENTS = {")
     for m in movements:
-        out.append(f"  {m['id']}: {json.dumps({'name': m['name'], 'counter': m.get('counter')})},")
+        out.append(
+            f"  {m['id']}: {json.dumps({'name': m['name'], 'domain': m['domain'], 'refTenths': m.get('refTenths'), 'counter': m.get('counter')})},"
+        )
     out.append("};")
     out.append("")
     out.append("export const ALIASES = {")
@@ -90,6 +96,20 @@ def gen_mc(movements, aliases) -> str:
     out.append("        return {")
     out += mc_entries([f"            {mc_str(m['id'])} => {mc_str(m['name'])}" for m in movements])
     out.append("        } as Dictionary<String, String>;")
+    out.append("    }")
+    out.append("")
+    out.append("    // movement id -> domain: 0 gymnastics, 1 weightlifting, 2 monostructural")
+    out.append("    function domains() as Dictionary<String, Number> {")
+    out.append("        return {")
+    out += mc_entries([f"            {mc_str(m['id'])} => {'GWM'.index(m['domain'])}" for m in movements])
+    out.append("        } as Dictionary<String, Number>;")
+    out.append("    }")
+    out.append("")
+    out.append("    // movement id -> reference pace, tenths of a second per rep")
+    out.append("    function refTenths() as Dictionary<String, Number> {")
+    out.append("        return {")
+    out += mc_entries([f"            {mc_str(m['id'])} => {m['refTenths']}" for m in movements if m.get("refTenths")])
+    out.append("        } as Dictionary<String, Number>;")
     out.append("    }")
     out.append("")
     out.append("    // movement id -> [alphaQ8, hiMg, loMg, minGapMs] for auto rep counting")

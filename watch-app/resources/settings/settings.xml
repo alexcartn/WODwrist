@@ -26,6 +26,12 @@
     <setting propertyKey="@Properties.alertOneMin" title="@Strings.SetAlertOneMin">
         <settingConfig type="boolean" />
     </setting>
+    <setting propertyKey="@Properties.loadSide" title="@Strings.SetLoadSide">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.LoadFirst</listEntry>
+            <listEntry value="1">@Strings.LoadSecond</listEntry>
+        </settingConfig>
+    </setting>
     <setting propertyKey="@Properties.captureMode" title="@Strings.SetCapture">
         <settingConfig type="boolean" />
     </setting>

@@ -15,7 +15,8 @@
       "name": "Air squats",
       "reps": 0,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": null
     }
   ]
 }

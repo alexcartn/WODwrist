@@ -13,6 +13,7 @@ test("signature ignores the name, not the content", () => {
   assert.equal(wodSignature(a), wodSignature(b));
   assert.notEqual(wodSignature(a), wodSignature(c));
   assert.notEqual(wodSignature(a), wodSignature(d));
+  assert.notEqual(wodSignature(a), wodSignature(a, true));
 });
 
 test("score comparison per kind", () => {

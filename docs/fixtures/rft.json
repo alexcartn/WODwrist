@@ -15,21 +15,27 @@
       "name": "Run",
       "reps": 400,
       "unit": "m",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "kb_swing",
       "name": "KB swings",
       "reps": 21,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": [
+        24,
+        16
+      ]
     },
     {
       "movement": "pull_up",
       "name": "Pull-ups",
       "reps": 12,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     }
   ]
 }

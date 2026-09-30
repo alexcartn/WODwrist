@@ -48,3 +48,31 @@ test("cardiac trend", () => {
   assert.equal(cardiacTrend(prev, { kind: "rounds", rounds: 6, reps: 10, hr: 150 }, scoreValue), null);
   assert.equal(cardiacTrend(prev, { kind: "rounds", rounds: 8, reps: 0, hr: 0 }, scoreValue), null);
 });
+
+import { addDay, monotony, weekCompare, domainShare, rankMovements, fatiguePct, countBreaks, beatsDriftPct, srpeLoad, sumDays } from "../js/perf.js";
+
+test("daily vectors, monotony, week compare, domains", () => {
+  let e = [[10, 50]];                            // old 2-field entry
+  e = addDay(e, 10, [10, 200, 60000, 0, 0, 1]);  // padded then summed
+  assert.deepEqual(e, [[10, 60, 200, 60000, 0, 0, 1]]);
+  e = [];
+  for (let d = 1; d <= 14; d++) e = addDay(e, d, [0, d % 2 ? 300 : 0, 600000, 300000, 100000]);
+  assert.deepEqual(weekCompare(e, 14, 2), [900, 1200]);
+  const m = monotony(e, 14, 2);
+  assert.equal(m.monotony, Math.round((900 / 7) * 100 / Math.sqrt(((300 - 900 / 7) ** 2 * 3 + (900 / 7) ** 2 * 4) / 7)));
+  assert.equal(m.strain, Math.round(900 * m.monotony / 100));
+  assert.equal(monotony(e, 100, 2), null);
+  assert.deepEqual(domainShare(e, 14, 28), [60, 30, 10]);
+  assert.equal(sumDays(e, 14, 1, 7), 0);
+});
+
+test("movement ranking, fatigue, breaks, drift, sRPE", () => {
+  const r = rankMovements({ burpee: [100, 280000], wall_ball: [200, 600000], pull_up: [10, 30000] }, { burpee: 35, wall_ball: 25, pull_up: 20 });
+  assert.deepEqual(r, [["burpee", 80], ["wall_ball", 120]]);
+  assert.equal(fatiguePct([[10, 30000], [10, 33000], [10, 37500]]), 25);
+  assert.equal(fatiguePct([[10, 30000]]), null);
+  assert.equal(countBreaks([0, 2000, 4000, 6000, 12000, 14000, 16000]), 1);
+  assert.equal(countBreaks([0, 2000]), 0);
+  assert.equal(beatsDriftPct([[90000, 30, 150], [95000, 30, 160], [100000, 30, 170]]), 26);
+  assert.equal(srpeLoad(8, 12 * 60000 + 20000), 96);
+});

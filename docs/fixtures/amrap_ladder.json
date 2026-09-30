@@ -19,14 +19,16 @@
       "name": "Thrusters",
       "reps": 0,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "chest_to_bar",
       "name": "Chest-to-bar",
       "reps": 0,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     }
   ]
 }

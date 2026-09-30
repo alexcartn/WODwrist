@@ -271,6 +271,99 @@ module MovementCatalog {
         } as Dictionary<String, String>;
     }
 
+    // movement id -> domain: 0 gymnastics, 1 weightlifting, 2 monostructural
+    function domains() as Dictionary<String, Number> {
+        return {
+            "wall_ball" => 1,
+            "thruster" => 1,
+            "kb_swing" => 1,
+            "burpee" => 0,
+            "db_snatch" => 1,
+            "air_squat" => 0,
+            "pull_up" => 0,
+            "chest_to_bar" => 0,
+            "push_up" => 0,
+            "sit_up" => 0,
+            "ghd_sit_up" => 0,
+            "v_up" => 0,
+            "toes_to_bar" => 0,
+            "box_jump" => 0,
+            "burpee_box_jump" => 0,
+            "box_step_up" => 0,
+            "double_under" => 2,
+            "single_under" => 2,
+            "lunge" => 0,
+            "pistol" => 0,
+            "deadlift" => 1,
+            "clean" => 1,
+            "power_clean" => 1,
+            "clean_and_jerk" => 1,
+            "snatch" => 1,
+            "push_press" => 1,
+            "push_jerk" => 1,
+            "shoulder_to_overhead" => 1,
+            "overhead_squat" => 1,
+            "front_squat" => 1,
+            "back_squat" => 1,
+            "goblet_squat" => 1,
+            "devil_press" => 1,
+            "handstand_push_up" => 0,
+            "muscle_up" => 0,
+            "ring_dip" => 0,
+            "wall_walk" => 0,
+            "rope_climb" => 0,
+            "plank" => 0,
+            "run" => 2,
+            "row" => 2,
+            "bike" => 2,
+            "ski" => 2
+        } as Dictionary<String, Number>;
+    }
+
+    // movement id -> reference pace, tenths of a second per rep
+    function refTenths() as Dictionary<String, Number> {
+        return {
+            "wall_ball" => 25,
+            "thruster" => 28,
+            "kb_swing" => 20,
+            "burpee" => 35,
+            "db_snatch" => 22,
+            "air_squat" => 15,
+            "pull_up" => 20,
+            "chest_to_bar" => 25,
+            "push_up" => 18,
+            "sit_up" => 18,
+            "ghd_sit_up" => 20,
+            "v_up" => 20,
+            "toes_to_bar" => 22,
+            "box_jump" => 25,
+            "burpee_box_jump" => 50,
+            "box_step_up" => 22,
+            "double_under" => 6,
+            "single_under" => 4,
+            "lunge" => 22,
+            "pistol" => 30,
+            "deadlift" => 25,
+            "clean" => 35,
+            "power_clean" => 30,
+            "clean_and_jerk" => 50,
+            "snatch" => 40,
+            "push_press" => 25,
+            "push_jerk" => 28,
+            "shoulder_to_overhead" => 28,
+            "overhead_squat" => 30,
+            "front_squat" => 30,
+            "back_squat" => 30,
+            "goblet_squat" => 22,
+            "devil_press" => 50,
+            "handstand_push_up" => 35,
+            "muscle_up" => 60,
+            "ring_dip" => 25,
+            "wall_walk" => 120,
+            "rope_climb" => 150
+        } as Dictionary<String, Number>;
+    }
+
     // movement id -> [alphaQ8, hiMg, loMg, minGapMs] for auto rep counting
     function counterProfiles() as Dictionary<String, Array<Number> > {
         return {

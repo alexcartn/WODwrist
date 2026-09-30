@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
@@ -10,8 +11,12 @@ function buildStatsMenu() as WatchUi.Menu2 {
     var t = ScoreHistory.totals();
     var e = Perf.loads();
     var today = Perf.today();
-    var a = Perf.acwr(e, today);
+    var a = Perf.acwr(e, today, Perf.loadIndex(e, today));
+    var week = Perf.weekCompare(e, today, D_SESSIONS);
+    menu.addItem(new WatchUi.MenuItem("This week", weekReportIsNew() ? "New report" : week[0].format("%d") + " workouts", :week, {}));
     menu.addItem(new WatchUi.MenuItem("Training load", loadStatusLabel(Perf.status(e, today, a[2])), :load, {}));
+    menu.addItem(new WatchUi.MenuItem("Balance", "Gym / weights / mono", :balance, {}));
+    menu.addItem(new WatchUi.MenuItem("Strong / weak", "Movements vs reference", :strength, {}));
     menu.addItem(new WatchUi.MenuItem("Overall", (t["n"] as Number).format("%d") + " workouts", :overall, {}));
     menu.addItem(new WatchUi.MenuItem("Movements", "Pace per rep", :moves, {}));
     var list = ScoreHistory.entries();
@@ -22,6 +27,20 @@ function buildStatsMenu() as WatchUi.Menu2 {
         menu.addItem(new WatchUi.MenuItem(name, sub, i, {}));
     }
     return menu;
+}
+
+// A new week started and last week had workouts, report not opened yet.
+function weekReportIsNew() as Boolean {
+    var today = Perf.today();
+    var seen = Application.Storage.getValue("weekSeen");
+    if (seen instanceof Number && (seen as Number) == today / 7) { return false; }
+    return Perf.sumDays(Perf.loads(), today - 7, 7, D_SESSIONS) > 0 && today % 7 < 3;
+}
+
+function pctChange(a as Number, b as Number) as String {
+    if (b <= 0) { return ""; }
+    var p = ((a - b) * 100.0 / b).toNumber();
+    return " (" + (p >= 0 ? "+" : "") + p.format("%d") + "%)";
 }
 
 function loadStatusLabel(st as String) as String {
@@ -43,6 +62,13 @@ class StatsMenuDelegate extends WatchUi.Menu2InputDelegate {
         var view;
         if (id == :load) {
             view = new StatsView(STATS_LOAD, null);
+        } else if (id == :week) {
+            Application.Storage.setValue("weekSeen", Perf.today() / 7);
+            view = new StatsView(STATS_WEEK, null);
+        } else if (id == :balance) {
+            view = new StatsView(STATS_BALANCE, null);
+        } else if (id == :strength) {
+            view = new StatsView(STATS_STRENGTH, null);
         } else if (id == :overall) {
             view = new StatsView(STATS_OVERALL, null);
         } else if (id == :moves) {
@@ -65,6 +91,9 @@ const STATS_OVERALL = 0;
 const STATS_MOVES = 1;
 const STATS_WOD = 2;
 const STATS_LOAD = 3;
+const STATS_BALANCE = 4;
+const STATS_STRENGTH = 5;
+const STATS_WEEK = 6;
 const STATS_LINES = 5;
 
 class StatsView extends WatchUi.View {
@@ -89,6 +118,7 @@ class StatsView extends WatchUi.View {
         var tablePages = (_rows.size() + STATS_LINES - 1) / STATS_LINES;
         if (_kind == STATS_MOVES) { return tablePages > 0 ? tablePages : 1; }
         if (_kind == STATS_WOD) { return 1 + tablePages; }
+        if (_kind == STATS_LOAD) { return 2; }
         return 1;
     }
 
@@ -98,8 +128,16 @@ class StatsView extends WatchUi.View {
         var cx = w / 2;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
-        if (_kind == STATS_LOAD) {
+        if (_kind == STATS_LOAD && page == 1) {
+            drawMonotony(dc, h, cx);
+        } else if (_kind == STATS_LOAD) {
             drawLoad(dc, w, h, cx);
+        } else if (_kind == STATS_BALANCE) {
+            drawBalance(dc, w, h, cx);
+        } else if (_kind == STATS_STRENGTH) {
+            drawStrength(dc, h, cx);
+        } else if (_kind == STATS_WEEK) {
+            drawWeek(dc, h, cx);
         } else if (_kind == STATS_OVERALL) {
             drawOverall(dc, cx, h);
         } else if (_kind == STATS_MOVES) {
@@ -126,9 +164,11 @@ class StatsView extends WatchUi.View {
     private function drawLoad(dc as Graphics.Dc, w as Number, h as Number, cx as Number) as Void {
         var e = Perf.loads();
         var today = Perf.today();
-        var a = Perf.acwr(e, today);
+        var idx = Perf.loadIndex(e, today);
+        var a = Perf.acwr(e, today, idx);
         var st = Perf.status(e, today, a[2]);
-        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "TRAINING LOAD");
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY,
+            idx == D_SRPE ? "TRAINING LOAD (RPE)" : "TRAINING LOAD (HR)");
         var color = Graphics.COLOR_LT_GRAY;
         if (st.equals("low")) { color = Graphics.COLOR_BLUE; }
         if (st.equals("optimal")) { color = Graphics.COLOR_GREEN; }
@@ -144,7 +184,7 @@ class StatsView extends WatchUi.View {
         var day = [] as Array<Number>;
         var max = 1;
         for (var i = 6; i >= 0; i--) {
-            var v = Perf.sumDays(e, today - i, 1);
+            var v = Perf.sumDays(e, today - i, 1, idx);
             day.add(v);
             if (v > max) { max = v; }
         }
@@ -157,6 +197,122 @@ class StatsView extends WatchUi.View {
             dc.setColor(i == 6 ? Graphics.COLOR_YELLOW : Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
             if (bh > 0) { dc.fillRectangle(x0 + i * slot + slot / 5, base - bh, slot * 3 / 5, bh); }
             dc.fillRectangle(x0 + i * slot + slot / 5, base, slot * 3 / 5, 2);
+        }
+    }
+
+    // Foster monotony and strain of the last 7 days.
+    private function drawMonotony(dc as Graphics.Dc, h as Number, cx as Number) as Void {
+        var e = Perf.loads();
+        var today = Perf.today();
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "WEEK PATTERN");
+        var m = Perf.monotony(e, today, Perf.loadIndex(e, today));
+        if (m == null) {
+            text(dc, cx, h / 2, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "No load this week");
+            return;
+        }
+        var mono = (m as Array<Number>)[0];
+        var color = mono <= 150 ? Graphics.COLOR_GREEN : (mono <= 200 ? Graphics.COLOR_YELLOW : Graphics.COLOR_ORANGE);
+        text(dc, cx, h * 30 / 100, Graphics.FONT_LARGE, color, (mono / 100).format("%d") + "." + (mono % 100).format("%02d"));
+        text(dc, cx, h * 41 / 100, Graphics.FONT_XTINY, color, "Monotony");
+        text(dc, cx, h * 53 / 100, Graphics.FONT_TINY, Graphics.COLOR_WHITE, "Strain " + (m as Array<Number>)[1].format("%d"));
+        text(dc, cx, h * 66 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY,
+            mono > 200 ? "Same load every day:" : "Good mix of hard");
+        text(dc, cx, h * 73 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY,
+            mono > 200 ? "add easy and rest days" : "and easy days");
+    }
+
+    // Time per domain over 4 weeks, as three bars.
+    private function drawBalance(dc as Graphics.Dc, w as Number, h as Number, cx as Number) as Void {
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "BALANCE, 4 WEEKS");
+        var sh = Perf.domainShare(Perf.loads(), Perf.today(), 28);
+        if (sh == null) {
+            text(dc, cx, h / 2, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "No data yet");
+            return;
+        }
+        var names = ["Gym", "Weights", "Mono"];
+        var colors = [Graphics.COLOR_BLUE, Graphics.COLOR_ORANGE, Graphics.COLOR_GREEN];
+        var x0 = w * 20 / 100;
+        var bw = w * 60 / 100;
+        var low = -1;
+        for (var i = 0; i < 3; i++) {
+            var y = h * (27 + i * 17) / 100;
+            var v = (sh as Array<Number>)[i];
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x0, y, Graphics.FONT_XTINY, names[i] as String, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+            dc.drawText(x0 + bw, y, Graphics.FONT_XTINY, v.format("%d") + "%", Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(x0, y + h * 4 / 100, bw, h * 3 / 100);
+            dc.setColor(colors[i] as Number, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(x0, y + h * 4 / 100, bw * v / 100, h * 3 / 100);
+            if (v < 15 && (low < 0 || v < (sh as Array<Number>)[low])) { low = i; }
+        }
+        if (low >= 0) {
+            text(dc, cx, h * 82 / 100, Graphics.FONT_XTINY, Graphics.COLOR_ORANGE, "Little " + (names[low] as String).toLower() + " lately");
+        }
+    }
+
+    // Best and worst movements vs the reference pace (30+ reps done).
+    private function drawStrength(dc as Graphics.Dc, h as Number, cx as Number) as Void {
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "STRONG / WEAK");
+        var r = Perf.rankMovements(ScoreHistory.movementStats(), 30);
+        if (r.size() == 0) {
+            text(dc, cx, h * 45 / 100, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "Do 30+ reps");
+            text(dc, cx, h * 55 / 100, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "of a movement");
+            return;
+        }
+        var rows = [] as Array;
+        var n = r.size();
+        var top = n < 3 ? n : 3;
+        for (var i = 0; i < top; i++) { rows.add(r[i]); }
+        for (var i = (n - 3 > top ? n - 3 : top); i < n; i++) { rows.add(r[i]); }
+        var y = h * 27 / 100;
+        var lh = dc.getFontHeight(Graphics.FONT_TINY);
+        for (var i = 0; i < rows.size(); i++) {
+            var id = (rows[i] as Array)[0] as String;
+            var ratio = (rows[i] as Array)[1] as Number;
+            var name = Movements.name(id);
+            var diff = ratio - 100;
+            var txt = (name == null ? id : name as String) + " " + (diff <= 0 ? (-diff).format("%d") + "% fast" : diff.format("%d") + "% slow");
+            text(dc, cx, y, Graphics.FONT_TINY, diff <= 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_ORANGE, txt);
+            y += lh;
+        }
+    }
+
+    // Last 7 days vs the 7 before.
+    private function drawWeek(dc as Graphics.Dc, h as Number, cx as Number) as Void {
+        var e = Perf.loads();
+        var today = Perf.today();
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "LAST 7 DAYS");
+        var lines = [] as Array<String>;
+        var n = Perf.weekCompare(e, today, D_SESSIONS);
+        lines.add("Workouts " + n[0].format("%d") + " (was " + n[1].format("%d") + ")");
+        var t0 = Perf.sumDays(e, today, 7, D_GYM) + Perf.sumDays(e, today, 7, D_WL) + Perf.sumDays(e, today, 7, D_MONO);
+        var t1 = Perf.sumDays(e, today - 7, 7, D_GYM) + Perf.sumDays(e, today - 7, 7, D_WL) + Perf.sumDays(e, today - 7, 7, D_MONO);
+        lines.add("Time " + Str.clock(t0, false) + pctChange(t0, t1));
+        var l = Perf.weekCompare(e, today, Perf.loadIndex(e, today));
+        lines.add("Load " + l[0].format("%d") + pctChange(l[0], l[1]));
+        var kg = Perf.sumDays(e, today, 7, D_TONNAGE);
+        if (kg > 0) { lines.add("Moved " + kg.format("%d") + " kg"); }
+        var prs = Perf.sumDays(e, today, 7, D_PRS);
+        if (prs > 0) { lines.add("New bests " + prs.format("%d")); }
+        var h0 = Perf.hrrAvg(today, 7, 0);
+        var h1 = Perf.hrrAvg(today, 14, 7);
+        if (h0 >= 0) { lines.add("HR recovery " + h0.format("%d") + (h1 >= 0 ? " (was " + h1.format("%d") + ")" : "")); }
+        var sh = Perf.domainShare(e, today, 7);
+        if (sh != null) {
+            var names = ["gym", "weights", "mono"];
+            for (var i = 0; i < 3; i++) {
+                if ((sh as Array<Number>)[i] == 0) {
+                    lines.add("No " + (names[i] as String) + " this week");
+                    break;
+                }
+            }
+        }
+        var y = h * 23 / 100;
+        var lh = dc.getFontHeight(Graphics.FONT_TINY);
+        for (var i = 0; i < lines.size() && i < 7; i++) {
+            text(dc, cx, y, Graphics.FONT_TINY, Str.startsWith(lines[i], "No ") ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE, lines[i]);
+            y += lh;
         }
     }
 

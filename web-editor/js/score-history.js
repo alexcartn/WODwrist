@@ -6,11 +6,12 @@
 //   t    = epoch seconds when saved
 
 // Same WOD = same structure, whatever its name ("WOD" vs "WOD 2026-09-30").
-export function wodSignature(wod) {
+// Scaled results only compete with scaled results.
+export function wodSignature(wod, scaled = false) {
   const head = [wod.type, wod.timeCapSec, wod.intervalSec, wod.workSec, wod.restSec, wod.rounds,
     wod.repScheme ? wod.repScheme.join("-") : "", wod.repStep].map((v) => (v == null ? "" : String(v)));
   const blocks = wod.blocks.map((b) => `${b.movement}:${b.reps}${b.unit}:${b.slot == null ? "" : b.slot}`);
-  return head.join("|") + "|" + blocks.join(",");
+  return head.join("|") + "|" + blocks.join(",") + (scaled ? "|scaled" : "");
 }
 
 // Higher is better. A finished For time always beats a capped one.

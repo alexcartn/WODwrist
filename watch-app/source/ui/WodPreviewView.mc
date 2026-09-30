@@ -7,11 +7,13 @@ class WodPreviewView extends WatchUi.View {
 
     private var _wod as Dictionary;
     private var _hist as Dictionary?;
+    private var _ready as Array<Number> = [-1, -1] as Array<Number>;
 
     function initialize(wod as Dictionary) {
         View.initialize();
         _wod = wod;
-        _hist = ScoreHistory.load(wod);
+        _hist = ScoreHistory.load(wod, false);
+        _ready = Perf.readiness();
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -22,14 +24,24 @@ class WodPreviewView extends WatchUi.View {
         dc.clear();
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 14 / 100, Graphics.FONT_SMALL, _wod["name"] as String, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(cx, h * 13 / 100, Graphics.FONT_SMALL, _wod["name"] as String, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 26 / 100, Graphics.FONT_TINY, WodFormat.headline(_wod), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(cx, h * 23 / 100, Graphics.FONT_TINY, WodFormat.headline(_wod), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+
+        // readiness: Garmin Body Battery and stress right now
+        if (_ready[0] >= 0 || _ready[1] >= 0) {
+            var r = "";
+            if (_ready[0] >= 0) { r += "Battery " + _ready[0].format("%d"); }
+            if (_ready[1] >= 0) { r += (r.length() > 0 ? "  " : "") + "Stress " + _ready[1].format("%d"); }
+            var low = (_ready[0] >= 0 && _ready[0] < 25) || _ready[1] > 60;
+            dc.setColor(low ? Graphics.COLOR_ORANGE : Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 33 / 100, Graphics.FONT_XTINY, r, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        }
 
         var blocks = _wod["blocks"] as Array<Dictionary>;
         var lineH = dc.getFontHeight(Graphics.FONT_XTINY);
-        var maxLines = (h * 38 / 100) / lineH;
-        var y = h * 36 / 100;
+        var maxLines = (h * 36 / 100) / lineH;
+        var y = h * 39 / 100;
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         var shown = blocks.size() > maxLines ? maxLines - 1 : blocks.size();
         for (var i = 0; i < shown; i++) {

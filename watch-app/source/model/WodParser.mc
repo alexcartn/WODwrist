@@ -271,8 +271,82 @@ module WodParser {
         return false;
     }
 
+    // ---------- loads: "43/30kg", "24 kg", "@60kg", "(53/35 lb)", "1.5 pood" ----------
+
+    // kg per unit, x10000 to stay in integers
+    function kgPer(unit as String) as Number {
+        if (unit.equals("kg") || unit.equals("kgs")) { return 10000; }
+        if (unit.equals("pood") || unit.equals("pd")) { return 163800; }
+        return 4536;  // lb, lbs, #
+    }
+
+    function weightValues(num as String, unit as String) as Array<Number>? {
+        var parts = Str.splitOn(num, '/');
+        var out = [] as Array<Number>;
+        for (var i = 0; i < parts.size(); i++) {
+            if (parts[i].length() == 0 || !Str.isNumeric(parts[i])) { return null; }
+            var f = parts[i].toFloat();
+            if (f == null) { return null; }
+            var kg = Math.round(f * kgPer(unit) / 10000.0).toNumber();
+            if (kg <= 0) { return null; }
+            out.add(kg);
+        }
+        return out.size() > 0 ? out : null;
+    }
+
+    function stripAt(tok as String) as String {
+        return Str.startsWith(tok, "@") ? Str.sub(tok, 1, tok.length()) : tok;
+    }
+
+    // First load written in these tokens, in kg: [rx] or [rx, alternative].
+    // Unitless numbers ("20/14") are ignored: kg or lb cannot be guessed.
+    function findLoad(t as Array<String>) as Array<Number>? {
+        for (var k = 0; k < t.size(); k++) {
+            var tok = stripAt(t[k]);
+            for (var u = 0; u < WEIGHT_UNITS.size(); u++) {
+                var unit = WEIGHT_UNITS[u] as String;
+                if (Str.endsWith(tok, unit) && tok.length() > unit.length()) {
+                    var num = Str.sub(tok, 0, tok.length() - unit.length());
+                    if (Str.isWeightNumber(num)) {
+                        var v = weightValues(num, unit);
+                        if (v != null) { return v; }
+                    }
+                }
+            }
+            if (Str.indexIn(WEIGHT_UNITS as Array<String>, tok) >= 0 && k > 0) {
+                var prev = stripAt(t[k - 1]);
+                if (Str.isWeightNumber(prev)) {
+                    var v = weightValues(prev, tok);
+                    if (v != null) { return v; }
+                }
+            }
+        }
+        return null;
+    }
+
+    function bracketText(s as String) as String {
+        var cs = s.toCharArray();
+        var out = [] as Array<Char>;
+        var depth = 0;
+        for (var i = 0; i < cs.size(); i++) {
+            var c = cs[i];
+            if (c == '(' || c == '[') {
+                depth++;
+                out.add(' ');
+            } else if (c == ')' || c == ']') {
+                if (depth > 0) { depth--; }
+                out.add(' ');
+            } else if (depth > 0) {
+                out.add(c);
+            }
+        }
+        return StringUtil.charArrayToString(out);
+    }
+
     function parseMovement(raw as String) as Dictionary {
         var t0 = Str.tokens(stripBrackets(raw).toLower());
+        var load = findLoad(t0);
+        if (load == null) { load = findLoad(Str.tokens(bracketText(raw).toLower())); }
 
         // drop loads: "43/30kg", "20/14", "24 kg", "@", "@60kg"
         var t1 = [] as Array<String>;
@@ -345,7 +419,8 @@ module WodParser {
             "name" => name,
             "reps" => reps,
             "unit" => unit,
-            "slot" => null
+            "slot" => null,
+            "load" => load
         };
     }
 
@@ -595,12 +670,21 @@ module WodParser {
                 return err("Unknown unit");
             }
             if (!optInt(b["slot"])) { return err("Block slot must be an integer or null"); }
+            var bl = b["load"];
+            if (bl != null) {
+                if (!(bl instanceof Array) || (bl as Array).size() < 1 || (bl as Array).size() > 2) {
+                    return err("Block load must be a list of 1 or 2 positive integers (kg)");
+                }
+                for (var j = 0; j < (bl as Array).size(); j++) {
+                    if (!isPosInt((bl as Array)[j])) { return err("Block load must be a list of 1 or 2 positive integers (kg)"); }
+                }
+            }
             var bname = b["name"];
             if (!(bname instanceof String) || (bname as String).length() == 0) {
                 bname = Movements.name(mv as String);
                 if (bname == null) { bname = mv; }
             }
-            blocks.add({ "movement" => mv, "name" => bname, "reps" => reps, "unit" => unit, "slot" => b["slot"] });
+            blocks.add({ "movement" => mv, "name" => bname, "reps" => reps, "unit" => unit, "slot" => b["slot"], "load" => bl });
         }
         wod["blocks"] = blocks;
 

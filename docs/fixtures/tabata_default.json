@@ -15,14 +15,16 @@
       "name": "Air squats",
       "reps": 0,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": null
     },
     {
       "movement": "push_up",
       "name": "Push-ups",
       "reps": 0,
       "unit": "reps",
-      "slot": 1
+      "slot": 1,
+      "load": null
     }
   ]
 }

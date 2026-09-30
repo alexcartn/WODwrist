@@ -15,21 +15,24 @@
       "name": "Wall balls",
       "reps": 10,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "burpee",
       "name": "Burpees",
       "reps": 10,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "run",
       "name": "Run",
       "reps": 200,
       "unit": "m",
-      "slot": null
+      "slot": null,
+      "load": null
     }
   ]
 }

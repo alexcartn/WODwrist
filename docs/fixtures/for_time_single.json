@@ -15,28 +15,32 @@
       "name": "Run",
       "reps": 1000,
       "unit": "m",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "double_under",
       "name": "Double-unders",
       "reps": 50,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "air_squat",
       "name": "Air squats",
       "reps": 100,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "custom",
       "name": "Farmer carry",
       "reps": 50,
       "unit": "m",
-      "slot": null
+      "slot": null,
+      "load": null
     }
   ]
 }

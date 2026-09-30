@@ -261,8 +261,55 @@ function capitalize(s) {
   return s.length === 0 ? s : s[0].toUpperCase() + s.substring(1);
 }
 
+// ---------- loads: "43/30kg", "24 kg", "@60kg", "(53/35 lb)", "1.5 pood" ----------
+
+const KG_PER = { kg: 1, kgs: 1, lb: 0.4536, lbs: 0.4536, "#": 0.4536, pood: 16.38, pd: 16.38 };
+
+function weightValues(num, unit) {
+  const out = [];
+  for (const v of num.split("/")) {
+    if (v.length === 0 || !isNumeric(v)) return null;
+    out.push(Math.round(parseFloat(v) * KG_PER[unit]));
+  }
+  return out.length > 0 && out.every((x) => x > 0) ? out : null;
+}
+
+// First load written in these tokens, in kg: [rx] or [rx, alternative]. Unitless
+// numbers ("20/14") are ignored: kg or lb cannot be guessed.
+function findLoad(t) {
+  for (let k = 0; k < t.length; k++) {
+    const tok = t[k][0] === "@" ? t[k].substring(1) : t[k];
+    for (const u of WEIGHT_UNITS) {
+      if (tok.endsWith(u) && tok.length > u.length && isWeightNumber(tok.substring(0, tok.length - u.length))) {
+        const v = weightValues(tok.substring(0, tok.length - u.length), u);
+        if (v) return v;
+      }
+    }
+    if (WEIGHT_UNITS.includes(tok) && k > 0) {
+      const prev = t[k - 1][0] === "@" ? t[k - 1].substring(1) : t[k - 1];
+      if (isWeightNumber(prev)) {
+        const v = weightValues(prev, tok);
+        if (v) return v;
+      }
+    }
+  }
+  return null;
+}
+
+function bracketText(s) {
+  let out = "";
+  let depth = 0;
+  for (const c of s) {
+    if (c === "(" || c === "[") { depth++; out += " "; }
+    else if (c === ")" || c === "]") { if (depth > 0) depth--; out += " "; }
+    else if (depth > 0) out += c;
+  }
+  return out;
+}
+
 export function parseMovement(raw) {
   const t0 = tokens(stripBrackets(raw).toLowerCase());
+  const load = findLoad(t0) ?? findLoad(tokens(bracketText(raw).toLowerCase()));
 
   // drop loads: "43/30kg", "20/14", "24 kg", "@", "@60kg"
   const t1 = [];
@@ -317,7 +364,7 @@ export function parseMovement(raw) {
   let name;
   if (id) name = MOVEMENTS[id].name;
   else name = text.length > 0 ? capitalize(text) : raw.trim();
-  return { movement: id || "custom", name, reps, unit, slot: null };
+  return { movement: id || "custom", name, reps, unit, slot: null, load };
 }
 
 // ---------- rep scheme ----------
@@ -507,6 +554,10 @@ export function validateWod(obj) {
     const unit = b.unit ?? "reps";
     if (!UNITS.includes(unit)) return { error: `Unknown unit ${unit}` };
     if (!optInt(b.slot)) return { error: "Block slot must be an integer or null" };
+    const load = b.load ?? null;
+    if (load != null && !(Array.isArray(load) && load.length >= 1 && load.length <= 2 && load.every((x) => isIntValue(x) && x > 0))) {
+      return { error: "Block load must be a list of 1 or 2 positive integers (kg)" };
+    }
     const known = MOVEMENTS[b.movement];
     wod.blocks.push({
       movement: b.movement,
@@ -514,6 +565,7 @@ export function validateWod(obj) {
       reps,
       unit,
       slot: b.slot ?? null,
+      load,
     });
   }
 
@@ -566,11 +618,12 @@ function fmtMin(sec) {
 }
 
 function fmtBlock(b) {
-  if (b.reps === 0) return b.name;
-  if (b.unit === "m") return `${b.reps}m ${b.name}`;
-  if (b.unit === "cal") return `${b.reps} cal ${b.name}`;
-  if (b.unit === "sec") return `${b.reps}s ${b.name}`;
-  return `${b.reps} ${b.name}`;
+  const load = b.load ? ` (${b.load.join("/")}kg)` : "";
+  if (b.reps === 0) return b.name + load;
+  if (b.unit === "m") return `${b.reps}m ${b.name}${load}`;
+  if (b.unit === "cal") return `${b.reps} cal ${b.name}${load}`;
+  if (b.unit === "sec") return `${b.reps}s ${b.name}${load}`;
+  return `${b.reps} ${b.name}${load}`;
 }
 
 export function wodToText(wod, sep = "\n") {

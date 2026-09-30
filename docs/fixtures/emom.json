@@ -15,14 +15,16 @@
       "name": "KB swings",
       "reps": 12,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": null
     },
     {
       "movement": "burpee",
       "name": "Burpees",
       "reps": 10,
       "unit": "reps",
-      "slot": 1
+      "slot": 1,
+      "load": null
     }
   ]
 }

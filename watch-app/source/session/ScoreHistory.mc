@@ -12,7 +12,7 @@ const HISTORY_MAX = 30;
 module ScoreHistory {
 
     // Same WOD = same structure, whatever its name.
-    function signature(wod as Dictionary) as String {
+    function signature(wod as Dictionary, scaled as Boolean) as String {
         var keys = ["type", "timeCapSec", "intervalSec", "workSec", "restSec", "rounds"];
         var parts = [] as Array<String>;
         for (var i = 0; i < keys.size(); i++) {
@@ -35,7 +35,7 @@ module ScoreHistory {
             bs.add((b["movement"] as String) + ":" + (b["reps"] as Number).format("%d") + (b["unit"] as String)
                 + ":" + (slot == null ? "" : (slot as Number).format("%d")));
         }
-        return Str.join(parts, "|") + "|" + Str.join(bs, ",");
+        return Str.join(parts, "|") + "|" + Str.join(bs, ",") + (scaled ? "|scaled" : "");
     }
 
     // Higher is better. A finished For time always beats a capped one.
@@ -103,8 +103,8 @@ module ScoreHistory {
         return "h" + sig.hashCode().format("%d");
     }
 
-    function load(wod as Dictionary) as Dictionary? {
-        var sig = signature(wod);
+    function load(wod as Dictionary, scaled as Boolean) as Dictionary? {
+        var sig = signature(wod, scaled);
         var e = Application.Storage.getValue(key(sig));
         if (!(e instanceof Dictionary)) { return null; }
         var d = e as Dictionary;
@@ -114,10 +114,10 @@ module ScoreHistory {
     }
 
     // Returns the updated entry.
-    function save(wod as Dictionary, rec as Dictionary) as Dictionary {
-        var sig = signature(wod);
+    function save(wod as Dictionary, rec as Dictionary, scaled as Boolean) as Dictionary {
+        var sig = signature(wod, scaled);
         var k = key(sig);
-        var prev = load(wod);
+        var prev = load(wod, scaled);
         var entry;
         if (prev == null) {
             entry = { "sig" => sig, "name" => wod["name"], "last" => rec, "best" => rec, "n" => 1 };

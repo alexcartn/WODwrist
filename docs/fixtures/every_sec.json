@@ -15,7 +15,8 @@
       "name": "Burpees",
       "reps": 10,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": null
     }
   ]
 }

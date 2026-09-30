@@ -21,7 +21,7 @@ function buildMainMenu() as WatchUi.Menu2 {
     }
     menu.addItem(new WatchUi.MenuItem("Sync WOD", app.sync.hasUrl() ? "From coach page" : "Set URL in settings", MENU_SYNC, {}));
     var tot = ScoreHistory.totals();
-    menu.addItem(new WatchUi.MenuItem("My stats", (tot["n"] as Number).format("%d") + " workouts", MENU_STATS, {}));
+    menu.addItem(new WatchUi.MenuItem("My stats", weekReportIsNew() ? "New weekly report" : (tot["n"] as Number).format("%d") + " workouts", MENU_STATS, {}));
     menu.addItem(new WatchUi.MenuItem("Coach", WorkoutSession.propBool("coachMode", false) ? "Class timer ON" : "Class timer, plan, alerts",
         MENU_COACH, {}));
     for (var i = 0; i < SampleWods.count(); i++) {

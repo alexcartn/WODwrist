@@ -121,4 +121,25 @@ mk("28. Training load: risque",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtin
   t(d,cx,h*0.39,F.xtiny,C.red,"Very high: ease off");t(d,cx,h*0.49,F.xtiny,C.white,"7 days 510   4 wk avg 311");
   const day=[90,85,0,95,110,60,70],max=110,x0=w*0.22,slot=w*0.56/7,base=h*0.8,hm=h*0.2;
   day.forEach((v,i)=>{d.fillStyle=i==6?C.yellow:C.lt;const bh=v*hm/max;d.fillRect(x0+i*slot+slot/5,base-bh,slot*0.6,bh);d.fillRect(x0+i*slot+slot/5,base,slot*0.6,2);});});
+
+function rpeScr(d,w,h,v){const cx=w/2,col=v<=3?C.green:v<=6?C.yellow:v<=8?C.orange:C.red,L=["Very easy","Easy","Moderate","Somewhat hard","Hard","Hard +","Very hard","Very hard +","Near max","Max effort"];
+  t(d,cx,h*0.14,F.xtiny,C.lt,"HOW HARD WAS IT?");t(d,cx,h*0.40,F.nhot,col,String(v),{num:1});t(d,cx,h*0.60,F.small,col,L[v-1]);
+  const x0=w*0.2,st=w*0.6/10;for(let i=1;i<=10;i++){const c=i<=3?C.green:i<=6?C.yellow:i<=8?C.orange:C.red;d.fillStyle=i<=v?c:C.dk;d.fillRect(x0+(i-1)*st+1,h*0.69,st-2,h*0.02);}
+  t(d,cx,h*0.84,F.xtiny,C.lt,"HR recovery 41 s");}
+mk("29. Fin de séance: RPE",W,W,0,(d,w,h)=>rpeScr(d,w,h,8));
+mk("30. RX ou Scaled (WOD avec charge)",W,W,0,(d,w,h)=>menu(d,w,h,"Done as",[["RX","Load as written"],["Scaled","Lighter or modified"]],0));
+mk("31. Résumé > Details",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"DETAILS");let y=h*0.25;
+  [["RPE 8  load 96",C.orange],["HR recovery -34 bpm",C.green],["Unbroken 9/12, 5 breaks",C.white],["Transitions 1:42",C.white],["Burpees +25%",C.orange],["Moved 2340 kg",C.white]].forEach(([s,c])=>{t(d,cx,y,F.tiny,c,s);y+=F.tiny+8;});hints(d,w,h);});
+mk("32. Aperçu avec readiness",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.small,C.white,"WOD 2026-09-30");t(d,cx,h*0.23,F.tiny,C.yellow,"For time 21-15-9");
+  t(d,cx,h*0.33,F.xtiny,C.blue,"Battery 64  Stress 22");let y=h*0.39;["Thrusters @ 43/30 kg","Pull-ups"].forEach(l=>{t(d,cx,y,F.xtiny,C.lt,l,{top:1});y+=F.xtiny+6;});
+  t(d,cx,h*0.79,F.xtiny,C.orange,"Best 5:12  Last 5:40");t(d,cx,h*0.88,F.xtiny,C.green,"START: go");});
+mk("33. My stats > This week",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"LAST 7 DAYS");let y=h*0.26;
+  [["Workouts 4 (was 3)",C.white],["Time 2:10:00 (+15%)",C.white],["Load 850 (+12%)",C.white],["Moved 5400 kg",C.white],["New bests 2",C.white],["HR recovery 31 (was 28)",C.white],["No mono this week",C.orange]].forEach(([s,c])=>{t(d,cx,y,F.tiny,c,s);y+=F.tiny+6;});});
+mk("34. Training load > Week pattern",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"WEEK PATTERN");t(d,cx,h*0.30,F.large,C.orange,"2.35",{bold:1});t(d,cx,h*0.41,F.xtiny,C.orange,"Monotony");
+  t(d,cx,h*0.53,F.tiny,C.white,"Strain 2115");t(d,cx,h*0.66,F.xtiny,C.lt,"Same load every day:");t(d,cx,h*0.73,F.xtiny,C.lt,"add easy and rest days");});
+mk("35. Balance 4 semaines",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"BALANCE, 4 WEEKS");const n=["Gym","Weights","Mono"],v=[52,38,10],c=[C.blue,C.orange,C.green],x0=w*0.2,bw=w*0.6;
+  for(let i=0;i<3;i++){const y=h*(0.27+i*0.17);t(d,x0,y,F.xtiny,C.white,n[i],{align:"left"});t(d,x0+bw,y,F.xtiny,C.white,v[i]+"%",{align:"right"});d.fillStyle=C.dk;d.fillRect(x0,y+h*0.04,bw,h*0.03);d.fillStyle=c[i];d.fillRect(x0,y+h*0.04,bw*v[i]/100,h*0.03);}
+  t(d,cx,h*0.82,F.xtiny,C.orange,"Little mono lately");});
+mk("36. Forces / faiblesses",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"STRONG / WEAK");let y=h*0.27;
+  [["KB swings 20% fast",C.green],["Burpees 11% fast",C.green],["Air squats 5% fast",C.green],["Thrusters 8% slow",C.orange],["Pull-ups 15% slow",C.orange],["Wall balls 22% slow",C.orange]].forEach(([s,c])=>{t(d,cx,y,F.tiny,c,s);y+=F.tiny+8;});});
 </script></body></html>

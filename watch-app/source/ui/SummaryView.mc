@@ -15,10 +15,10 @@ class SummaryView extends WatchUi.View {
         _s = session;
     }
 
-    // page 0: score, 1: analysis, 2+: splits
+    // page 0: score, 1: analysis, 2: details, 3+: splits
     function pageCount() as Number {
         var n = _s.laps.size();
-        return 2 + (n + SPLITS_PER_PAGE - 1) / SPLITS_PER_PAGE;
+        return 3 + (n + SPLITS_PER_PAGE - 1) / SPLITS_PER_PAGE;
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -32,6 +32,8 @@ class SummaryView extends WatchUi.View {
             drawOverview(dc, w, h, cx, center);
         } else if (page == 1) {
             drawAnalysis(dc, w, h, cx, center);
+        } else if (page == 2) {
+            drawDetails(dc, h, cx, center);
         } else {
             drawSplits(dc, w, h, cx, center);
         }
@@ -173,12 +175,94 @@ class SummaryView extends WatchUi.View {
         }
     }
 
+    // Effort, recovery, sets, transitions, fatigue, cardiac drift, tonnage.
+    private function drawDetails(dc as Graphics.Dc, h as Number, cx as Number, center as Number) as Void {
+        var e = _s.engine;
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, "DETAILS", center);
+        var lines = [] as Array<String>;
+        var colors = [] as Array<Number>;
+
+        if (_s.rpe != null) {
+            var r = _s.rpe as Number;
+            lines.add("RPE " + r.format("%d") + "  load " + Perf.srpeLoad(r, e.finalActiveMs()).format("%d"));
+            colors.add(RpeView.color(r));
+        }
+        if (_s.hrr != null) {
+            // > 30 bpm in 1 min: good recovery, < 20: poor
+            var v = _s.hrr as Number;
+            lines.add("HR recovery -" + v.format("%d") + " bpm");
+            colors.add(v >= 30 ? Graphics.COLOR_GREEN : (v < 20 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE));
+        } else if (_s.hrEnd > 0) {
+            lines.add("HR recovery in " + (60 - _s.hrrElapsedSec).format("%d") + " s");
+            colors.add(Graphics.COLOR_LT_GRAY);
+        }
+        if (_s.sets > 0) {
+            lines.add("Unbroken " + _s.unbrokenSets.format("%d") + "/" + _s.sets.format("%d") + ", " + _s.breaks.format("%d") + " breaks");
+            colors.add(Graphics.COLOR_WHITE);
+        }
+        if (_s.transitionMs >= 1000) {
+            lines.add("Transitions " + Str.clock(_s.transitionMs, false));
+            colors.add(Graphics.COLOR_WHITE);
+        }
+        var worst = worstFatigue();
+        if (worst != null) {
+            var wf = worst as Array;
+            var f = wf[1] as Number;
+            lines.add((wf[0] as String) + " " + (f >= 0 ? "+" : "") + f.format("%d") + "%");
+            colors.add(f > 15 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE);
+        }
+        var drift = Perf.beatsDriftPct(completedLaps());
+        if (drift != null) {
+            var d = drift as Number;
+            lines.add("Beats/round " + (d >= 0 ? "+" : "") + d.format("%d") + "%");
+            colors.add(d > 15 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE);
+        }
+        if (_s.tonnage > 0 && !_s.scaled) {
+            lines.add("Moved " + _s.tonnage.format("%d") + " kg");
+            colors.add(Graphics.COLOR_WHITE);
+        }
+        if (lines.size() == 0) {
+            lines.add("No details for this WOD");
+            colors.add(Graphics.COLOR_LT_GRAY);
+        }
+        var y = h * 25 / 100;
+        var lh = dc.getFontHeight(Graphics.FONT_TINY);
+        for (var i = 0; i < lines.size() && i < 6; i++) {
+            dc.setColor(colors[i], Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, y, Graphics.FONT_TINY, lines[i], center);
+            y += lh;
+        }
+    }
+
+    // Movement that slowed down the most: [name, % slower], or null.
+    private function worstFatigue() as Array? {
+        var ids = _s.occurrences.keys();
+        var best = null;
+        for (var i = 0; i < ids.size(); i++) {
+            var f = Perf.fatiguePct(_s.occurrences[ids[i]] as Array<Array<Number> >);
+            if (f != null && (best == null || (f as Number) > ((best as Array)[1] as Number))) {
+                var name = Movements.name(ids[i] as String);
+                best = [name == null ? ids[i] : name, f];
+            }
+        }
+        return best;
+    }
+
+    // Laps that are full rounds: an AMRAP / Death by ends on a partial one.
+    private function completedLaps() as Array<Array<Number> > {
+        var l = _s.laps;
+        var e = _s.engine;
+        if ((e.wodType == WT_AMRAP || e.isDeathBy()) && l.size() > 0) { return l.slice(0, l.size() - 1); }
+        return l;
+    }
+
     // "R3  1:02  12r  151" : lap, duration, reps, avg HR
     private function drawSplits(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
-        var first = (page - 2) * SPLITS_PER_PAGE;
+        var first = (page - 3) * SPLITS_PER_PAGE;
         var laps = _s.laps;
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, "Splits " + (page - 1).format("%d") + "/" + (pageCount() - 2).format("%d"), center);
+        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, "Splits " + (page - 2).format("%d") + "/" + (pageCount() - 3).format("%d"), center);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         var y = h * 28 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);

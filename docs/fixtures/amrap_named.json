@@ -15,21 +15,24 @@
       "name": "Pull-ups",
       "reps": 5,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "push_up",
       "name": "Push-ups",
       "reps": 10,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     },
     {
       "movement": "air_squat",
       "name": "Air squats",
       "reps": 15,
       "unit": "reps",
-      "slot": null
+      "slot": null,
+      "load": null
     }
   ]
 }

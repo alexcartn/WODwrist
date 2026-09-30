@@ -10,6 +10,9 @@
     <string id="SetPlanRest">Rest between class plan parts (s)</string>
     <string id="SetAlertHalf">Vibrate at halfway</string>
     <string id="SetAlertOneMin">Vibrate 1 min before the end</string>
+    <string id="SetLoadSide">My load in "43/30kg"</string>
+    <string id="LoadFirst">First (43)</string>
+    <string id="LoadSecond">Second (30)</string>
     <string id="SetCapture">Data capture mode (rep-lab)</string>
 
     <string id="FitLapReps">Reps</string>

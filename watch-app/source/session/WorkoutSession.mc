@@ -30,9 +30,33 @@ class WorkoutSession {
     private var _zoneBounds as Array<Number>;
     // time spent per movement (only "reps" blocks): id -> [reps, ms]
     var movementStats as Dictionary = {};
+    // each time a movement was done: id -> [[reps, ms], ...] (fatigue)
+    var occurrences as Dictionary = {};
+    // active ms per domain: gymnastics, weightlifting, monostructural
+    var domainMs as Array<Number> = [0, 0, 0] as Array<Number>;
+    // sets done / sets without a break / breaks, time lost between movements, kg moved
+    var sets as Number = 0;
+    var unbrokenSets as Number = 0;
+    var breaks as Number = 0;
+    var transitionMs as Number = 0;
+    var tonnage as Number = 0;
     private var _mvId as String? = null;
+    private var _mvReps as Boolean = false;
+    private var _mvLoadKg as Number = 0;
     private var _mvStartMs as Number = 0;
     private var _mvStartReps as Number = 0;
+    private var _setRepTimes as Array<Number> = [] as Array<Number>;
+
+    // after the workout: effort 1-10 (null = skipped), RX or scaled,
+    // heart rate recovery (drop in bpm 60 s after the end)
+    var rpe as Number? = null;
+    var scaled as Boolean = false;
+    var hrEnd as Number = 0;
+    var hrNow as Number = 0;
+    var hrr as Number? = null;
+    var hrrElapsedSec as Number = 0;
+    private var _hrrTimer as Timer.Timer? = null;
+    private var _doneAt as Number = 0;
 
     private var _counter as RepCounter? = null;
     private var _recorder as RecordingManager? = null;
@@ -72,7 +96,7 @@ class WorkoutSession {
             _recorder = new RecordingManager();
         }
         if (!coachMode) {
-            history = ScoreHistory.load(wod);
+            history = ScoreHistory.load(wod, false);
         }
     }
 
@@ -218,15 +242,36 @@ class WorkoutSession {
         _lapHrCount = 0;
     }
 
-    // ---------- per-movement time ----------
+    // ---------- per-movement tracking (one "set" = one block occurrence) ----------
+
+    // Rep times of the current set, recorded before the engine sees the rep
+    // (a rep that completes the set closes it inside handle()).
+    private function noteRep(delta as Number) as Void {
+        var b = engine.currentBlock();
+        if (engine.state != ST_WORK || engine.intervalDone || b == null || !(b["unit"] as String).equals("reps")) { return; }
+        if (delta > 0) {
+            _setRepTimes.add(engine.activeMs(now()));
+        } else if (_setRepTimes.size() > 0) {
+            _setRepTimes = _setRepTimes.slice(0, _setRepTimes.size() - 1);
+        }
+    }
 
     private function mvOpen() as Void {
+        _setRepTimes = [] as Array<Number>;
         var b = engine.currentBlock();
-        if (b == null || !(b["unit"] as String).equals("reps") || (b["movement"] as String).equals("custom")) {
+        if (b == null || (b["movement"] as String).equals("custom")) {
             _mvId = null;
             return;
         }
         _mvId = b["movement"] as String;
+        _mvReps = (b["unit"] as String).equals("reps");
+        _mvLoadKg = 0;
+        var load = b["load"];
+        if (load instanceof Array && (load as Array).size() > 0) {
+            var side = propNumber("loadSide", 0);
+            var l = load as Array<Number>;
+            _mvLoadKg = side < l.size() ? l[side] : l[0];
+        }
         _mvStartMs = engine.activeMs(now());
         _mvStartReps = engine.totalReps;
     }
@@ -239,7 +284,11 @@ class WorkoutSession {
         _mvId = null;
         var reps = engine.totalReps - _mvStartReps;
         var ms = engine.activeMs(now()) - _mvStartMs;
-        if (reps <= 0 || ms <= 0) { return; }
+        if (ms <= 0) { return; }
+        var d = Movements.domain(id);
+        if (d >= 0) { domainMs[d] += ms; }
+        if (!_mvReps || reps <= 0) { return; }
+
         var cur = movementStats[id];
         if (cur instanceof Array) {
             var c = cur as Array<Number>;
@@ -247,6 +296,28 @@ class WorkoutSession {
         } else {
             movementStats[id] = [reps, ms];
         }
+        var occ = occurrences[id];
+        if (occ instanceof Array) {
+            (occ as Array).add([reps, ms]);
+        } else {
+            occurrences[id] = [[reps, ms]];
+        }
+        tonnage += reps * _mvLoadKg;
+
+        // breaks inside the set, time lost before the first rep
+        var t = _setRepTimes;
+        if (t.size() >= 2) {
+            var n = Perf.countBreaks(t);
+            breaks += n;
+            sets++;
+            if (n == 0) { unbrokenSets++; }
+            var gaps = [] as Array<Number>;
+            for (var i = 1; i < t.size(); i++) { gaps.add(t[i] - t[i - 1]); }
+            var med = Perf.median(gaps);
+            var lost = t[0] - _mvStartMs - med;
+            if (lost > 0 && _mvStartMs > 0) { transitionMs += lost; }
+        }
+        _setRepTimes = [] as Array<Number>;
     }
 
     // Point the rep counter at the current movement (or disable it).
@@ -269,6 +340,7 @@ class WorkoutSession {
         // In capture mode the athlete's presses are the ground truth: the
         // detected reps are only logged, not counted.
         if (_capture || engine.state != ST_WORK) { return; }
+        noteRep(1);
         handle(engine.addRep(1, now()));
     }
 
@@ -280,6 +352,7 @@ class WorkoutSession {
             return;
         }
         log("M", delta.format("%d"));
+        noteRep(delta);
         handle(engine.addRep(delta, now()));
     }
 
@@ -338,6 +411,7 @@ class WorkoutSession {
         }
         log("E", engine.scoreText());
         Feedback.done();
+        if (!coach) { startHrr(); }
         if (!_summaryFromMenu) { getApp().onSessionDone(self); }
     }
 
@@ -360,6 +434,55 @@ class WorkoutSession {
             "trimp" => Perf.trimp(zoneSec),
             "zones" => zoneSec
         };
+    }
+
+    // ---------- after the workout ----------
+
+    // Heart rate recovery: HR drop 60 s after the end, measured while the
+    // athlete answers the RPE question and looks at the summary.
+    private function startHrr() as Void {
+        hrEnd = hr;
+        hrNow = hr;
+        _doneAt = now();
+        if (hrEnd <= 0) { return; }
+        _hrrTimer = new Timer.Timer();
+        (_hrrTimer as Timer.Timer).start(method(:onHrrTick), 1000, true);
+    }
+
+    function onHrrTick() as Void {
+        var info = Sensor.getInfo();
+        if (info != null && info.heartRate != null) { hrNow = info.heartRate as Number; }
+        hrrElapsedSec = (now() - _doneAt) / 1000;
+        if (hrrElapsedSec >= 60) {
+            hrr = hrEnd - hrNow;
+            if (result != null) { (result as Dictionary)["hrr"] = hrr; }
+            (_hrrTimer as Timer.Timer).stop();
+            _hrrTimer = null;
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function setRpe(v as Number?) as Void {
+        rpe = v;
+        if (result != null) { (result as Dictionary)["rpe"] = v; }
+    }
+
+    // Scaled results are compared with scaled results only.
+    function setScaled(v as Boolean) as Void {
+        scaled = v;
+        if (result == null) { return; }
+        (result as Dictionary)["scaled"] = v;
+        history = ScoreHistory.load(engine.wod, v);
+        isNewBest = history != null && ScoreHistory.isBetter(result as Dictionary, (history as Dictionary)["best"] as Dictionary);
+    }
+
+    // WOD with a load written in it (tonnage, RX / scaled question)
+    function hasLoad() as Boolean {
+        var blocks = engine.wod["blocks"] as Array<Dictionary>;
+        for (var i = 0; i < blocks.size(); i++) {
+            if (blocks[i]["load"] != null) { return true; }
+        }
+        return false;
     }
 
     // Ahead (<0) / behind (>0) your best at the last completed round, or null.
@@ -391,14 +514,26 @@ class WorkoutSession {
     function save() as Void {
         if (_recorder != null) { (_recorder as RecordingManager).save(); }
         if (!coach && result != null) {
-            ScoreHistory.save(engine.wod, result as Dictionary);
-            ScoreHistory.addTotals(engine.totalReps, engine.finalActiveMs(), movementStats);
-            Perf.addLoad(Perf.today(), Perf.trimp(zoneSec));
+            var r = result as Dictionary;
+            var active = engine.finalActiveMs();
+            var srpe = rpe != null ? Perf.srpeLoad(rpe as Number, active) : 0;
+            var kg = scaled ? 0 : tonnage;
+            r["srpe"] = srpe;
+            r["tonnage"] = kg;
+            ScoreHistory.save(engine.wod, r, scaled);
+            ScoreHistory.addTotals(engine.totalReps, active, movementStats);
+            Perf.addDay(Perf.today(), [Perf.trimp(zoneSec), srpe, domainMs[0], domainMs[1], domainMs[2], 1, kg,
+                isNewBest ? 1 : 0]);
+            if (hrr != null) { Perf.addHrr(Perf.today(), hrr as Number); }
         }
     }
 
     function discard() as Void {
         stopTimers();
+        if (_hrrTimer != null) {
+            (_hrrTimer as Timer.Timer).stop();
+            _hrrTimer = null;
+        }
         if (_recorder != null) { (_recorder as RecordingManager).discard(); }
     }
 

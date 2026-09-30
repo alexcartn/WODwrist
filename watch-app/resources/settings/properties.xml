@@ -10,4 +10,5 @@
     <property id="planRestSec" type="number">60</property>
     <property id="alertHalf" type="boolean">false</property>
     <property id="alertOneMin" type="boolean">true</property>
+    <property id="loadSide" type="number">0</property>
 </properties>

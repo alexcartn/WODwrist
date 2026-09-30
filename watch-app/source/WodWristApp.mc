@@ -88,7 +88,13 @@ class WodWristApp extends Application.AppBase {
             return;
         }
         plan = null;
-        s.showSummary();
+        if (s.coach) {
+            s.showSummary();
+            return;
+        }
+        // athlete: effort 1-10 first (and RX / scaled), then the summary
+        var v = new RpeView(s);
+        WatchUi.switchToView(v, new RpeDelegate(s, v), WatchUi.SLIDE_UP);
     }
 
     // Pop `pops` views and show a fresh main menu.

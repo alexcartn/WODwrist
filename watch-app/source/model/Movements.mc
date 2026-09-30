@@ -6,6 +6,8 @@ module Movements {
     var _aliases as Dictionary<String, String>? = null;
     var _names as Dictionary<String, String>? = null;
     var _profiles as Dictionary<String, Array<Number> >? = null;
+    var _domains as Dictionary<String, Number>? = null;
+    var _refs as Dictionary<String, Number>? = null;
 
     // The alias table is only needed while parsing: call release() after.
     function release() as Void {
@@ -43,5 +45,18 @@ module Movements {
     function profile(id as String) as Array<Number>? {
         if (_profiles == null) { _profiles = MovementCatalog.counterProfiles(); }
         return (_profiles as Dictionary<String, Array<Number> >).get(id);
+    }
+
+    // 0 gymnastics, 1 weightlifting, 2 monostructural, -1 unknown / custom
+    function domain(id as String) as Number {
+        if (_domains == null) { _domains = MovementCatalog.domains(); }
+        var d = (_domains as Dictionary<String, Number>).get(id);
+        return d == null ? -1 : d;
+    }
+
+    // Reference pace, tenths of a second per rep, or null.
+    function refTenths(id as String) as Number? {
+        if (_refs == null) { _refs = MovementCatalog.refTenths(); }
+        return (_refs as Dictionary<String, Number>).get(id);
     }
 }

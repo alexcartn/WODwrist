@@ -15,21 +15,27 @@
       "name": "Power cleans",
       "reps": 5,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": [
+        80,
+        55
+      ]
     },
     {
       "movement": "box_jump",
       "name": "Box jumps",
       "reps": 10,
       "unit": "reps",
-      "slot": 0
+      "slot": 0,
+      "load": null
     },
     {
       "movement": "row",
       "name": "Row",
       "reps": 15,
       "unit": "cal",
-      "slot": 1
+      "slot": 1,
+      "load": null
     }
   ]
 }

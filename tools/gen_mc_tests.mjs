@@ -41,6 +41,11 @@ function ${fn}(logger as Test.Logger) as Boolean {
     for (const k of ["movement", "name", "reps", "unit", "slot"]) {
       src += `    TestUtil.check(logger, b[${i}]["${k}"], ${mcVal(blk[k])}, "block ${i} ${k}");\n`;
     }
+    if (blk.load) {
+      src += `    TestUtil.checkArray(logger, b[${i}]["load"], [${blk.load.join(", ")}], "block ${i} load");\n`;
+    } else {
+      src += `    TestUtil.check(logger, b[${i}]["load"], null, "block ${i} load");\n`;
+    }
   });
   src += `    return true;\n}\n\n`;
 }
