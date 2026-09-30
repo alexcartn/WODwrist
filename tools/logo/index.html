@@ -1,0 +1,82 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+body{margin:0;background:#1b1d21;color:#ccc;font:18px system-ui,sans-serif}
+.sheet{display:flex;flex-wrap:wrap;gap:40px;padding:36px;width:1500px}
+.item{display:flex;flex-direction:column;align-items:center;gap:12px;width:320px}
+.row{display:flex;gap:18px;align-items:flex-end}
+canvas.big{width:256px;height:256px;border-radius:56px}
+canvas.small{width:60px;height:60px;border-radius:14px}
+.cap{font-size:20px;color:#fff;font-weight:600}.sub{font-size:15px;color:#999;text-align:center}
+</style></head><body><div class="sheet" id="s"></div>
+<script>
+// Logo proposals for the WODwrist app icon. Drawn at 512 px on the app's dark color.
+const BG="#111317", Y="#f0a800", W="#eceae4", D="#2a2d33";
+const ideas = [];
+function kettlebell(d, cx, cy, s, fill) {
+  // bell
+  d.fillStyle = fill; d.beginPath(); d.arc(cx, cy + s * 0.12, s * 0.62, 0, Math.PI * 2); d.fill();
+  // handle
+  d.lineWidth = s * 0.16; d.strokeStyle = fill; d.lineCap = "round";
+  d.beginPath(); d.moveTo(cx - s * 0.36, cy - s * 0.32);
+  d.bezierCurveTo(cx - s * 0.42, cy - s * 0.95, cx + s * 0.42, cy - s * 0.95, cx + s * 0.36, cy - s * 0.32); d.stroke();
+  d.fillRect(cx - s * 0.6, cy + s * 0.62, s * 1.2, s * 0.08);
+}
+ideas.push(["A. Kettlebell chrono", "kettlebell, stopwatch in the bell", (d) => {
+  kettlebell(d, 256, 250, 190, Y);
+  d.fillStyle = BG; d.beginPath(); d.arc(256, 273, 78, 0, 7); d.fill();
+  d.strokeStyle = BG; d.lineWidth = 0;
+  d.fillStyle = W; d.beginPath(); d.arc(256, 273, 12, 0, 7); d.fill();
+  d.strokeStyle = W; d.lineWidth = 16; d.lineCap = "round"; d.beginPath(); d.moveTo(256, 273); d.lineTo(300, 225); d.stroke();
+  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; d.strokeStyle = i % 3 ? "#8a8d93" : W; d.lineWidth = i % 3 ? 5 : 9;
+    d.beginPath(); d.moveTo(256 + Math.cos(a) * 58, 273 + Math.sin(a) * 58); d.lineTo(256 + Math.cos(a) * 70, 273 + Math.sin(a) * 70); d.stroke(); }
+}]);
+ideas.push(["B. Bumper plate dial", "a plate that reads like a watch", (d) => {
+  d.fillStyle = Y; d.beginPath(); d.arc(256, 256, 190, 0, 7); d.fill();
+  d.fillStyle = BG; d.beginPath(); d.arc(256, 256, 150, 0, 7); d.fill();
+  d.fillStyle = Y; d.beginPath(); d.arc(256, 256, 40, 0, 7); d.fill();
+  d.fillStyle = BG; d.beginPath(); d.arc(256, 256, 18, 0, 7); d.fill();
+  // progress arc = the WOD timer
+  d.strokeStyle = W; d.lineWidth = 22; d.lineCap = "round"; d.beginPath(); d.arc(256, 256, 105, -Math.PI / 2, Math.PI * 0.85); d.stroke();
+  d.fillStyle = BG; d.font = "700 34px 'DejaVu Sans Condensed', 'Arial Narrow', sans-serif"; d.textAlign = "center"; d.textBaseline = "middle";
+  d.save(); d.translate(256, 256); d.fillText("20", 0, -168); d.restore();
+}]);
+ideas.push(["C. Barbell on the wrist", "loaded barbell across a watch face", (d) => {
+  d.strokeStyle = D; d.lineWidth = 34; d.beginPath(); d.arc(256, 256, 170, 0, 7); d.stroke();
+  d.strokeStyle = Y; d.lineWidth = 34; d.lineCap = "butt"; d.beginPath(); d.arc(256, 256, 170, -Math.PI / 2, Math.PI * 0.55); d.stroke();
+  // bar
+  d.fillStyle = W; d.fillRect(70, 247, 372, 18);
+  // plates
+  const plate = (x, w, h, c) => { d.fillStyle = c; d.beginPath(); d.roundRect(x - w / 2, 256 - h / 2, w, h, 8); d.fill(); };
+  plate(128, 34, 190, Y); plate(162, 26, 140, W); plate(384, 34, 190, Y); plate(350, 26, 140, W);
+  d.fillStyle = W; d.fillRect(92, 238, 12, 36); d.fillRect(408, 238, 12, 36);
+}]);
+ideas.push(["D. WOD block", "bold gym-sign lettering + barbell", (d) => {
+  d.fillStyle = Y; d.beginPath(); d.roundRect(56, 110, 400, 292, 40); d.fill();
+  d.fillStyle = BG; d.font = "700 150px 'DejaVu Sans Condensed', 'Arial Narrow', sans-serif"; d.textAlign = "center"; d.textBaseline = "middle"; d.save(); d.translate(256, 236); const tw = d.measureText("WOD").width; if (tw > 350) d.scale(350 / tw, 1); d.fillText("WOD", 0, 0); d.restore();
+  d.fillStyle = BG; d.fillRect(96, 346, 320, 14);
+  d.fillRect(120, 324, 20, 58); d.fillRect(372, 324, 20, 58); d.fillRect(146, 334, 12, 38); d.fillRect(354, 334, 12, 38);
+}]);
+ideas.push(["E. Kettlebell + W", "kettlebell with a W cut in the bell", (d) => {
+  kettlebell(d, 256, 250, 190, Y);
+  d.fillStyle = BG; d.font = "700 140px 'DejaVu Sans Condensed', 'Arial Narrow', sans-serif"; d.textAlign = "center"; d.textBaseline = "middle"; d.fillText("W", 256, 290);
+}]);
+ideas.push(["F. Rep tally clock", "timer ring + barbell icon, minimal", (d) => {
+  d.strokeStyle = Y; d.lineWidth = 30; d.lineCap = "round"; d.beginPath(); d.arc(256, 256, 175, -Math.PI / 2 + 0.25, Math.PI * 1.5 - 0.25); d.stroke();
+  d.fillStyle = Y; d.beginPath(); d.roundRect(236, 50, 40, 44, 8); d.fill();
+  d.fillStyle = W; d.fillRect(120, 247, 272, 18);
+  const p = (x, h) => { d.beginPath(); d.roundRect(x - 13, 256 - h / 2, 26, h, 6); d.fill(); };
+  p(160, 150); p(192, 110); p(352, 150); p(320, 110);
+}]);
+for (const [name, sub, draw] of ideas) {
+  const it = document.createElement("div"); it.className = "item";
+  const row = document.createElement("div"); row.className = "row";
+  for (const cls of ["big", "small"]) {
+    const c = document.createElement("canvas"); c.width = c.height = 512; c.className = cls;
+    const d = c.getContext("2d"); d.fillStyle = BG; d.fillRect(0, 0, 512, 512); draw(d); row.appendChild(c);
+  }
+  const a = document.createElement("div"); a.className = "cap"; a.textContent = name;
+  const b = document.createElement("div"); b.className = "sub"; b.textContent = sub;
+  it.append(row, a, b); document.getElementById("s").appendChild(it);
+}
+document.body.dataset.ready = 1;
+</script></body></html>
