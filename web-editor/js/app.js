@@ -142,9 +142,8 @@ function updateWatchUrl() {
     $("watchUrl").textContent = "(set the repo)";
     return;
   }
-  // The Pages workflow publishes the web-editor/ folder at the site root.
-  const rel = path.startsWith("web-editor/") ? path.substring("web-editor/".length) : path;
-  $("watchUrl").textContent = `https://${owner.toLowerCase()}.github.io/${name}/${rel}`;
+  // Pages serves the master branch as is: the file keeps its repo path.
+  $("watchUrl").textContent = `https://${owner.toLowerCase()}.github.io/${name}/${path}`;
 }
 
 function b64(str) {

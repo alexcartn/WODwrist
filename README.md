@@ -49,7 +49,7 @@ both parser test suites (`tools/gen_mc_tests.mjs` writes the Monkey C one).
 | M3 import | settings text parser, URL fetch, cache of 8 WODs | test through Garmin Connect Mobile |
 | M4 capture | capture mode log, rep-lab parsing / alignment / tuning | film + label real sets with WODvision |
 | M5 rep counting | on-watch counter, per-movement profiles, +1/-1, confidence dot | replace untuned parameters with rep-lab output |
-| M6 coach | class timer mode on watch, web editor + Pages publish + browser timer | enable Pages |
+| M6 coach | class timer mode on watch, web editor + Pages publish + browser timer | |
 | M7 polish | | multi-device pass, store listing |
 
 The Monkey C code has not been compiled yet (no SDK in the environment where it
@@ -90,7 +90,7 @@ Controls: [docs/controls.md](docs/controls.md).
 | Setting | Use |
 | --- | --- |
 | WOD text | e.g. `AMRAP 12; 10 wall balls; 10 burpees; 200m run` ([format](docs/wod-format.md)) |
-| Coach WOD URL | e.g. `https://alexcartn.github.io/WODwrist/wod/today.json` |
+| Coach WOD URL | e.g. `https://alexcartn.github.io/WODwrist/web-editor/wod/today.json` |
 | Countdown | seconds before start, default 10 |
 | Automatic rep counting | on by default |
 | Class timer | coach mode (also a toggle in the watch menu) |
@@ -105,9 +105,10 @@ npm test                      # parser + engine reference tests
 python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
-Deployed by `.github/workflows/pages.yml` (enable Settings > Pages > Source:
-GitHub Actions once). The Publish button commits `web-editor/wod/today.json`
-with a fine-grained token (contents: write on this repo) kept in the browser.
+Served by GitHub Pages straight from `master` (Settings > Pages > Deploy from a
+branch, `master` / root): https://alexcartn.github.io/WODwrist/web-editor/
+The Publish button commits `web-editor/wod/today.json` with a fine-grained
+token (contents: write on this repo) kept in the browser.
 
 ## rep-lab
 
