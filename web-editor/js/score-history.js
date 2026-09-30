@@ -53,3 +53,35 @@ export function addResult(entry, rec) {
   if (entry == null) return { last: rec, best: rec, n: 1 };
   return { last: rec, best: isBetter(rec, entry.best) ? rec : entry.best, n: entry.n + 1 };
 }
+
+// ---------- on-watch stats ----------
+
+// Round durations from cumulative round end times.
+export function roundDurations(laps) {
+  return laps.map((t, i) => (i === 0 ? t : t - laps[i - 1]));
+}
+
+// Fade: how much slower the last round was than the first, in %.
+// null with fewer than 2 rounds.
+export function fadePct(laps) {
+  if (laps == null || laps.length < 2) return null;
+  const d = roundDurations(laps);
+  if (d[0] <= 0) return null;
+  return Math.round(((d[d.length - 1] - d[0]) * 100) / d[0]);
+}
+
+// Seconds per rep with one decimal, as tenths: 2400 ms / 1 rep -> 24 (2.4 s)
+export function tenthsPerRep(reps, ms) {
+  if (reps <= 0) return null;
+  return Math.round(ms / reps / 100);
+}
+
+// Movement stats: { id: [reps, ms] }, merged session into totals.
+export function mergeMovementStats(total, session) {
+  const out = { ...total };
+  for (const [id, [r, ms]] of Object.entries(session)) {
+    const cur = out[id] || [0, 0];
+    out[id] = [cur[0] + r, cur[1] + ms];
+  }
+  return out;
+}

@@ -51,3 +51,22 @@ test("history keeps last and best", () => {
   assert.deepEqual(e.best, { kind: "rounds", rounds: 7, reps: 5 });
   assert.deepEqual(e.last, { kind: "rounds", rounds: 6, reps: 20 });
 });
+
+import { roundDurations, fadePct, tenthsPerRep, mergeMovementStats } from "../js/score-history.js";
+
+test("stats: round durations and fade", () => {
+  assert.deepEqual(roundDurations([90000, 185000, 290000]), [90000, 95000, 105000]);
+  assert.equal(fadePct([90000, 185000, 290000]), 17);
+  assert.equal(fadePct([100000, 190000]), -10);
+  assert.equal(fadePct([90000]), null);
+  assert.equal(fadePct(null), null);
+});
+
+test("stats: pace per rep and movement merge", () => {
+  assert.equal(tenthsPerRep(10, 24000), 24);
+  assert.equal(tenthsPerRep(0, 1000), null);
+  assert.deepEqual(
+    mergeMovementStats({ burpee: [100, 300000] }, { burpee: [20, 50000], wall_ball: [30, 70000] }),
+    { burpee: [120, 350000], wall_ball: [30, 70000] },
+  );
+});

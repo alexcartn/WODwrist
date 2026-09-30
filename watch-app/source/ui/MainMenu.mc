@@ -6,6 +6,7 @@ const MENU_SAMPLE_BASE = 100;
 const MENU_SYNC = 1000;
 const MENU_COACH = 1001;
 const MENU_ERROR = 1002;
+const MENU_STATS = 1003;
 
 // Stored WODs first (newest on top), then sync, coach toggle, samples.
 function buildMainMenu() as WatchUi.Menu2 {
@@ -19,6 +20,8 @@ function buildMainMenu() as WatchUi.Menu2 {
         menu.addItem(new WatchUi.MenuItem("Settings WOD error", app.sync.settingsError as String, MENU_ERROR, {}));
     }
     menu.addItem(new WatchUi.MenuItem("Sync WOD", app.sync.hasUrl() ? "From coach page" : "Set URL in settings", MENU_SYNC, {}));
+    var tot = ScoreHistory.totals();
+    menu.addItem(new WatchUi.MenuItem("My stats", (tot["n"] as Number).format("%d") + " workouts", MENU_STATS, {}));
     menu.addItem(new WatchUi.ToggleMenuItem("Class timer", "Coach mode, no recording", MENU_COACH,
         WorkoutSession.propBool("coachMode", false), {}));
     for (var i = 0; i < SampleWods.count(); i++) {
@@ -44,6 +47,11 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
         if (id == MENU_ERROR) {
+            return;
+        }
+        if (id == MENU_STATS) {
+            app.menuOnTop = false;
+            WatchUi.pushView(buildStatsMenu(), new StatsMenuDelegate(), WatchUi.SLIDE_LEFT);
             return;
         }
         if (id == MENU_SYNC) {

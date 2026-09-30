@@ -24,6 +24,11 @@ class WorkoutSession {
     var isNewBest as Boolean = false;
     // cumulative active ms at the end of each completed round (AMRAP / FOR_TIME)
     var roundTimes as Array<Number> = [] as Array<Number>;
+    // time spent per movement (only "reps" blocks): id -> [reps, ms]
+    var movementStats as Dictionary = {};
+    private var _mvId as String? = null;
+    private var _mvStartMs as Number = 0;
+    private var _mvStartReps as Number = 0;
 
     private var _counter as RepCounter? = null;
     private var _recorder as RecordingManager? = null;
@@ -128,6 +133,7 @@ class WorkoutSession {
                 _lapStartMs = 0;
                 if (_recorder != null) { (_recorder as RecordingManager).start(engine.wod["name"] as String); }
                 updateCounter();
+                mvOpen();
             } else if (code == EV_LAP) {
                 closeLap(arg, engine.activeMs(now()));
                 if (_recorder != null) { (_recorder as RecordingManager).lap(arg); }
@@ -135,19 +141,26 @@ class WorkoutSession {
                 if (engine.isInterval()) {
                     Feedback.interval();
                     updateCounter();
+                    mvClose();
+                    mvOpen();
                 }
             } else if (code == EV_REST) {
                 Feedback.rest();
+                mvClose();
             } else if (code == EV_BLOCK) {
                 Feedback.block();
                 updateCounter();
+                mvClose();
+                mvOpen();
             } else if (code == EV_ROUND) {
                 roundTimes.add(engine.activeMs(now()));
                 Feedback.round();
             } else if (code == EV_TARGET_DONE) {
                 Feedback.block();
+                mvClose();
                 if (_counter != null) { (_counter as RepCounter).setProfile(null); }
             } else if (code == EV_DONE) {
+                mvClose();
                 onDone(arg);
             }
         }
@@ -160,6 +173,37 @@ class WorkoutSession {
         _lapStartMs = activeMs;
         _lapHrSum = 0;
         _lapHrCount = 0;
+    }
+
+    // ---------- per-movement time ----------
+
+    private function mvOpen() as Void {
+        var b = engine.currentBlock();
+        if (b == null || !(b["unit"] as String).equals("reps") || (b["movement"] as String).equals("custom")) {
+            _mvId = null;
+            return;
+        }
+        _mvId = b["movement"] as String;
+        _mvStartMs = engine.activeMs(now());
+        _mvStartReps = engine.totalReps;
+    }
+
+    // BLOCK / ROUND events arrive after the engine moved on: totalReps already
+    // includes the reps of the block being closed.
+    private function mvClose() as Void {
+        if (_mvId == null) { return; }
+        var id = _mvId as String;
+        _mvId = null;
+        var reps = engine.totalReps - _mvStartReps;
+        var ms = engine.activeMs(now()) - _mvStartMs;
+        if (reps <= 0 || ms <= 0) { return; }
+        var cur = movementStats[id];
+        if (cur instanceof Array) {
+            var c = cur as Array<Number>;
+            movementStats[id] = [c[0] + reps, c[1] + ms];
+        } else {
+            movementStats[id] = [reps, ms];
+        }
     }
 
     // Point the rep counter at the current movement (or disable it).
@@ -267,7 +311,9 @@ class WorkoutSession {
             "reps" => engine.wodType == WT_AMRAP ? engine.lapReps : engine.totalReps,
             "ms" => active,
             "t" => Time.now().value(),
-            "laps" => roundTimes
+            "laps" => roundTimes,
+            "hr" => avgHr(),
+            "hrMax" => hrMax
         };
     }
 
@@ -301,6 +347,7 @@ class WorkoutSession {
         if (_recorder != null) { (_recorder as RecordingManager).save(); }
         if (!coach && result != null) {
             ScoreHistory.save(engine.wod, result as Dictionary);
+            ScoreHistory.addTotals(engine.totalReps, engine.finalActiveMs(), movementStats);
         }
     }
 

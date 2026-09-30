@@ -36,3 +36,14 @@ function historyPace(logger as Test.Logger) as Boolean {
     TestUtil.check(logger, ScoreHistory.scoreText({ "kind" => "rounds", "rounds" => 7, "reps" => 12 }), "7 + 12", "score");
     return true;
 }
+
+(:test)
+function historyStats(logger as Test.Logger) as Boolean {
+    Test.assertEqual(ScoreHistory.fadePct([90000, 185000, 290000]), 17);
+    Test.assertEqual(ScoreHistory.fadePct([100000, 190000]), -10);
+    Test.assert(ScoreHistory.fadePct([90000]) == null);
+    Test.assertEqual(ScoreHistory.tenthsPerRep(10, 24000), 24);
+    Test.assert(ScoreHistory.tenthsPerRep(0, 1000) == null);
+    TestUtil.check(logger, ScoreHistory.formatTenths(24), "2.4 s", "tenths");
+    return true;
+}

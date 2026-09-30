@@ -44,6 +44,18 @@ whatever its name; 30 WODs kept). The preview shows `Best 8 + 3  Last 7 + 12`,
 the summary shows `NEW BEST` or your best. Logic: `web-editor/js/score-history.js`
 (tested) and its port `watch-app/source/session/ScoreHistory.mc`.
 
+## My stats (main menu)
+
+All computed on the watch from the saved workouts, nothing to export.
+
+- Overall: workouts, active time, reps, number of different WODs.
+- Movements: seconds per rep for each movement, over all saved workouts
+  (time from the start to the end of the block, so short breaks count: it is
+  a work rate, not a pure rep speed). Custom movements are skipped.
+- One page per WOD: best, last (green when it equals or beats the best),
+  fade of the last attempt (last round vs first round, orange above +10 %:
+  probably started too fast), HR avg / max. Scroll down: round times best vs last.
+
 ## Summary
 
 START saves the activity to Garmin Connect, BACK asks to discard.
