@@ -38,6 +38,7 @@ function ${fn}(logger as Test.Logger) as Boolean {
   // optional keys: sets of AMRAP, every-minute task, men / women reps
   src += `    TestUtil.check(logger, w["sets"], ${mcVal(want.sets ?? null)}, "sets");\n`;
   src += `    TestUtil.check(logger, w["setRestSec"], ${mcVal(want.setRestSec ?? null)}, "setRestSec");\n`;
+  src += `    TestUtil.check(logger, w["restAfterSec"], ${mcVal(want.restAfterSec ?? null)}, "restAfterSec");\n`;
   const blocksCheck = (arr, v, label) => {
     src += `    TestUtil.check(logger, ${v}.size(), ${arr.length}, "${label} count");\n`;
     arr.forEach((blk, i) => {

@@ -56,6 +56,14 @@ Coach mode (class timer): bigger clock, movement line under it, no footer,
 longer vibrations, no activity saved unless "Record activity in coach mode"
 is on.
 
+## Today's plan (main menu)
+
+Shown when the coach URL holds several parts (strength, metcon, bonus...).
+Runs them back to back: each part is saved as its own activity, then a
+countdown shows `2/3 Metcon` for the rest written after the part
+(`Then rest 2:00`), or the "Rest between parts" setting. The RPE screen and
+summary come after the last part.
+
 ## Quick timer (main menu > Quick timer)
 
 A timer without a WOD, set up on the watch alone. Tap a row to go to its next

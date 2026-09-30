@@ -13,6 +13,7 @@ const MENU_MY_WODS = 1004;
 const MENU_SAMPLES = 1005;
 const MENU_ONBOARD = 1006;
 const MENU_QUICK = 1007;
+const MENU_PLAN = 1008;
 
 // Today's WOD on top, quick timer, then my WODs, stats, coach, sync, samples.
 function buildMainMenu() as WatchUi.Menu2 {
@@ -24,6 +25,11 @@ function buildMainMenu() as WatchUi.Menu2 {
             Tr.s("Today") + " - " + WodFormat.headline(list[0]), 0, "m_play"));
     } else {
         menu.addItem(Icons.menuItem(Tr.s("Get started"), Tr.s("No WOD yet"), MENU_ONBOARD, "m_play"));
+    }
+    // the day's parts from the coach URL (strength, metcon, bonus), back to back
+    var plan = Coach.plan();
+    if (plan.size() > 1) {
+        menu.addItem(Icons.menuItem(Tr.s("Today's plan"), plan.size().format("%d") + " " + Tr.s("parts"), MENU_PLAN, "m_list"));
     }
     menu.addItem(Icons.menuItem(Tr.s("Quick timer"), Tr.s("No WOD needed"), MENU_QUICK, "m_quick"));
     if (app.syncSvc().settingsError != null) {
@@ -97,7 +103,9 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
         app.menuOnTop = false;
-        if (id == MENU_QUICK) {
+        if (id == MENU_PLAN) {
+            app.startPlan(false);
+        } else if (id == MENU_QUICK) {
             openQuickMenu(false);
         } else if (id == MENU_COACH) {
             WatchUi.pushView(buildCoachMenu(), new CoachMenuDelegate(), WatchUi.SLIDE_LEFT);

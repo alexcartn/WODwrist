@@ -56,7 +56,7 @@ class CoachMenuDelegate extends WatchUi.Menu2InputDelegate {
         } else if (id == :plan) {
             // leave only the main menu under the workout
             WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
-            getApp().startPlan();
+            getApp().startPlan(true);
         }
     }
 

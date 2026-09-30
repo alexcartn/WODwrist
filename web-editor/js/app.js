@@ -552,6 +552,28 @@ async function importShots(files) {
   }
 }
 
+// Screenshots shared from the phone gallery (Android share sheet, see sw.js).
+async function importShared() {
+  const params = new URLSearchParams(location.search);
+  if (!params.has("shared") || !("caches" in window)) return;
+  history.replaceState(null, "", location.pathname);
+  try {
+    const c = await caches.open("wodwrist-share");
+    const keys = await c.keys();
+    keys.sort((a, b) => Number(a.url.split("/").pop()) - Number(b.url.split("/").pop()));
+    const files = [];
+    for (const k of keys) {
+      const res = await c.match(k);
+      const blob = await res.blob();
+      files.push(new File([blob], decodeURIComponent(res.headers.get("x-name") || "shot.png"), { type: blob.type, lastModified: files.length }));
+    }
+    await caches.delete("wodwrist-share");
+    if (files.length) importShots(files);
+  } catch (e) {
+    $("shotStatus").textContent = "Could not read the shared screenshots: " + e.message;
+  }
+}
+
 function init() {
   $("wodText").value = store.get("text", EXAMPLES.amrap);
   $("wodText").addEventListener("input", () => {
@@ -583,6 +605,9 @@ function init() {
   applyTheme(store.get("theme", "dark"));
   $("themeBtn").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
   $("qrBtn").addEventListener("click", toggleQr);
+  // installable app (home screen icon, offline, Android share sheet)
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  importShared();
   $("shotBtn").addEventListener("click", () => $("shotFile").click());
   $("shotFile").addEventListener("change", (e) => {
     importShots(e.target.files);

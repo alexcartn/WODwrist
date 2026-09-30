@@ -548,6 +548,11 @@ class TimerEngine {
         blockReps = 0;
         var an = activeMs(now);
         _blockStartMs = an > 0 ? an : 0;
+        // no rest after the last round of a For time
+        if (wodType == WT_FOR_TIME && !isOpenForTime() && roundsCompleted == _rounds - 1) {
+            var bl = currentBlocks();
+            while (blockIdx < bl.size() && isRestBlock(bl[blockIdx])) { blockIdx++; }
+        }
         if (blockIdx < currentBlocks().size()) {
             ev.add([EV_BLOCK, blockIdx]);
             return;

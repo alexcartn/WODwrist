@@ -87,7 +87,7 @@ export function parseDuration(tok) {
 // ---------- header ----------
 
 function emptyHeader(type) {
-  return { type, timeCapSec: null, intervalSec: null, workSec: null, restSec: null, rounds: null, inline: null, sets: 1, setRestSec: 0 };
+  return { type, timeCapSec: null, intervalSec: null, workSec: null, restSec: null, rounds: null, inline: null, sets: 1, setRestSec: 0, roundRestSec: 0 };
 }
 
 const SEC_WORDS = ["s", "sec", "secs", "second", "seconds"];
@@ -224,6 +224,12 @@ export function parseHeader(line) {
   }
   if (forTime) {
     const h = emptyHeader("FOR_TIME");
+    // "3 Rounds For Time (Rest 2:00 between rounds)"
+    const r = t.indexOf("rest");
+    if (r >= 0) {
+      const rd = durationAt(t, r + 1);
+      if (rd) h.roundRestSec = rd[0];
+    }
     for (let k = 0; k < t.length; k++) {
       if ((t[k] === "rounds" || t[k] === "round" || t[k] === "rft") && k > 0 && isInt(t[k - 1])) {
         h.rounds = parseInt(t[k - 1], 10);
@@ -553,6 +559,12 @@ export function parseCapLine(line) {
 // "Rest 3:00 between sets", "Rest 90 sec" -> { sec, betweenSets }, or null.
 export function parseRestLine(line) {
   let t = optionTokens(line);
+  // "Then rest 2:00": rest after this part, before the next one of the day
+  let after = false;
+  if (t.length > 2 && t[0] === "then" && t[1] === "rest") {
+    after = true;
+    t = t.slice(1);
+  }
   if (t.length < 2) return null;
   // "1:00 Rest" -> "rest 1:00"
   if (t[0] !== "rest") {
@@ -565,7 +577,9 @@ export function parseRestLine(line) {
   for (let k = d[1]; k < t.length; k++) {
     if (!["between", "sets", "set", "rounds", "round", "each", "after"].includes(t[k])) return null;
   }
-  return { sec: d[0], betweenSets: d[1] < t.length };
+  const out = { sec: d[0], betweenSets: d[1] < t.length };
+  if (after) out.after = true;
+  return out;
 }
 
 // "Every minute on the minute (including 0:00), complete 8/6 cal ski",
@@ -609,6 +623,10 @@ export function parseTaskLine(line) {
   if (first && ["complete", "do", "perform"].includes(first.toLowerCase())) body = more.join(" ");
   if (body.length === 0) return null;
   return { everySec: every, at0: head.includes("0:00"), body };
+}
+
+function restBlock(sec) {
+  return { movement: "rest", name: "Rest", reps: sec, unit: "sec", slot: null, load: null };
 }
 
 // ---------- rep scheme ----------
@@ -689,6 +707,7 @@ export function parseWod(text) {
   const blocks = [];
   let nextSlot = 0;
   let task = null;
+  let restAfterSec = 0;
 
   for (let n = 0; n < lines.length; n++) {
     const line = lines[n];
@@ -725,9 +744,10 @@ export function parseWod(text) {
       continue;
     }
     const restLine = parseRestLine(line);
+    if (restLine && restLine.after) { restAfterSec = restLine.sec; continue; }
     if (restLine && header.sets > 1) { header.setRestSec = restLine.sec; continue; }
     if (restLine) {
-      blocks.push({ movement: "rest", name: "Rest", reps: restLine.sec, unit: "sec", slot: null, load: null });
+      blocks.push(restBlock(restLine.sec));
       continue;
     }
     if (header.type === "AMRAP" || header.type === "FOR_TIME") {
@@ -753,6 +773,9 @@ export function parseWod(text) {
       const b = parseMovement(part);
       b.slot = interval ? slot : null;
       blocks.push(b);
+      // "400m run (rest 1:00)": a timed rest after the movement
+      const br = parseRestLine(bracketText(part));
+      if (br && !interval) blocks.push(restBlock(br.sec));
     }
     if (interval && slot + 1 > nextSlot) nextSlot = slot + 1;
   }
@@ -793,6 +816,9 @@ export function parseWod(text) {
     wod.setRestSec = header.setRestSec;
   }
   if (task && task.blocks.length > 0) wod.task = task;
+  // rest between rounds written in the header: the last round has none (see the engine)
+  if (header.roundRestSec > 0 && header.type === "FOR_TIME") wod.blocks.push(restBlock(header.roundRestSec));
+  if (restAfterSec > 0) wod.restAfterSec = restAfterSec;
   return { wod };
 }
 
@@ -867,6 +893,10 @@ export function validateWod(obj) {
       wod.sets = obj.sets;
       wod.setRestSec = rest;
     }
+  }
+  if (obj.restAfterSec != null) {
+    if (!isIntValue(obj.restAfterSec) || obj.restAfterSec < 0) return { error: "restAfterSec must be an integer >= 0" };
+    if (obj.restAfterSec > 0) wod.restAfterSec = obj.restAfterSec;
   }
   if ((wod.type === "AMRAP" || wod.type === "FOR_TIME") && obj.task != null) {
     const tk = obj.task;
@@ -989,5 +1019,6 @@ export function wodToText(wod, sep = "\n") {
     const every = wod.task.everySec === 60 ? "minute" : fmtClock(wod.task.everySec);
     lines.push(`Every ${every}${wod.task.at0 ? " (including 0:00)" : ""}, ${wod.task.blocks.map(fmtBlock).join(" + ")}`);
   }
+  if (wod.restAfterSec > 0) lines.push(`Then rest ${fmtClock(wod.restAfterSec)}`);
   return lines.join(sep);
 }

@@ -63,7 +63,8 @@ module WodParser {
             "inline" => null,
             "deathBy" => false,
             "sets" => 1,
-            "setRestSec" => 0
+            "setRestSec" => 0,
+            "roundRestSec" => 0
         };
     }
 
@@ -229,6 +230,12 @@ module WodParser {
         }
         if (forTime) {
             var h = emptyHeader("FOR_TIME");
+            // "3 Rounds For Time (Rest 2:00 between rounds)"
+            var ri = Str.indexIn(t, "rest");
+            if (ri >= 0) {
+                var rd = durationAt(t, ri + 1);
+                if (rd != null) { h["roundRestSec"] = rd[0]; }
+            }
             for (var k = 0; k < t.size(); k++) {
                 if ((t[k].equals("rounds") || t[k].equals("round") || t[k].equals("rft")) && k > 0 && Str.isInt(t[k - 1])) {
                     h["rounds"] = Str.toInt(t[k - 1]);
@@ -648,6 +655,12 @@ module WodParser {
     // "Rest 3:00 between sets", "Rest 90 sec" -> [sec, betweenSets], or null.
     function parseRestLine(line as String) as Array? {
         var t = optionTokens(line);
+        // "Then rest 2:00": rest after this part, before the next one of the day
+        var after = false;
+        if (t.size() > 2 && t[0].equals("then") && t[1].equals("rest")) {
+            after = true;
+            t = t.slice(1, null);
+        }
         if (t.size() < 2) { return null; }
         // "1:00 Rest" -> "rest 1:00"
         if (!t[0].equals("rest")) {
@@ -664,7 +677,11 @@ module WodParser {
         for (var k = d[1]; k < t.size(); k++) {
             if (Str.indexIn(ok, t[k]) < 0) { return null; }
         }
-        return [d[0], d[1] < t.size()];
+        return [d[0], d[1] < t.size(), after];
+    }
+
+    function restBlock(sec as Number) as Dictionary {
+        return { "movement" => "rest", "name" => "Rest", "reps" => sec, "unit" => "sec", "slot" => null, "load" => null };
     }
 
     // "Every minute on the minute (including 0:00), complete 8/6 cal ski",
@@ -801,6 +818,7 @@ module WodParser {
         var blocks = [] as Array<Dictionary>;
         var nextSlot = 0;
         var task = null;
+        var restAfterSec = 0;
 
         for (var n = 0; n < lines.size(); n++) {
             var line = lines[n];
@@ -855,10 +873,12 @@ module WodParser {
             }
             var restLine = parseRestLine(line);
             if (restLine != null) {
-                if ((header["sets"] as Number) > 1) {
+                if (restLine[2] == true) {
+                    restAfterSec = restLine[0] as Number;
+                } else if ((header["sets"] as Number) > 1) {
                     header["setRestSec"] = restLine[0];
                 } else {
-                    blocks.add({ "movement" => "rest", "name" => "Rest", "reps" => restLine[0], "unit" => "sec", "slot" => null, "load" => null });
+                    blocks.add(restBlock(restLine[0] as Number));
                 }
                 continue;
             }
@@ -893,6 +913,9 @@ module WodParser {
                 var b = parseMovement(parts[p]);
                 b["slot"] = interval ? slot : null;
                 blocks.add(b);
+                // "400m run (rest 1:00)": a timed rest after the movement
+                var br = parseRestLine(bracketText(parts[p]));
+                if (br != null && !interval) { blocks.add(restBlock(br[0] as Number)); }
             }
             if (interval && (slot as Number) + 1 > nextSlot) { nextSlot = (slot as Number) + 1; }
         }
@@ -942,6 +965,11 @@ module WodParser {
             wod["setRestSec"] = header["setRestSec"];
         }
         if (task != null && ((task as Dictionary)["blocks"] as Array).size() > 0) { wod["task"] = task; }
+        // rest between rounds written in the header: the last round has none (see the engine)
+        if ((header["roundRestSec"] as Number) > 0 && (header["type"] as String).equals("FOR_TIME")) {
+            blocks.add(restBlock(header["roundRestSec"] as Number));
+        }
+        if (restAfterSec > 0) { wod["restAfterSec"] = restAfterSec; }
         return { "wod" => wod };
     }
 
@@ -1065,6 +1093,11 @@ module WodParser {
             blocks.add(v);
         }
         wod["blocks"] = blocks;
+        var ra = o["restAfterSec"];
+        if (ra != null) {
+            if (!(ra instanceof Number) || (ra as Number) < 0) { return err("restAfterSec must be an integer >= 0"); }
+            if ((ra as Number) > 0) { wod["restAfterSec"] = ra; }
+        }
         if ((type as String).equals("AMRAP") && o["sets"] != null) {
             if (!isPosInt(o["sets"])) { return err("sets must be an integer >= 1"); }
             var sr = o["setRestSec"] == null ? 0 : o["setRestSec"];

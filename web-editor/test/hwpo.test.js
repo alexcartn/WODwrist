@@ -187,3 +187,23 @@ test("timed rest block moves on by itself, with 3-2-1", () => {
   assert.equal(e.currentBlock().movement, "deadlift");
   assert.equal(e.restLeftMs(66000), -1);
 });
+
+test("rest between rounds: header, brackets, none after the last round", () => {
+  const w = wod("2 Rounds For Time (Rest 1:00 between rounds)\n5 burpees");
+  assert.deepEqual(w.blocks.map((x) => [x.movement, x.reps]), [["burpee", 5], ["rest", 60]]);
+  const b = wod("AMRAP 10\n400m run (rest 1:00)\n10 burpees").blocks;
+  assert.deepEqual(b.map((x) => x.movement), ["run", "rest", "burpee"]);
+  assert.equal(wod("AMRAP 3\n10 burpees\nThen rest 2:00").restAfterSec, 120);
+  assert.deepEqual(parseRestLine("Then rest 2:00"), { sec: 120, betweenSets: false, after: true });
+  const e = new TimerEngine(w, 0);
+  e.start(0);
+  for (let i = 0; i < 5; i++) e.addRep(1, 1000 + i * 1000);
+  assert.equal(e.currentBlock().movement, "rest");
+  run(e, 5250, 66000);
+  assert.equal(e.currentBlock().movement, "burpee");
+  let ev = [];
+  for (let i = 0; i < 5; i++) ev = ev.concat(e.addRep(1, 70000 + i * 1000));
+  // the last round ends on the last burpee, not after a rest
+  assert.equal(e.state, S.DONE);
+  assert.deepEqual(e.score(), { kind: "time", ms: 74000 });
+});

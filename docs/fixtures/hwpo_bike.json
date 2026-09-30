@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "name": "3:00 AMRAP",
+  "name": "Bonus: Part 1",
   "type": "AMRAP",
   "timeCapSec": 180,
   "intervalSec": null,
@@ -28,5 +28,6 @@
       "load": null,
       "repsAlt": 24
     }
-  ]
+  ],
+  "restAfterSec": 120
 }

@@ -46,7 +46,8 @@ test("HWPO metcon page: kg loads, titles without |, part cut at the bottom", () 
     ["kb_swing", 30, "reps", [24, 16]],
     ["toes_to_bar", 30, "reps", null],
   ]);
-  assert.equal(b.name, "Bonus: Part 1 (then rest 2:00)");
+  assert.equal(b.name, "Bonus: Part 1");
+  assert.equal(b.restAfterSec, 120);
   assert.deepEqual(b.blocks.map((x) => [x.movement, x.reps, x.repsAlt]), [["bike", 30, 24], ["bike", 30, 24]]);
 });
 
@@ -75,4 +76,13 @@ test("three screenshots of one day: parts in order, overlaps kept once", () => {
   const a = "# Bonus: Part 1\n3:00 AMRAP\n30/24 cal Fan Bike";
   const b = "3:00 AMRAP\n30/24 cal Fan Bike\n30/24 cal C2 Bike";
   assert.equal(mergeParts(a, b), "# Bonus: Part 1\n3:00 AMRAP\n30/24 cal Fan Bike\n30/24 cal C2 Bike");
+});
+
+test("rest in brackets, between parts, between rounds", () => {
+  const r = cleanOcr("Part 1\nAMRAP 3\n10 burpees\n(Rest 2:00)\nPart 2\n3 Rounds For Time\n400m Run\n(Rest 1:00)\n");
+  const [a, b] = r.text.split("\n---\n").map((p) => parseWod(p).wod);
+  assert.equal(a.restAfterSec, 120);
+  assert.deepEqual(a.blocks.map((x) => x.movement), ["burpee"]);
+  // in a part with rounds the last rest is the rest between rounds
+  assert.deepEqual(b.blocks.map((x) => [x.movement, x.reps]), [["run", 400], ["rest", 60]]);
 });

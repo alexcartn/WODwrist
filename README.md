@@ -119,6 +119,13 @@ order they were taken and merged: a part seen on two overlapping screenshots
 is kept once. While the imported text is untouched, the next screenshot is
 added to it. Check the result: OCR can misread small italic text.
 
+Installable app (PWA): on the phone, open the editor and "Add to Home
+Screen" (iPhone: Share > Add to Home Screen; Android: menu > Install app). It
+opens full screen, works offline after the first visit (text reader
+included), and on Android appears in the share sheet: select the day's
+screenshots in the gallery > Share > WODwrist. `sw.js` is the service worker,
+`tools/make_web_icons.py` draws the icons.
+
 ```bash
 cd web-editor
 npm test                      # parser + engine reference tests

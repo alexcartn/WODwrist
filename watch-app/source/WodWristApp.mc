@@ -13,9 +13,10 @@ class WodWristApp extends Application.AppBase {
     var session as WorkoutSession? = null;
     // true while the main menu is the visible view (so a background sync can refresh it)
     var menuOnTop as Boolean = true;
-    // class plan being run (coach), null otherwise
+    // plan of the day being run (coach class or athlete), null otherwise
     var plan as Array<Dictionary>? = null;
     var planIndex as Number = 0;
+    var planCoach as Boolean = true;
 
     function initialize() {
         AppBase.initialize();
@@ -97,13 +98,15 @@ class WodWristApp extends Application.AppBase {
         s.begin();
     }
 
-    // Coach: run every part of the stored plan back to back.
-    function startPlan() as Void {
+    // Run every part of the stored plan back to back: the coach's class, or
+    // the athlete's day (strength, metcon, bonus...), each part saved.
+    function startPlan(coach as Boolean) as Void {
         var p = Coach.plan();
         if (p.size() == 0) { return; }
         plan = p;
         planIndex = 0;
-        startWorkout(p[0], true, Coach.startDelaySec(), false);
+        planCoach = coach;
+        startWorkout(p[0], coach, coach ? Coach.startDelaySec() : null, false);
     }
 
     // A workout ended (time up, target reached, or Finish in the pause menu).
@@ -111,8 +114,11 @@ class WodWristApp extends Application.AppBase {
         if (plan != null && planIndex + 1 < (plan as Array<Dictionary>).size()) {
             // keep the finished part if the coach records, then chain the next one
             if (s.hasRecording()) { s.save(); }
+            // the rest written after the part ("Then rest 2:00"), else the coach setting
+            var prev = (plan as Array<Dictionary>)[planIndex];
+            var rest = prev["restAfterSec"] instanceof Number ? prev["restAfterSec"] as Number : Coach.restSec();
             planIndex++;
-            startWorkout((plan as Array<Dictionary>)[planIndex], true, Coach.restSec(), true);
+            startWorkout((plan as Array<Dictionary>)[planIndex], planCoach, rest, true);
             return;
         }
         plan = null;

@@ -32,7 +32,7 @@ jobs:
       - name: Stage site
         run: |
           mkdir -p _site/web-editor
-          cp -r web-editor/index.html web-editor/style.css web-editor/js web-editor/vendor web-editor/wod _site/web-editor/
+          cp -r web-editor/index.html web-editor/style.css web-editor/manifest.webmanifest web-editor/sw.js web-editor/icons web-editor/js web-editor/vendor web-editor/wod _site/web-editor/
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

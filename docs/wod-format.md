@@ -81,6 +81,8 @@ editor) use these forms, all understood:
 | `1:00 Rest`, `Rest 90 sec` (own line, no sets) | timed rest block (`movement: "rest"`): counts down, 3-2-1, then the next movement by itself. BACK skips it |
 | `3 Deadlift @ 145-155 kg (72.5-77.5%)` | load range: the lower value (145 kg); percentages in brackets ignored |
 | `RPE 8`, `@ RPE 7-8` | intensity notes: ignored |
+| `3 Rounds For Time (Rest 2:00 between rounds)`, `400m run (rest 1:00)` | timed rest block after the round / the movement. A For time never rests after its last round |
+| `Then rest 2:00` (last line of a part) | rest before the next part of the day. JSON: `restAfterSec`. The screenshot import writes it when a part ends with `Rest 2:00` or `(Rest 2:00)` and has no rounds |
 | `(150/100lbs \|\| 70/45kg)` | `\|\|` is not a line break; kg is preferred over lb |
 | `100ft carry` | feet: 30 m |
 

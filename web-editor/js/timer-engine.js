@@ -454,6 +454,11 @@ export class TimerEngine {
     this.blockIdx++;
     this.blockReps = 0;
     this.blockStartMs = Math.max(0, this.activeMs(now));
+    // no rest after the last round of a For time
+    if (this.wod.type === "FOR_TIME" && !this.isOpenForTime() && this.roundsCompleted === this.wod.rounds - 1) {
+      const bl = this.currentBlocks();
+      while (this.blockIdx < bl.length && this.isRestBlock(bl[this.blockIdx])) this.blockIdx++;
+    }
     const n = this.currentBlocks().length;
     if (this.blockIdx < n) {
       ev.push([E.BLOCK, this.blockIdx]);

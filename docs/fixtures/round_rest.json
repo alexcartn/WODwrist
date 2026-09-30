@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "name": "3 Rounds For Time (Rest 2:00 between rounds)",
+  "type": "FOR_TIME",
+  "timeCapSec": null,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 3,
+  "repScheme": null,
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "run",
+      "name": "Run",
+      "reps": 400,
+      "unit": "m",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "rest",
+      "name": "Rest",
+      "reps": 60,
+      "unit": "sec",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "burpee",
+      "name": "Burpees",
+      "reps": 15,
+      "unit": "reps",
+      "slot": null,
+      "load": null
+    },
+    {
+      "movement": "rest",
+      "name": "Rest",
+      "reps": 120,
+      "unit": "sec",
+      "slot": null,
+      "load": null
+    }
+  ]
+}

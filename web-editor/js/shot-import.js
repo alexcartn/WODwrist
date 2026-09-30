@@ -122,18 +122,22 @@ export function cleanOcr(raw) {
   }
 
   // one WOD per heading, or per new header line
+  const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
   const wods = [];
   let cur = null;
+  // "Rest 2:00" closing a part is the rest before the next part of the day,
+  // unless the part has rounds (then it is the rest between rounds)
+  const closeRest = () => {
+    if (!cur || cur.lines.length < 3) return;
+    const r = parseRestLine(cur.lines[cur.lines.length - 1]);
+    if (!r || r.betweenSets || r.after) return;
+    const h = parseHeader(cur.lines[0]);
+    if (h && h.type === "FOR_TIME" && h.rounds > 1) return;
+    cur.lines[cur.lines.length - 1] = `Then rest ${clock(r.sec)}`;
+  };
   const open = (name) => {
-    // "Rest 2:00" closing a part is the rest before the next one
-    if (cur && cur.lines.length > 1) {
-      const r = parseRestLine(cur.lines[cur.lines.length - 1]);
-      if (r && !r.betweenSets) {
-        cur.lines.pop();
-        cur.restAfter = cur.lines.length > 0 ? r.sec : 0;
-      }
-    }
-    cur = { name, lines: [], hasHeader: false, restAfter: 0 };
+    closeRest();
+    cur = { name, lines: [], hasHeader: false };
     wods.push(cur);
   };
   for (const l of lines) {
@@ -149,15 +153,11 @@ export function cleanOcr(raw) {
     }
     cur.lines.push(l.text);
   }
+  closeRest();
   const withHeader = wods.filter((w) => w.hasHeader);
   const kept = withHeader.filter((w) => w.lines.length > 1);
-  const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
   const text = kept
-    .map((w) => {
-      let name = w.name;
-      if (w.restAfter > 0) name = `${name ?? w.lines[0]} (then rest ${clock(w.restAfter)})`;
-      return (name ? [`# ${name}`, ...w.lines] : w.lines).join("\n");
-    })
+    .map((w) => (w.name ? [`# ${w.name}`, ...w.lines] : w.lines).join("\n"))
     .join("\n---\n");
   return { text, wods: kept.length, cut: withHeader.length - kept.length };
 }
