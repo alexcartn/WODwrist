@@ -90,6 +90,14 @@ export class TimerEngine {
     return this.blockIdx < bl.length ? bl[this.blockIdx] : null;
   }
 
+  // Interval WODs: blocks of the next interval, [] after the last one.
+  // Shown while waiting (EMOM work done early, Tabata rest).
+  nextBlocks() {
+    if (!this.isInterval() || this.round + 1 >= this.wod.rounds) return [];
+    const slot = this.slots[(this.round + 1) % this.slots.length];
+    return this.wod.blocks.filter((b) => b.slot === slot);
+  }
+
   target(block) {
     if (block == null) return 0;
     if (block.reps > 0) return block.reps;

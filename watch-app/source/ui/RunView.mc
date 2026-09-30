@@ -71,7 +71,10 @@ class RunView extends WatchUi.View {
             var bl = e.currentBlocks();
             b = bl.size() > 0 ? bl[0] : null;
         }
-        if (b != null && e.state != ST_DONE && !e.intervalDone) {
+        var waiting = e.state != ST_DONE && (e.intervalDone || e.state == ST_REST);
+        if (waiting) {
+            drawNext(dc, e, cx, h, center);
+        } else if (b != null && e.state != ST_DONE) {
             var name = b["name"] as String;
             var unit = b["unit"] as String;
             var target = e.target(b);
@@ -99,6 +102,27 @@ class RunView extends WatchUi.View {
             dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, h * 88 / 100, Graphics.FONT_XTINY, foot, center);
         }
+    }
+
+    // While waiting (EMOM work done, Tabata rest): what comes next.
+    private function drawNext(dc as Graphics.Dc, e as TimerEngine, cx as Number, h as Number, center as Number) as Void {
+        var next = e.nextBlocks();
+        var parts = [] as Array<String>;
+        for (var i = 0; i < next.size(); i++) { parts.add(WodFormat.block(next[i])); }
+        var text = Str.join(parts, " + ");
+        if (_s.coach) {
+            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 76 / 100, Graphics.FONT_SMALL, next.size() > 0 ? "Next: " + text : "Last interval", center);
+            return;
+        }
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        if (next.size() == 0) {
+            dc.drawText(cx, h * 66 / 100, Graphics.FONT_SMALL, "Last interval", center);
+            return;
+        }
+        dc.drawText(cx, h * 61 / 100, Graphics.FONT_XTINY, "NEXT", center);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 72 / 100, Graphics.FONT_SMALL, text, center);
     }
 
     private function roundText(e as TimerEngine) as String {

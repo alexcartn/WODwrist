@@ -32,9 +32,20 @@ class SummaryView extends WatchUi.View {
         } else {
             drawSplits(dc, w, h, cx, center);
         }
-        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-        var hint = _s.hasRecording() ? "START save  BACK discard" : "BACK exit";
-        dc.drawText(cx, h * 91 / 100, Graphics.FONT_XTINY, hint, center);
+        drawHints(dc, h, cx, center);
+    }
+
+    // Two short lines: one long line gets clipped by the bezel on round screens.
+    private function drawHints(dc as Graphics.Dc, h as Number, cx as Number, center as Number) as Void {
+        if (!_s.hasRecording()) {
+            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, "BACK exit", center);
+            return;
+        }
+        dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 83 / 100, Graphics.FONT_XTINY, "START save", center);
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 90 / 100, Graphics.FONT_XTINY, "BACK discard", center);
     }
 
     private function drawOverview(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
@@ -54,15 +65,21 @@ class SummaryView extends WatchUi.View {
         if (_s.hrMax > 0) {
             lines.add("HR avg " + _s.avgHr().format("%d") + "  max " + _s.hrMax.format("%d"));
         }
-        if (_s.laps.size() > 1) {
-            lines.add(_s.laps.size().format("%d") + " splits, scroll down");
-        }
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        var y = h * 48 / 100;
+        var y = h * 47 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);
         for (var i = 0; i < lines.size(); i++) {
             dc.drawText(cx, y, Graphics.FONT_TINY, lines[i], center);
             y += lh;
+        }
+        // "8 splits" + a small down arrow: scroll for the per-round table
+        if (_s.laps.size() > 1) {
+            var ay = h * 73 / 100;
+            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx - w * 3 / 100, ay, Graphics.FONT_XTINY, _s.laps.size().format("%d") + " splits", center);
+            var ax = cx + w * 13 / 100;
+            var s = w / 40;
+            dc.fillPolygon([[ax - s, ay - s / 2], [ax + s, ay - s / 2], [ax, ay + s]]);
         }
     }
 

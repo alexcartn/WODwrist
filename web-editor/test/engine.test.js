@@ -180,3 +180,15 @@ test("finish early", () => {
   assert.deepEqual(e.score(), { kind: "reps", reps: 40 });
   assert.equal(e.activeMs(99999), 30000);
 });
+
+test("nextBlocks previews the next interval", () => {
+  const e = new TimerEngine(wod("EMOM 3\nodd: 12 kb swings\neven: 10 burpees"), 0);
+  e.start(0);
+  assert.deepEqual(e.nextBlocks().map((b) => b.movement), ["burpee"]);
+  e.tick(60000);
+  assert.deepEqual(e.nextBlocks().map((b) => b.movement), ["kb_swing"]);
+  e.tick(120000);
+  assert.deepEqual(e.nextBlocks(), []);
+  const a = new TimerEngine(wod("AMRAP 5\n5 burpees"), 0);
+  assert.deepEqual(a.nextBlocks(), []);
+});

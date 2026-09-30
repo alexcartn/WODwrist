@@ -149,6 +149,18 @@ class TimerEngine {
         return blockIdx < bl.size() ? bl[blockIdx] : null;
     }
 
+    // Interval WODs: blocks of the next interval, [] after the last one.
+    // Shown while waiting (EMOM work done early, Tabata rest).
+    function nextBlocks() as Array<Dictionary> {
+        var out = [] as Array<Dictionary>;
+        if (!isInterval() || round + 1 >= _rounds) { return out; }
+        var slot = _slots[(round + 1) % _slots.size()];
+        for (var i = 0; i < _blocks.size(); i++) {
+            if (_blocks[i]["slot"] == slot) { out.add(_blocks[i]); }
+        }
+        return out;
+    }
+
     function target(b as Dictionary?) as Number {
         if (b == null) { return 0; }
         var reps = b["reps"] as Number;

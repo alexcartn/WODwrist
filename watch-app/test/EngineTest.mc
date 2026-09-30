@@ -143,3 +143,15 @@ function engineNextCredits(logger as Test.Logger) as Boolean {
     Test.assertEqual(e.totalReps, 15);
     return true;
 }
+
+(:test)
+function engineNextBlocks(logger as Test.Logger) as Boolean {
+    var e = new TimerEngine(EngineTestUtil.wod("EMOM 3\nodd: 12 kb swings\neven: 10 burpees"), 0);
+    e.start(0);
+    TestUtil.check(logger, e.nextBlocks()[0]["movement"], "burpee", "next at min 1");
+    e.tick(60000);
+    TestUtil.check(logger, e.nextBlocks()[0]["movement"], "kb_swing", "next at min 2");
+    e.tick(120000);
+    Test.assertEqual(e.nextBlocks().size(), 0);
+    return true;
+}
