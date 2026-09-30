@@ -142,4 +142,49 @@ mk("35. Balance 4 semaines",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C
   t(d,cx,h*0.82,F.xtiny,C.orange,"Little mono lately");});
 mk("36. Forces / faiblesses",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"STRONG / WEAK");let y=h*0.27;
   [["KB swings 20% fast",C.green],["Burpees 11% fast",C.green],["Air squats 5% fast",C.green],["Thrusters 8% slow",C.orange],["Pull-ups 15% slow",C.orange],["Wall balls 22% slow",C.orange]].forEach(([s,c])=>{t(d,cx,y,F.tiny,c,s);y+=F.tiny+8;});});
+
+// ---- polish helpers (same geometry as Ui.mc) ----
+function ringUx(d,w,h,frac,color,rw){const cx=w/2,cy=h/2,r=w/2-rw/2-1;d.lineWidth=rw;d.strokeStyle=C.dk;d.beginPath();d.arc(cx,cy,r,0,7);d.stroke();
+  if(frac>0){d.strokeStyle=color;d.beginPath();d.arc(cx,cy,r,-Math.PI/2,-Math.PI/2+Math.PI*2*frac);d.stroke();}d.lineWidth=1;}
+function innerUx(d,w,h,frac,color,inset){const cx=w/2,cy=h/2,r=w/2-inset;d.lineWidth=3;d.strokeStyle=color;const a0=150*Math.PI/180;d.beginPath();d.arc(cx,cy,r,a0,a0-(-120*frac)*Math.PI/180);d.stroke();d.lineWidth=1;}
+function dotsUx(d,w,h,page,n){const gap=h/30,x=w-w/25,y0=h/2-(n-1)*gap/2;for(let i=0;i<n;i++){d.fillStyle=i==page?C.white:C.dk;d.beginPath();d.arc(x,y0+i*gap,i==page?4:3,0,7);d.fill();}}
+function hintUx(d,w,h,top,color,icon){const deg=top?30:-30,cx=w/2,cy=h/2;d.lineWidth=6;d.strokeStyle=color;d.beginPath();
+  d.arc(cx,cy,w/2-4,-(deg+8)*Math.PI/180,-(deg-8)*Math.PI/180);d.stroke();const rad=deg*Math.PI/180,r=w/2-w/16,x=cx+r*Math.cos(rad),y=cy-r*Math.sin(rad),k=w/50;
+  d.lineWidth=3;d.fillStyle=color;d.beginPath();
+  if(icon=="check"){d.moveTo(x-k,y);d.lineTo(x-k/3,y+k*2/3);d.lineTo(x+k,y-k*2/3);d.stroke();}
+  else if(icon=="cross"){d.moveTo(x-k*2/3,y-k*2/3);d.lineTo(x+k*2/3,y+k*2/3);d.moveTo(x-k*2/3,y+k*2/3);d.lineTo(x+k*2/3,y-k*2/3);d.stroke();}
+  else{d.moveTo(x-k*2/3,y-k);d.lineTo(x-k*2/3,y+k);d.lineTo(x+k,y);d.fill();}d.lineWidth=1;}
+function runUx(d,w,h,o){const cx=w/2;ringUx(d,w,h,o.frac,o.color,o.coach?w/28:w/40);
+  t(d,cx,h*0.12,F.tiny,o.color,o.label);
+  if(o.delta){d.font="500 "+F.tiny+"px Roboto,Arial,sans-serif";const a=o.round+"  ",w1=d.measureText(a).width,w2=d.measureText(o.delta).width,x=cx-(w1+w2)/2;
+    t(d,x,h*0.22,F.tiny,C.lt,a,{align:"left"});t(d,x+w1,h*0.22,F.tiny,o.delta[0]=="-"?C.green:C.red,o.delta,{align:"left"});} else t(d,cx,h*0.22,F.tiny,C.lt,o.round);
+  if(o.coach){t(d,cx,h*0.47,F.nthai,C.white,o.clock,{num:1});if(o.move)t(d,cx,h*0.76,F.small,C.white,o.move);}
+  else{t(d,cx,h*0.41,F.nhot,C.white,o.clock,{num:1});
+    if(o.name){t(d,cx,h*0.62,F.small,C.white,o.name);t(d,cx,h*0.75,F.medium,C.yellow,o.reps,{bold:1});if(o.repFrac)innerUx(d,w,h,o.repFrac,C.yellow,w/40+8);
+      if(o.conf){d.fillStyle=o.conf;d.beginPath();d.arc(cx+w*0.22,h*0.75,Math.max(3,w/60),0,7);d.fill();}
+      if(o.pop)t(d,cx-w*0.23,h*0.75,F.small,C.green,o.pop,{bold:1});}
+    if(o.foot)t(d,cx,h*0.87,F.xtiny,C.lt,o.foot);}
+  if(o.banner){const fh=F.medium+6,fy=o.coach?h*0.79:h*0.62,bw=w*0.78;d.fillStyle=o.bannerColor;d.beginPath();d.roundRect(cx-bw/2,fy-fh*0.75,bw,fh*1.5,fh/3);d.fill();t(d,cx,fy,F.medium,"#000",o.banner,{bold:1});}}
+function summaryUx(d,w,h){const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"WOD 2026-09-30");t(d,cx,h*0.28,F.large,C.yellow,"8 + 10",{bold:1});t(d,cx,h*0.38,F.xtiny,C.green,"NEW BEST",{bold:1});
+  let y=h*0.50;["Time 12:00","Rounds 8  Reps 170","HR 162 / 181"].forEach(l=>{t(d,cx,y,F.tiny,C.white,l);y+=F.tiny+8;});
+  hintUx(d,w,h,true,C.green,"check");hintUx(d,w,h,false,C.lt,"cross");dotsUx(d,w,h,0,5);}
+mk("AVANT : course",W,W,0,(d,w,h)=>run(d,w,h,{label:"WORK",color:C.green,round:"Rounds 3",delta:"-0:08",clock:"7:42",name:"Wall balls",reps:"7/10",conf:C.green,foot:"Reps 67  HR 164"}));
+mk("APRÈS : anneau + arc des reps + \"+1\"",W,W,0,(d,w,h)=>runUx(d,w,h,{frac:0.36,color:C.green,label:"WORK",round:"Rounds 3",delta:"-0:08",clock:"7:42",name:"Wall balls",reps:"7/10",repFrac:0.7,conf:C.green,pop:"+1",foot:"Reps 67  HR 164"}));
+mk("APRÈS : bandeau nouveau mouvement",W,W,0,(d,w,h)=>runUx(d,w,h,{frac:0.4,color:C.green,label:"WORK",round:"Rounds 3",clock:"7:10",name:"Burpees",reps:"0/10",repFrac:0,foot:"Reps 70  HR 168",banner:"BURPEES",bannerColor:C.green}));
+mk("APRÈS : repos Tabata (anneau bleu)",W,W,0,(d,w,h)=>{runUx(d,w,h,{frac:0.3,color:C.blue,label:"REST",round:"Int 5/8",clock:"0:07",foot:"Reps 88  HR 169"});t(d,w/2,h*0.61,F.xtiny,C.lt,"NEXT");t(d,w/2,h*0.72,F.small,C.white,"Push-ups");});
+mk("APRÈS : mode coach",W,W,0,(d,w,h)=>runUx(d,w,h,{coach:1,frac:0.6,color:C.green,label:"WORK",round:"Int 6/10",clock:"0:41",move:"12 KB swings"}));
+mk("AVANT : résumé",W,W,0,(d,w,h)=>summary(d,w,h,"WOD 2026-09-30","8 + 10",["Time 12:00","Rounds 8  Reps 170","HR avg 162  max 181"],8,"NEW BEST"));
+mk("APRÈS : boutons Garmin + points de page",W,W,0,(d,w,h)=>summaryUx(d,w,h));
+mk("AVANT : menu principal",W,W,0,(d,w,h)=>menu(d,w,h,"WODwrist",[["WOD 2026-09-30","AMRAP 12 min"],["Sync WOD","From coach page"],["My stats","23 workouts"],["Coach","Class timer, plan, alerts"],["Sample: Wall ball AMRAP","AMRAP 12 min"]],0));
+mk("APRÈS : menu principal",W,W,0,(d,w,h)=>menu(d,w,h,"WODwrist",[["WOD 2026-09-30","Today - AMRAP 12 min"],["My WODs","4 WODs"],["My stats","New weekly report"],["Coach",""],["Sync WOD","Synced 7:02"],["Samples","Try a built-in WOD"]],0));
+mk("APRÈS : premier lancement",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.22,F.medium,C.yellow,"1. Phone",{bold:1});
+  ["Garmin Connect >","WODwrist > Settings","> WOD text.","Example:","AMRAP 12; 10 burpees"].forEach((l,i)=>t(d,cx,h*(0.38+i*0.08),F.tiny,C.white,l));dotsUx(d,w,h,1,3);hintUx(d,w,h,true,C.green,"play");});
+mk("APRÈS : aperçu",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.small,C.white,"WOD 2026-09-30");t(d,cx,h*0.23,F.tiny,C.yellow,"AMRAP 12 min");
+  t(d,cx,h*0.33,F.xtiny,C.lt,"Battery 64  Stress 22");let y=h*0.39;["10 Wall balls @9/6kg","10 Burpees","200 m Run"].forEach(l=>{t(d,cx,y,F.xtiny,C.lt,l,{top:1});y+=F.xtiny+6;});
+  t(d,cx,h*0.79,F.xtiny,C.yellow,"Best 8 + 3  Last 7 + 12");hintUx(d,w,h,true,C.green,"play");});
+mk("APRÈS : en français",W,W,0,(d,w,h)=>runUx(d,w,h,{frac:0.36,color:C.green,label:"EFFORT",round:"Tours 3",delta:"-0:08",clock:"7:42",name:"Wall balls",reps:"7/10",repFrac:0.7,conf:C.green,foot:"Reps 67  FC 164"}));
+mk("APRÈS : stats, points de page",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"CHARGE (RPE)");t(d,cx,h*0.28,F.large,C.green,"1.12",{bold:1});
+  t(d,cx,h*0.39,F.xtiny,C.green,"Optimal");t(d,cx,h*0.49,F.xtiny,C.white,"7 jours 320   moy. 4 sem 285");
+  const day=[60,0,85,0,70,40,65],max=85,x0=w*0.22,slot=w*0.56/7,base=h*0.8,hm=h*0.2;
+  day.forEach((v,i)=>{d.fillStyle=i==6?C.yellow:C.lt;const bh=v*hm/max;d.fillRect(x0+i*slot+slot/5,base-bh,slot*0.6,bh);d.fillRect(x0+i*slot+slot/5,base,slot*0.6,2);});dotsUx(d,w,h,0,2);});
 </script></body></html>

@@ -7,18 +7,18 @@ import Toybox.WatchUi;
 // (ScoreHistory), nothing to export.
 
 function buildStatsMenu() as WatchUi.Menu2 {
-    var menu = new WatchUi.Menu2({ :title => "My stats" });
+    var menu = new WatchUi.Menu2({ :title => Tr.s("My stats") });
     var t = ScoreHistory.totals();
     var e = Perf.loads();
     var today = Perf.today();
     var a = Perf.acwr(e, today, Perf.loadIndex(e, today));
     var week = Perf.weekCompare(e, today, D_SESSIONS);
-    menu.addItem(new WatchUi.MenuItem("This week", weekReportIsNew() ? "New report" : week[0].format("%d") + " workouts", :week, {}));
-    menu.addItem(new WatchUi.MenuItem("Training load", loadStatusLabel(Perf.status(e, today, a[2])), :load, {}));
-    menu.addItem(new WatchUi.MenuItem("Balance", "Gym / weights / mono", :balance, {}));
-    menu.addItem(new WatchUi.MenuItem("Strong / weak", "Movements vs reference", :strength, {}));
-    menu.addItem(new WatchUi.MenuItem("Overall", (t["n"] as Number).format("%d") + " workouts", :overall, {}));
-    menu.addItem(new WatchUi.MenuItem("Movements", "Pace per rep", :moves, {}));
+    menu.addItem(new WatchUi.MenuItem(Tr.s("This week"), weekReportIsNew() ? Tr.s("New report") : week[0].format("%d") + " " + Tr.s("workouts"), :week, {}));
+    menu.addItem(new WatchUi.MenuItem(Tr.s("Training load"), loadStatusLabel(Perf.status(e, today, a[2])), :load, {}));
+    menu.addItem(new WatchUi.MenuItem(Tr.s("Balance"), Tr.s("Gym") + " / " + Tr.s("Weights") + " / " + Tr.s("Mono"), :balance, {}));
+    menu.addItem(new WatchUi.MenuItem(Tr.s("Strong / weak"), null, :strength, {}));
+    menu.addItem(new WatchUi.MenuItem(Tr.s("Overall"), (t["n"] as Number).format("%d") + " " + Tr.s("workouts"), :overall, {}));
+    menu.addItem(new WatchUi.MenuItem(Tr.s("Movements"), Tr.s("Pace per rep"), :moves, {}));
     var list = ScoreHistory.entries();
     for (var i = 0; i < list.size(); i++) {
         var e = list[i];
@@ -147,17 +147,14 @@ class StatsView extends WatchUi.View {
         } else {
             drawTable(dc, cx, h, "Round  Best  Last", page - 1);
         }
-        if (page < pageCount() - 1) {
-            var s = w / 40;
-            var y = h * 90 / 100;
-            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.fillPolygon([[cx - s, y - s / 2], [cx + s, y - s / 2], [cx, y + s]]);
-        }
+        Ui.pageDots(dc, page, pageCount());
     }
 
+    // Centered, translated when the whole text is a known label, shortened to fit.
     private function text(dc as Graphics.Dc, x as Number, y as Number, font, color, s as String) as Void {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x, y, font, s, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        var t = Ui.fit(dc, Tr.s(s), font as Graphics.FontType, Ui.widthAt(dc, y));
+        dc.drawText(x, y, font, t, Ui.CENTER);
     }
 
     // Acute (7 days) vs chronic (weekly average over 28 days) training load.
@@ -167,17 +164,17 @@ class StatsView extends WatchUi.View {
         var idx = Perf.loadIndex(e, today);
         var a = Perf.acwr(e, today, idx);
         var st = Perf.status(e, today, a[2]);
-        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY,
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Theme.MUTED,
             idx == D_SRPE ? "TRAINING LOAD (RPE)" : "TRAINING LOAD (HR)");
-        var color = Graphics.COLOR_LT_GRAY;
+        var color = Theme.MUTED;
         if (st.equals("low")) { color = Graphics.COLOR_BLUE; }
         if (st.equals("optimal")) { color = Graphics.COLOR_GREEN; }
-        if (st.equals("high")) { color = Graphics.COLOR_ORANGE; }
+        if (st.equals("high")) { color = Theme.WARN; }
         if (st.equals("risk")) { color = Graphics.COLOR_RED; }
         var big = a[2] < 0 || st.equals("building") ? "--" : (a[2] / 100).format("%d") + "." + (a[2] % 100).format("%02d");
         text(dc, cx, h * 28 / 100, Graphics.FONT_LARGE, color, big);
         text(dc, cx, h * 39 / 100, Graphics.FONT_XTINY, color, loadStatusLabel(st));
-        text(dc, cx, h * 49 / 100, Graphics.FONT_XTINY, Graphics.COLOR_WHITE,
+        text(dc, cx, h * 49 / 100, Graphics.FONT_XTINY, Theme.TEXT,
             "7 days " + a[0].format("%d") + "   4 wk avg " + a[1].format("%d"));
 
         // last 7 days, today on the right
@@ -194,7 +191,7 @@ class StatsView extends WatchUi.View {
         var hmax = h * 20 / 100;
         for (var i = 0; i < 7; i++) {
             var bh = day[i] * hmax / max;
-            dc.setColor(i == 6 ? Graphics.COLOR_YELLOW : Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(i == 6 ? Theme.SCORE : Theme.MUTED, Graphics.COLOR_TRANSPARENT);
             if (bh > 0) { dc.fillRectangle(x0 + i * slot + slot / 5, base - bh, slot * 3 / 5, bh); }
             dc.fillRectangle(x0 + i * slot + slot / 5, base, slot * 3 / 5, 2);
         }
@@ -204,60 +201,60 @@ class StatsView extends WatchUi.View {
     private function drawMonotony(dc as Graphics.Dc, h as Number, cx as Number) as Void {
         var e = Perf.loads();
         var today = Perf.today();
-        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "WEEK PATTERN");
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Theme.MUTED, "WEEK PATTERN");
         var m = Perf.monotony(e, today, Perf.loadIndex(e, today));
         if (m == null) {
-            text(dc, cx, h / 2, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "No load this week");
+            text(dc, cx, h / 2, Graphics.FONT_TINY, Theme.MUTED, "No load this week");
             return;
         }
         var mono = (m as Array<Number>)[0];
-        var color = mono <= 150 ? Graphics.COLOR_GREEN : (mono <= 200 ? Graphics.COLOR_YELLOW : Graphics.COLOR_ORANGE);
+        var color = mono <= 150 ? Graphics.COLOR_GREEN : (mono <= 200 ? Theme.SCORE : Theme.WARN);
         text(dc, cx, h * 30 / 100, Graphics.FONT_LARGE, color, (mono / 100).format("%d") + "." + (mono % 100).format("%02d"));
         text(dc, cx, h * 41 / 100, Graphics.FONT_XTINY, color, "Monotony");
-        text(dc, cx, h * 53 / 100, Graphics.FONT_TINY, Graphics.COLOR_WHITE, "Strain " + (m as Array<Number>)[1].format("%d"));
-        text(dc, cx, h * 66 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY,
+        text(dc, cx, h * 53 / 100, Graphics.FONT_TINY, Theme.TEXT, "Strain " + (m as Array<Number>)[1].format("%d"));
+        text(dc, cx, h * 66 / 100, Graphics.FONT_XTINY, Theme.MUTED,
             mono > 200 ? "Same load every day:" : "Good mix of hard");
-        text(dc, cx, h * 73 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY,
+        text(dc, cx, h * 73 / 100, Graphics.FONT_XTINY, Theme.MUTED,
             mono > 200 ? "add easy and rest days" : "and easy days");
     }
 
     // Time per domain over 4 weeks, as three bars.
     private function drawBalance(dc as Graphics.Dc, w as Number, h as Number, cx as Number) as Void {
-        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "BALANCE, 4 WEEKS");
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Theme.MUTED, "BALANCE, 4 WEEKS");
         var sh = Perf.domainShare(Perf.loads(), Perf.today(), 28);
         if (sh == null) {
-            text(dc, cx, h / 2, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "No data yet");
+            text(dc, cx, h / 2, Graphics.FONT_TINY, Theme.MUTED, "No data yet");
             return;
         }
         var names = ["Gym", "Weights", "Mono"];
-        var colors = [Graphics.COLOR_BLUE, Graphics.COLOR_ORANGE, Graphics.COLOR_GREEN];
+        var colors = [Graphics.COLOR_BLUE, Theme.WARN, Graphics.COLOR_GREEN];
         var x0 = w * 20 / 100;
         var bw = w * 60 / 100;
         var low = -1;
         for (var i = 0; i < 3; i++) {
             var y = h * (27 + i * 17) / 100;
             var v = (sh as Array<Number>)[i];
-            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(Theme.TEXT, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x0, y, Graphics.FONT_XTINY, names[i] as String, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
             dc.drawText(x0 + bw, y, Graphics.FONT_XTINY, v.format("%d") + "%", Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
-            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(Theme.DIM, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(x0, y + h * 4 / 100, bw, h * 3 / 100);
             dc.setColor(colors[i] as Number, Graphics.COLOR_TRANSPARENT);
             dc.fillRectangle(x0, y + h * 4 / 100, bw * v / 100, h * 3 / 100);
             if (v < 15 && (low < 0 || v < (sh as Array<Number>)[low])) { low = i; }
         }
         if (low >= 0) {
-            text(dc, cx, h * 82 / 100, Graphics.FONT_XTINY, Graphics.COLOR_ORANGE, "Little " + (names[low] as String).toLower() + " lately");
+            text(dc, cx, h * 82 / 100, Graphics.FONT_XTINY, Theme.WARN, "Little " + (names[low] as String).toLower() + " lately");
         }
     }
 
     // Best and worst movements vs the reference pace (30+ reps done).
     private function drawStrength(dc as Graphics.Dc, h as Number, cx as Number) as Void {
-        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "STRONG / WEAK");
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Theme.MUTED, "STRONG / WEAK");
         var r = Perf.rankMovements(ScoreHistory.movementStats(), 30);
         if (r.size() == 0) {
-            text(dc, cx, h * 45 / 100, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "Do 30+ reps");
-            text(dc, cx, h * 55 / 100, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "of a movement");
+            text(dc, cx, h * 45 / 100, Graphics.FONT_TINY, Theme.MUTED, "Do 30+ reps");
+            text(dc, cx, h * 55 / 100, Graphics.FONT_TINY, Theme.MUTED, "of a movement");
             return;
         }
         var rows = [] as Array;
@@ -273,7 +270,7 @@ class StatsView extends WatchUi.View {
             var name = Movements.name(id);
             var diff = ratio - 100;
             var txt = (name == null ? id : name as String) + " " + (diff <= 0 ? (-diff).format("%d") + "% fast" : diff.format("%d") + "% slow");
-            text(dc, cx, y, Graphics.FONT_TINY, diff <= 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_ORANGE, txt);
+            text(dc, cx, y, Graphics.FONT_TINY, diff <= 0 ? Graphics.COLOR_GREEN : Theme.WARN, txt);
             y += lh;
         }
     }
@@ -282,22 +279,22 @@ class StatsView extends WatchUi.View {
     private function drawWeek(dc as Graphics.Dc, h as Number, cx as Number) as Void {
         var e = Perf.loads();
         var today = Perf.today();
-        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "LAST 7 DAYS");
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Theme.MUTED, "LAST 7 DAYS");
         var lines = [] as Array<String>;
         var n = Perf.weekCompare(e, today, D_SESSIONS);
-        lines.add("Workouts " + n[0].format("%d") + " (was " + n[1].format("%d") + ")");
+        lines.add(Tr.s("Workouts") + " " + n[0].format("%d") + " (" + Tr.s("was") + " " + n[1].format("%d") + ")");
         var t0 = Perf.sumDays(e, today, 7, D_GYM) + Perf.sumDays(e, today, 7, D_WL) + Perf.sumDays(e, today, 7, D_MONO);
         var t1 = Perf.sumDays(e, today - 7, 7, D_GYM) + Perf.sumDays(e, today - 7, 7, D_WL) + Perf.sumDays(e, today - 7, 7, D_MONO);
-        lines.add("Time " + Str.clock(t0, false) + pctChange(t0, t1));
+        lines.add(Tr.s("Time") + " " + Str.clock(t0, false) + pctChange(t0, t1));
         var l = Perf.weekCompare(e, today, Perf.loadIndex(e, today));
-        lines.add("Load " + l[0].format("%d") + pctChange(l[0], l[1]));
+        lines.add(Tr.s("Load") + " " + l[0].format("%d") + pctChange(l[0], l[1]));
         var kg = Perf.sumDays(e, today, 7, D_TONNAGE);
-        if (kg > 0) { lines.add("Moved " + kg.format("%d") + " kg"); }
+        if (kg > 0) { lines.add(Tr.s("Moved") + " " + kg.format("%d") + " kg"); }
         var prs = Perf.sumDays(e, today, 7, D_PRS);
-        if (prs > 0) { lines.add("New bests " + prs.format("%d")); }
+        if (prs > 0) { lines.add(Tr.s("New bests") + " " + prs.format("%d")); }
         var h0 = Perf.hrrAvg(today, 7, 0);
         var h1 = Perf.hrrAvg(today, 14, 7);
-        if (h0 >= 0) { lines.add("HR recovery " + h0.format("%d") + (h1 >= 0 ? " (was " + h1.format("%d") + ")" : "")); }
+        if (h0 >= 0) { lines.add(Tr.s("HR recovery") + " " + h0.format("%d") + (h1 >= 0 ? " (" + Tr.s("was") + " " + h1.format("%d") + ")" : "")); }
         var sh = Perf.domainShare(e, today, 7);
         if (sh != null) {
             var names = ["gym", "weights", "mono"];
@@ -311,19 +308,19 @@ class StatsView extends WatchUi.View {
         var y = h * 23 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);
         for (var i = 0; i < lines.size() && i < 7; i++) {
-            text(dc, cx, y, Graphics.FONT_TINY, Str.startsWith(lines[i], "No ") ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE, lines[i]);
+            text(dc, cx, y, Graphics.FONT_TINY, Str.startsWith(lines[i], "No ") ? Theme.WARN : Theme.TEXT, lines[i]);
             y += lh;
         }
     }
 
     private function drawOverall(dc as Graphics.Dc, cx as Number, h as Number) as Void {
         var t = ScoreHistory.totals();
-        text(dc, cx, h * 15 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "Overall");
-        text(dc, cx, h * 32 / 100, Graphics.FONT_LARGE, Graphics.COLOR_YELLOW, (t["n"] as Number).format("%d"));
-        text(dc, cx, h * 44 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "workouts");
-        text(dc, cx, h * 58 / 100, Graphics.FONT_TINY, Graphics.COLOR_WHITE, "Time " + Str.clock(t["ms"] as Number, false));
-        text(dc, cx, h * 68 / 100, Graphics.FONT_TINY, Graphics.COLOR_WHITE, "Reps " + (t["reps"] as Number).format("%d"));
-        text(dc, cx, h * 78 / 100, Graphics.FONT_TINY, Graphics.COLOR_WHITE, ScoreHistory.entries().size().format("%d") + " different WODs");
+        text(dc, cx, h * 15 / 100, Graphics.FONT_XTINY, Theme.MUTED, "Overall");
+        text(dc, cx, h * 32 / 100, Graphics.FONT_LARGE, Theme.SCORE, (t["n"] as Number).format("%d"));
+        text(dc, cx, h * 44 / 100, Graphics.FONT_XTINY, Theme.MUTED, "workouts");
+        text(dc, cx, h * 58 / 100, Graphics.FONT_TINY, Theme.TEXT, "Time " + Str.clock(t["ms"] as Number, false));
+        text(dc, cx, h * 68 / 100, Graphics.FONT_TINY, Theme.TEXT, "Reps " + (t["reps"] as Number).format("%d"));
+        text(dc, cx, h * 78 / 100, Graphics.FONT_TINY, Theme.TEXT, ScoreHistory.entries().size().format("%d") + " different WODs");
     }
 
     private function drawWod(dc as Graphics.Dc, cx as Number, h as Number) as Void {
@@ -331,16 +328,16 @@ class StatsView extends WatchUi.View {
         var best = e["best"] as Dictionary;
         var last = e["last"] as Dictionary;
         var name = e["name"] instanceof String ? e["name"] as String : "WOD";
-        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, name);
-        text(dc, cx, h * 22 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "BEST");
-        text(dc, cx, h * 33 / 100, Graphics.FONT_LARGE, Graphics.COLOR_YELLOW, ScoreHistory.scoreText(best));
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Theme.MUTED, name);
+        text(dc, cx, h * 22 / 100, Graphics.FONT_XTINY, Theme.MUTED, "BEST");
+        text(dc, cx, h * 33 / 100, Graphics.FONT_LARGE, Theme.SCORE, ScoreHistory.scoreText(best));
 
         var n = e["n"] as Number;
         var y = h * 48 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);
         if (n > 1) {
             var diff = ScoreHistory.value(last) - ScoreHistory.value(best);
-            var color = diff >= 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_WHITE;
+            var color = diff >= 0 ? Graphics.COLOR_GREEN : Theme.TEXT;
             text(dc, cx, y, Graphics.FONT_TINY, color, "Last " + ScoreHistory.scoreText(last) + "  (x" + n.format("%d") + ")");
             y += lh;
         }
@@ -348,27 +345,27 @@ class StatsView extends WatchUi.View {
         if (fade != null) {
             // > 10 % slower on the last round: probably went out too fast
             var f = fade as Number;
-            var fc = f > 10 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE;
+            var fc = f > 10 ? Theme.WARN : Theme.TEXT;
             text(dc, cx, y, Graphics.FONT_TINY, fc, "Fade " + (f >= 0 ? "+" : "") + f.format("%d") + "%");
             y += lh;
         }
         var hr = last["hr"];
         if (hr instanceof Number && (hr as Number) > 0) {
-            text(dc, cx, y, Graphics.FONT_TINY, Graphics.COLOR_WHITE,
+            text(dc, cx, y, Graphics.FONT_TINY, Theme.TEXT,
                 "HR " + (hr as Number).format("%d") + " / " + (last["hrMax"] as Number).format("%d"));
         }
     }
 
     private function drawTable(dc as Graphics.Dc, cx as Number, h as Number, title as String, p as Number) as Void {
-        text(dc, cx, h * 15 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, title);
+        text(dc, cx, h * 15 / 100, Graphics.FONT_XTINY, Theme.MUTED, title);
         if (_rows.size() == 0) {
-            text(dc, cx, h / 2, Graphics.FONT_TINY, Graphics.COLOR_LT_GRAY, "No data yet");
+            text(dc, cx, h / 2, Graphics.FONT_TINY, Theme.MUTED, "No data yet");
             return;
         }
         var y = h * 29 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY) + 2;
         for (var i = p * STATS_LINES; i < _rows.size() && i < (p + 1) * STATS_LINES; i++) {
-            text(dc, cx, y, Graphics.FONT_TINY, Graphics.COLOR_WHITE, _rows[i]);
+            text(dc, cx, y, Graphics.FONT_TINY, Theme.TEXT, _rows[i]);
             y += lh;
         }
     }

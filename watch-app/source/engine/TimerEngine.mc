@@ -139,6 +139,24 @@ class TimerEngine {
         return activeMs(now) < 0 || wodType != WT_FOR_TIME;
     }
 
+    // [elapsedMs, totalMs] of the current timed segment (countdown, cap,
+    // interval, tabata phase) for the progress ring, or null without a fixed length.
+    function segment(now as Number) as Array<Number>? {
+        var a = activeMs(now);
+        if (a < 0) { return [_countdownMs + a, _countdownMs]; }
+        var done = state == ST_DONE;
+        if (wodType == WT_AMRAP || wodType == WT_FOR_TIME) {
+            if (_capMs <= 0) { return null; }
+            return [a < _capMs ? a : _capMs, _capMs];
+        }
+        if (wodType == WT_EMOM) {
+            return done ? [_intervalMs, _intervalMs] : [a % _intervalMs, _intervalMs];
+        }
+        if (done) { return [_workMs, _workMs]; }
+        var within = a % _intervalMs;
+        return within < _workMs ? [within, _workMs] : [within - _workMs, _intervalMs - _workMs];
+    }
+
     // ---------- blocks ----------
 
     function currentBlocks() as Array<Dictionary> {

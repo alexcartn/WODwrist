@@ -8,8 +8,8 @@
 | BACK short press | +1 rep. On a run / row / hold block: "done", next movement |
 | BACK long press (0.7 s) | -1 rep |
 | DOWN / UP (5-button Forerunners) | +1 / -1 rep |
-| tap screen | +1 rep (same rule as BACK short) |
-| hold screen | -1 rep |
+| tap screen | +1 rep (same rule as BACK short), unless the setting "Touch screen counts reps" is off |
+| hold screen | -1 rep (same setting) |
 | swipe left | next movement, crediting the missing target reps |
 | other swipes | ignored, so a sweaty swipe does not leave the workout |
 
@@ -21,6 +21,12 @@ To check on the device (M0/M1): some firmwares keep the BACK long press for
 system shortcuts. If it never reaches the app, use hold-screen or UP for -1.
 
 ## Screen
+
+The ring on the bezel fills with the current segment (countdown, time cap,
+interval, Tabata phase) in the state color: yellow get ready, green work,
+blue rest, orange paused. A short yellow arc at the bottom fills with the reps
+of the current set. Each counted rep flashes `+1` (or `-1`) next to the count,
+and a new movement shows in a green banner for 1.5 s.
 
 ```
       WORK            <- state (GET READY / WORK / REST / PAUSED)
@@ -73,5 +79,6 @@ Training load and the Analysis page of each workout: see [performance.md](perfor
 
 ## Summary
 
-START saves the activity to Garmin Connect, BACK asks to discard.
+START saves the activity to Garmin Connect (green check next to the button),
+BACK asks to discard (grey cross). Dots on the right edge show the pages.
 Scroll down for the splits: `R3  1:02  12r  151` = lap, time, reps, avg HR.

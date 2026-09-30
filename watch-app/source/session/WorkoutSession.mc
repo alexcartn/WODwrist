@@ -73,9 +73,13 @@ class WorkoutSession {
     // class plan: this session is part partIndex (0-based) of partCount
     var partIndex as Number = 0;
     var partCount as Number = 1;
-    // short message over the run screen ("HALFWAY", "1 MIN LEFT")
+    // banner over the run screen ("HALFWAY", "BURPEES" when the movement changes)
     var flashText as String? = null;
+    var flashColor as Number = Theme.WARN;
     private var _flashUntil as Number = 0;
+    // "+1" / "-1" next to the rep count, confirms a tap or a button press
+    var popText as String? = null;
+    private var _popUntil as Number = 0;
     private var _lastActive as Number = 0;
     private var _alertHalf as Boolean = false;
     private var _alertOneMin as Boolean = true;
@@ -144,6 +148,10 @@ class WorkoutSession {
             flashText = null;
             WatchUi.requestUpdate();
         }
+        if (popText != null && t >= _popUntil) {
+            popText = null;
+            WatchUi.requestUpdate();
+        }
         if (shown != _lastShownSec) {
             _lastShownSec = shown;
             WatchUi.requestUpdate();
@@ -160,11 +168,28 @@ class WorkoutSession {
         var due = Coach.alertsDue(_lastActive, a, engine.totalMs(), _alertHalf, _alertOneMin);
         _lastActive = a;
         for (var i = 0; i < due.size(); i++) {
-            flashText = due[i] == ALERT_HALF ? "HALFWAY" : "1 MIN LEFT";
-            _flashUntil = t + 2000;
+            showFlash(Tr.s(due[i] == ALERT_HALF ? "HALFWAY" : "1 MIN LEFT"), Theme.WARN, 2000);
             Feedback.alert();
-            WatchUi.requestUpdate();
         }
+    }
+
+    function showFlash(text as String, color as Number, ms as Number) as Void {
+        flashText = text;
+        flashColor = color;
+        _flashUntil = now() + ms;
+        WatchUi.requestUpdate();
+    }
+
+    // The new movement in big letters for 1.5 s (easier than reading mid-rep).
+    private function announceBlock() as Void {
+        var b = engine.currentBlock();
+        if (b == null || engine.state != ST_WORK) { return; }
+        showFlash((b["name"] as String).toUpper(), Theme.WORK, 1500);
+    }
+
+    private function pop(delta as Number) as Void {
+        popText = delta > 0 ? "+1" : "-1";
+        _popUntil = now() + 700;
     }
 
     private function sampleHr() as Void {
@@ -205,6 +230,7 @@ class WorkoutSession {
                 if (engine.isInterval()) {
                     Feedback.interval();
                     updateCounter();
+                    announceBlock();
                     mvClose();
                     mvOpen();
                 }
@@ -214,6 +240,7 @@ class WorkoutSession {
             } else if (code == EV_BLOCK) {
                 Feedback.block();
                 updateCounter();
+                announceBlock();
                 mvClose();
                 mvOpen();
             } else if (code == EV_ROUND) {
@@ -340,6 +367,7 @@ class WorkoutSession {
         // In capture mode the athlete's presses are the ground truth: the
         // detected reps are only logged, not counted.
         if (_capture || engine.state != ST_WORK) { return; }
+        pop(1);
         noteRep(1);
         handle(engine.addRep(1, now()));
     }
@@ -352,6 +380,7 @@ class WorkoutSession {
             return;
         }
         log("M", delta.format("%d"));
+        if (engine.state == ST_WORK) { pop(delta); }
         noteRep(delta);
         handle(engine.addRep(delta, now()));
     }

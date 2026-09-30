@@ -83,7 +83,9 @@ references are tested (`npm test`, `pytest`).
 5. Sideload: copy `bin/WODWRIST.prg` (built for your exact device) to
    `GARMIN/APPS/` on the watch over USB.
 
-Controls: [docs/controls.md](docs/controls.md).
+Controls: [docs/controls.md](docs/controls.md). The app follows the watch
+language: English, or French (`resources-fre/` for the settings, `Tr.mc` for
+the screens). Mockups of every screen: [docs/mockups](docs/mockups).
 
 ### Settings (Garmin Connect app > WODwrist)
 

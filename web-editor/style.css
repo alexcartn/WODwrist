@@ -116,3 +116,34 @@ pre { overflow-x: auto; font: 13px/1.4 var(--mono); margin: 8px 0 0; }
 hr.part { border: none; border-top: 1px dashed var(--line); margin: 16px 0; }
 select { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* live watch preview */
+.preview-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start; }
+.watch-wrap { margin: 0; text-align: center; }
+.watch-wrap canvas {
+  width: 180px; height: 180px; border-radius: 50%;
+  border: 10px solid #2a2c30; box-shadow: 0 6px 18px #0006; background: #000;
+}
+.watch-wrap figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+@media (max-width: 480px) { .preview-row { grid-template-columns: 1fr; } .watch-wrap { order: -1; } }
+
+/* publish card */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.publish h3 { margin: 0; font-size: 17px; }
+.publish-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+button.big { padding: 12px 22px; font-size: 17px; }
+.url-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.url-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; background: var(--bg); padding: 6px 8px; border-radius: 6px; }
+.publish details { margin-top: 10px; border: none; padding: 0; background: none; }
+
+/* timer: gym mode, the whole screen shows the phase */
+#timer { transition: background-color 0.3s; }
+#timer[data-state="work"] { background: #0b3d1f; }
+#timer[data-state="rest"] { background: #0c2a55; }
+#timer[data-state="countdown"] { background: #4a3b00; }
+#timer[data-state="work"] .t-clock, #timer[data-state="rest"] .t-clock, #timer[data-state="countdown"] .t-clock,
+#timer[data-state="work"] .t-move, #timer[data-state="rest"] .t-move, #timer[data-state="countdown"] .t-move { color: #fff; }
+#timer[data-state="work"] .t-state, #timer[data-state="rest"] .t-state, #timer[data-state="countdown"] .t-state { color: #fff; }
+.t-next { text-align: center; font-size: clamp(18px, 3vw, 40px); color: var(--muted); min-height: 1.3em; margin-bottom: 16px; }
+#timer[data-state] .t-next, #timer[data-state] .t-round { color: #ffffffb0; }
+#timer[data-state="idle"] .t-next, #timer[data-state="idle"] .t-round { color: var(--muted); }

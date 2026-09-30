@@ -4,20 +4,20 @@ import Toybox.WatchUi;
 
 // Coach menu: class timer mode, class plan, start time, rest, alerts.
 function buildCoachMenu() as WatchUi.Menu2 {
-    var menu = new WatchUi.Menu2({ :title => "Coach" });
-    menu.addItem(new WatchUi.ToggleMenuItem("Class timer", "Big clock, no recording", :coachMode,
+    var menu = new WatchUi.Menu2({ :title => Tr.s("Coach") });
+    menu.addItem(new WatchUi.ToggleMenuItem(Tr.s("Class timer"), Tr.s("Big clock, no recording"), :coachMode,
         WorkoutSession.propBool("coachMode", false), {}));
     var plan = Coach.plan();
     if (plan.size() > 1) {
-        menu.addItem(new WatchUi.MenuItem("Run class plan", plan.size().format("%d") + " parts", :plan, {}));
+        menu.addItem(new WatchUi.MenuItem(Tr.s("Run class plan"), plan.size().format("%d") + " parts", :plan, {}));
     } else {
-        menu.addItem(new WatchUi.MenuItem("Run class plan", "Publish parts with --- then sync", :noPlan, {}));
+        menu.addItem(new WatchUi.MenuItem(Tr.s("Run class plan"), "Publish parts with --- then sync", :noPlan, {}));
     }
-    menu.addItem(new WatchUi.MenuItem("Start", Coach.startLabel(Coach.startOption()), :start, {}));
-    menu.addItem(new WatchUi.MenuItem("Rest between parts", restLabel(Coach.restSec()), :rest, {}));
-    menu.addItem(new WatchUi.ToggleMenuItem("Halfway alert", null, :alertHalf,
+    menu.addItem(new WatchUi.MenuItem(Tr.s("Start"), Coach.startLabel(Coach.startOption()), :start, {}));
+    menu.addItem(new WatchUi.MenuItem(Tr.s("Rest between parts"), restLabel(Coach.restSec()), :rest, {}));
+    menu.addItem(new WatchUi.ToggleMenuItem(Tr.s("Halfway alert"), null, :alertHalf,
         WorkoutSession.propBool("alertHalf", false), {}));
-    menu.addItem(new WatchUi.ToggleMenuItem("1 min left alert", null, :alertOneMin,
+    menu.addItem(new WatchUi.ToggleMenuItem(Tr.s("1 min left alert"), null, :alertOneMin,
         WorkoutSession.propBool("alertOneMin", true), {}));
     return menu;
 }

@@ -11,6 +11,9 @@
     <setting propertyKey="@Properties.autoCount" title="@Strings.SetAutoCount">
         <settingConfig type="boolean" />
     </setting>
+    <setting propertyKey="@Properties.touchReps" title="@Strings.SetTouchReps">
+        <settingConfig type="boolean" />
+    </setting>
     <setting propertyKey="@Properties.coachMode" title="@Strings.SetCoachMode">
         <settingConfig type="boolean" />
     </setting>

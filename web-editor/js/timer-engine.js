@@ -80,6 +80,37 @@ export class TimerEngine {
     return 0;
   }
 
+  // [elapsedMs, totalMs] of the current timed segment (countdown, cap,
+  // interval, tabata phase) for the progress ring, or null without a fixed length.
+  segment(now) {
+    const a = this.activeMs(now);
+    if (a < 0) return [this.countdownMs + a, this.countdownMs];
+    const w = this.wod;
+    const done = this.state === S.DONE;
+    switch (w.type) {
+      case "AMRAP": {
+        const cap = w.timeCapSec * 1000;
+        return [Math.min(a, cap), cap];
+      }
+      case "FOR_TIME": {
+        if (!w.timeCapSec) return null;
+        const cap = w.timeCapSec * 1000;
+        return [Math.min(a, cap), cap];
+      }
+      case "EMOM": {
+        const iv = w.intervalSec * 1000;
+        return done ? [iv, iv] : [a % iv, iv];
+      }
+      case "TABATA": {
+        const p = w.intervalSec * 1000, work = w.workSec * 1000;
+        if (done) return [work, work];
+        const within = a % p;
+        return within < work ? [within, work] : [within - work, p - work];
+      }
+    }
+    return null;
+  }
+
   // ---------- blocks ----------
 
   currentBlocks() {

@@ -37,71 +37,58 @@ class SummaryView extends WatchUi.View {
         } else {
             drawSplits(dc, w, h, cx, center);
         }
-        drawHints(dc, h, cx, center);
-    }
-
-    // Two short lines: one long line gets clipped by the bezel on round screens.
-    private function drawHints(dc as Graphics.Dc, h as Number, cx as Number, center as Number) as Void {
-        if (!_s.hasRecording()) {
-            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, "BACK exit", center);
-            return;
+        // Garmin-style hints next to the physical buttons, page dots on the right
+        if (_s.hasRecording()) {
+            Ui.buttonHint(dc, true, Theme.WORK, ICON_CHECK);
+            Ui.buttonHint(dc, false, Theme.MUTED, ICON_CROSS);
+        } else {
+            Ui.buttonHint(dc, false, Theme.MUTED, ICON_CROSS);
         }
-        dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 83 / 100, Graphics.FONT_XTINY, "START save", center);
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 90 / 100, Graphics.FONT_XTINY, "BACK discard", center);
+        Ui.pageDots(dc, page, pageCount());
     }
 
     private function drawOverview(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
         var e = _s.engine;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, e.wod["name"] as String, center);
-        dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, Ui.fit(dc, e.wod["name"] as String, Graphics.FONT_XTINY, Ui.widthAt(dc, h * 13 / 100)), center);
+        dc.setColor(Theme.SCORE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h * 28 / 100, Graphics.FONT_LARGE, e.scoreText(), center);
         // vs previous attempts at the same WOD
         if (_s.history != null) {
             if (_s.isNewBest) {
-                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-                dc.drawText(cx, h * 38 / 100, Graphics.FONT_XTINY, "NEW BEST", center);
+                dc.setColor(Theme.WORK, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(cx, h * 38 / 100, Graphics.FONT_XTINY, Tr.s("NEW BEST"), center);
             } else {
-                dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+                dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
                 var best = (_s.history as Dictionary)["best"] as Dictionary;
-                dc.drawText(cx, h * 38 / 100, Graphics.FONT_XTINY, "Best " + ScoreHistory.scoreText(best), center);
+                dc.drawText(cx, h * 38 / 100, Graphics.FONT_XTINY, Tr.s("Best") + " " + ScoreHistory.scoreText(best), center);
             }
         }
 
         var lines = [] as Array<String>;
-        lines.add("Time " + Str.clock(e.finalActiveMs(), false));
+        lines.add(Tr.s("Time") + " " + Str.clock(e.finalActiveMs(), false));
         if (e.wodType == WT_AMRAP || e.wodType == WT_FOR_TIME || e.isDeathBy()) {
-            lines.add("Rounds " + e.roundsCompleted.format("%d") + "  Reps " + e.totalReps.format("%d"));
+            lines.add(Tr.s("Rounds") + " " + e.roundsCompleted.format("%d") + "  " + Tr.s("Reps") + " " + e.totalReps.format("%d"));
         } else {
-            lines.add("Reps " + e.totalReps.format("%d"));
+            lines.add(Tr.s("Reps") + " " + e.totalReps.format("%d"));
         }
         if (_s.hrMax > 0) {
-            lines.add("HR avg " + _s.avgHr().format("%d") + "  max " + _s.hrMax.format("%d"));
+            lines.add(Tr.s("HR") + " " + _s.avgHr().format("%d") + " / " + _s.hrMax.format("%d"));
         }
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        var y = h * 46 / 100;
+        dc.setColor(Theme.TEXT, Graphics.COLOR_TRANSPARENT);
+        var y = h * 50 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);
         for (var i = 0; i < lines.size(); i++) {
             dc.drawText(cx, y, Graphics.FONT_TINY, lines[i], center);
             y += lh;
         }
-        // "Analysis" + a small down arrow: scroll for analysis and splits
-        var ay = y - lh / 4;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx - w * 3 / 100, ay, Graphics.FONT_XTINY, "Analysis", center);
-        var ax = cx + w * 14 / 100;
-        var s = w / 40;
-        dc.fillPolygon([[ax - s, ay - s / 2], [ax + s, ay - s / 2], [ax, ay + s]]);
     }
 
     // HR zone bar + load, pacing, EMOM density, fitness trend vs last time.
     private function drawAnalysis(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
         var e = _s.engine;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, "ANALYSIS", center);
+        dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, Tr.s("ANALYSIS"), center);
 
         // time in zones 1..5 as one stacked bar
         var z = _s.zoneSec;
@@ -113,7 +100,7 @@ class SummaryView extends WatchUi.View {
         var lines = [] as Array<String>;
         var colors = [] as Array<Number>;
         if (total > 0) {
-            var zc = [Graphics.COLOR_LT_GRAY, Graphics.COLOR_BLUE, Graphics.COLOR_GREEN, Graphics.COLOR_ORANGE, Graphics.COLOR_RED];
+            var zc = [Theme.MUTED, Graphics.COLOR_BLUE, Graphics.COLOR_GREEN, Theme.WARN, Graphics.COLOR_RED];
             var x = x0;
             var top = 1;
             for (var i = 1; i <= 5; i++) {
@@ -123,12 +110,12 @@ class SummaryView extends WatchUi.View {
                 x += seg;
                 if (z[i] > z[top]) { top = i; }
             }
-            dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 33 / 100, Graphics.FONT_TINY, "Load " + Perf.trimp(z).format("%d"), center);
-            lines.add("Mostly Z" + top.format("%d") + " (" + ((z[top] + 30) / 60).format("%d") + " min)");
-            colors.add(Graphics.COLOR_WHITE);
+            dc.setColor(Theme.SCORE, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 33 / 100, Graphics.FONT_TINY, Tr.s("Load") + " " + Perf.trimp(z).format("%d"), center);
+            lines.add(Tr.s("Mostly") + " Z" + top.format("%d") + " (" + ((z[top] + 30) / 60).format("%d") + " min)");
+            colors.add(Theme.TEXT);
         } else {
-            dc.drawText(cx, h * 30 / 100, Graphics.FONT_TINY, "No heart rate", center);
+            dc.drawText(cx, h * 30 / 100, Graphics.FONT_TINY, Tr.s("No heart rate"), center);
         }
 
         // pacing: round-to-round consistency and fade
@@ -139,21 +126,21 @@ class SummaryView extends WatchUi.View {
             var cv = Perf.cvPct(d);
             var fade = ScoreHistory.fadePct(rt);
             // variation of round times (low = even pacing)
-            lines.add("Round var " + (cv == null ? 0 : cv as Number).format("%d") + "%");
-            colors.add(Graphics.COLOR_WHITE);
+            lines.add(Tr.s("Round var") + " " + (cv == null ? 0 : cv as Number).format("%d") + "%");
+            colors.add(Theme.TEXT);
             if (fade != null) {
                 // > 10 % slower on the last round: probably went out too fast
                 var f = fade as Number;
-                lines.add("Fade " + (f >= 0 ? "+" : "") + f.format("%d") + "%");
-                colors.add(f > 10 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE);
+                lines.add(Tr.s("Fade") + " " + (f >= 0 ? "+" : "") + f.format("%d") + "%");
+                colors.add(f > 10 ? Theme.WARN : Theme.TEXT);
             }
         }
 
         // EMOM: how much of each interval was work (high = little rest)
         var dens = Perf.densityPct(_s.intervalWorkMs, e.intervalMs());
         if (e.wodType == WT_EMOM && dens != null) {
-            lines.add("Work " + (dens as Number).format("%d") + "% / interval");
-            colors.add((dens as Number) > 85 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE);
+            lines.add(Tr.s("Work") + " " + (dens as Number).format("%d") + "% " + Tr.s("per interval"));
+            colors.add((dens as Number) > 85 ? Theme.WARN : Theme.TEXT);
         }
 
         // same WOD, same or better score, lower HR = fitter
@@ -161,8 +148,8 @@ class SummaryView extends WatchUi.View {
             var trend = Perf.cardiacTrend((_s.history as Dictionary)["last"] as Dictionary, _s.result as Dictionary);
             if (trend != null) {
                 var t = trend as Number;
-                lines.add(t <= 0 ? "Fitter: " + t.format("%d") + " bpm vs last" : "HR +" + t.format("%d") + " bpm vs last");
-                colors.add(t <= 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_ORANGE);
+                lines.add((t <= 0 ? Tr.s("Fitter") + ": " + t.format("%d") : Tr.s("HR") + " +" + t.format("%d")) + " bpm " + Tr.s("vs last"));
+                colors.add(t <= 0 ? Theme.WORK : Theme.WARN);
             }
         }
 
@@ -178,53 +165,53 @@ class SummaryView extends WatchUi.View {
     // Effort, recovery, sets, transitions, fatigue, cardiac drift, tonnage.
     private function drawDetails(dc as Graphics.Dc, h as Number, cx as Number, center as Number) as Void {
         var e = _s.engine;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, "DETAILS", center);
+        dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, Tr.s("DETAILS"), center);
         var lines = [] as Array<String>;
         var colors = [] as Array<Number>;
 
         if (_s.rpe != null) {
             var r = _s.rpe as Number;
-            lines.add("RPE " + r.format("%d") + "  load " + Perf.srpeLoad(r, e.finalActiveMs()).format("%d"));
+            lines.add("RPE " + r.format("%d") + "  " + Tr.s("Load").toLower() + " " + Perf.srpeLoad(r, e.finalActiveMs()).format("%d"));
             colors.add(RpeView.color(r));
         }
         if (_s.hrr != null) {
             // > 30 bpm in 1 min: good recovery, < 20: poor
             var v = _s.hrr as Number;
-            lines.add("HR recovery -" + v.format("%d") + " bpm");
-            colors.add(v >= 30 ? Graphics.COLOR_GREEN : (v < 20 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE));
+            lines.add(Tr.s("HR recovery") + " -" + v.format("%d") + " bpm");
+            colors.add(v >= 30 ? Theme.WORK : (v < 20 ? Theme.WARN : Theme.TEXT));
         } else if (_s.hrEnd > 0) {
-            lines.add("HR recovery in " + (60 - _s.hrrElapsedSec).format("%d") + " s");
-            colors.add(Graphics.COLOR_LT_GRAY);
+            lines.add(Tr.s("HR recovery in") + " " + (60 - _s.hrrElapsedSec).format("%d") + " s");
+            colors.add(Theme.MUTED);
         }
         if (_s.sets > 0) {
-            lines.add("Unbroken " + _s.unbrokenSets.format("%d") + "/" + _s.sets.format("%d") + ", " + _s.breaks.format("%d") + " breaks");
-            colors.add(Graphics.COLOR_WHITE);
+            lines.add(Tr.s("Unbroken") + " " + _s.unbrokenSets.format("%d") + "/" + _s.sets.format("%d") + ", " + _s.breaks.format("%d") + " " + Tr.s("breaks"));
+            colors.add(Theme.TEXT);
         }
         if (_s.transitionMs >= 1000) {
-            lines.add("Transitions " + Str.clock(_s.transitionMs, false));
-            colors.add(Graphics.COLOR_WHITE);
+            lines.add(Tr.s("Transitions") + " " + Str.clock(_s.transitionMs, false));
+            colors.add(Theme.TEXT);
         }
         var worst = worstFatigue();
         if (worst != null) {
             var wf = worst as Array;
             var f = wf[1] as Number;
             lines.add((wf[0] as String) + " " + (f >= 0 ? "+" : "") + f.format("%d") + "%");
-            colors.add(f > 15 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE);
+            colors.add(f > 15 ? Theme.WARN : Theme.TEXT);
         }
         var drift = Perf.beatsDriftPct(completedLaps());
         if (drift != null) {
             var d = drift as Number;
-            lines.add("Beats/round " + (d >= 0 ? "+" : "") + d.format("%d") + "%");
-            colors.add(d > 15 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE);
+            lines.add(Tr.s("Beats/round") + " " + (d >= 0 ? "+" : "") + d.format("%d") + "%");
+            colors.add(d > 15 ? Theme.WARN : Theme.TEXT);
         }
         if (_s.tonnage > 0 && !_s.scaled) {
-            lines.add("Moved " + _s.tonnage.format("%d") + " kg");
-            colors.add(Graphics.COLOR_WHITE);
+            lines.add(Tr.s("Moved") + " " + _s.tonnage.format("%d") + " kg");
+            colors.add(Theme.TEXT);
         }
         if (lines.size() == 0) {
-            lines.add("No details for this WOD");
-            colors.add(Graphics.COLOR_LT_GRAY);
+            lines.add(Tr.s("No details for this WOD"));
+            colors.add(Theme.MUTED);
         }
         var y = h * 25 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);
@@ -261,9 +248,9 @@ class SummaryView extends WatchUi.View {
     private function drawSplits(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
         var first = (page - 3) * SPLITS_PER_PAGE;
         var laps = _s.laps;
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, "Splits " + (page - 2).format("%d") + "/" + (pageCount() - 3).format("%d"), center);
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, Tr.s("Splits") + " " + (page - 2).format("%d") + "/" + (pageCount() - 3).format("%d"), center);
+        dc.setColor(Theme.TEXT, Graphics.COLOR_TRANSPARENT);
         var y = h * 28 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);
         for (var i = first; i < laps.size() && i < first + SPLITS_PER_PAGE; i++) {
@@ -294,7 +281,7 @@ class SummaryDelegate extends WatchUi.BehaviorDelegate {
         if (_s.hasRecording()) {
             _s.save();
             if (WatchUi has :showToast) {
-                WatchUi.showToast("Saved", null);
+                WatchUi.showToast(Tr.s("Save"), null);
             }
         }
         getApp().backToMenu(1);

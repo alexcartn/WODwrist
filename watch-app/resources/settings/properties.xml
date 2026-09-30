@@ -11,4 +11,5 @@
     <property id="alertHalf" type="boolean">false</property>
     <property id="alertOneMin" type="boolean">true</property>
     <property id="loadSide" type="number">0</property>
+    <property id="touchReps" type="boolean">true</property>
 </properties>

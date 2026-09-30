@@ -1,0 +1,25 @@
+<strings>
+    <string id="AppName">WODwrist</string>
+    <string id="SetWodText">Texte du WOD (une ligne par mouvement, ou séparées par ;)</string>
+    <string id="SetWodUrl">URL du WOD du coach (JSON)</string>
+    <string id="SetCountdown">Décompte avant le départ (s)</string>
+    <string id="SetAutoCount">Comptage automatique des reps</string>
+    <string id="SetTouchReps">L'écran tactile compte les reps (non : boutons seulement)</string>
+    <string id="SetCoachMode">Chrono de cours (mode coach)</string>
+    <string id="SetCoachRecord">Enregistrer l'activité en mode coach</string>
+    <string id="SetPlanRest">Repos entre les parties du plan (s)</string>
+    <string id="SetAlertHalf">Vibrer à mi-temps</string>
+    <string id="SetAlertOneMin">Vibrer 1 min avant la fin</string>
+    <string id="SetLoadSide">Ma charge dans "43/30kg"</string>
+    <string id="LoadFirst">Première (43)</string>
+    <string id="LoadSecond">Seconde (30)</string>
+    <string id="SetCapture">Mode capture de données (rep-lab)</string>
+    <string id="FitLapReps">Reps</string>
+    <string id="FitTotalReps">Reps totales</string>
+    <string id="FitRounds">Tours</string>
+    <string id="FitExtraReps">Reps en plus</string>
+    <string id="FitScoreTime">Temps du score</string>
+    <string id="UnitReps">reps</string>
+    <string id="UnitRounds">tours</string>
+    <string id="UnitSec">s</string>
+</strings>

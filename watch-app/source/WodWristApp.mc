@@ -32,6 +32,12 @@ class WodWristApp extends Application.AppBase {
     }
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
+        // first launch without any WOD: a short how-to first
+        if (Application.Storage.getValue("onboarded") != true && sync.wods().size() == 0) {
+            menuOnTop = false;
+            var v = new OnboardView();
+            return [v, new OnboardDelegate(v, true)];
+        }
         return [buildMainMenu(), new MainMenuDelegate()];
     }
 

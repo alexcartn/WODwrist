@@ -18,7 +18,7 @@ class RpeView extends WatchUi.View {
     static function label(v as Number) as String {
         var l = ["Very easy", "Easy", "Moderate", "Somewhat hard", "Hard",
                  "Hard +", "Very hard", "Very hard +", "Near max", "Max effort"];
-        return l[v - 1] as String;
+        return Tr.s(l[v - 1] as String);
     }
 
     static function color(v as Number) as Number {
@@ -36,7 +36,7 @@ class RpeView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, "HOW HARD WAS IT?", center);
+        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, Tr.s("HOW HARD WAS IT?"), center);
         dc.setColor(color(value), Graphics.COLOR_TRANSPARENT);
         dc.drawText(cx, h * 40 / 100, Graphics.FONT_NUMBER_HOT, value.format("%d"), center);
         dc.drawText(cx, h * 60 / 100, Graphics.FONT_SMALL, label(value), center);
@@ -49,12 +49,12 @@ class RpeView extends WatchUi.View {
             dc.fillRectangle(x0 + (i - 1) * step + 1, h * 69 / 100, step - 2, h * 2 / 100);
         }
 
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        var foot = "UP/DOWN  START ok";
         if (_s.hrEnd > 0 && _s.hrr == null) {
-            foot = "HR recovery " + (60 - _s.hrrElapsedSec).format("%d") + " s";
+            dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 84 / 100, Graphics.FONT_XTINY,
+                Tr.s("HR recovery") + " " + (60 - _s.hrrElapsedSec).format("%d") + " s", center);
         }
-        dc.drawText(cx, h * 84 / 100, Graphics.FONT_XTINY, foot, center);
+        Ui.buttonHint(dc, true, Theme.WORK, ICON_CHECK);
     }
 }
 
@@ -100,9 +100,9 @@ function afterRpe(s as WorkoutSession) as Void {
         s.showSummary();
         return;
     }
-    var menu = new WatchUi.Menu2({ :title => "Done as" });
-    menu.addItem(new WatchUi.MenuItem("RX", "Load as written", :rx, {}));
-    menu.addItem(new WatchUi.MenuItem("Scaled", "Lighter or modified", :scaled, {}));
+    var menu = new WatchUi.Menu2({ :title => Tr.s("Done as") });
+    menu.addItem(new WatchUi.MenuItem(Tr.s("RX"), Tr.s("Load as written"), :rx, {}));
+    menu.addItem(new WatchUi.MenuItem(Tr.s("Scaled"), Tr.s("Lighter or modified"), :scaled, {}));
     WatchUi.switchToView(menu, new ScaledDelegate(s), WatchUi.SLIDE_LEFT);
 }
 

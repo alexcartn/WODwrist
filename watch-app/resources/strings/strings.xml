@@ -5,6 +5,7 @@
     <string id="SetWodUrl">Coach WOD URL (JSON)</string>
     <string id="SetCountdown">Countdown before start (s)</string>
     <string id="SetAutoCount">Automatic rep counting</string>
+    <string id="SetTouchReps">Touch screen counts reps (off: buttons only)</string>
     <string id="SetCoachMode">Class timer (coach mode)</string>
     <string id="SetCoachRecord">Record activity in coach mode</string>
     <string id="SetPlanRest">Rest between class plan parts (s)</string>

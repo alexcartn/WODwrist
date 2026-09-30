@@ -1,6 +1,7 @@
 import { parseWod, wodToText } from "./wod-parser.js";
 import { TimerEngine, S, E } from "./timer-engine.js";
 import { splitParts } from "./coach.js";
+import { drawWatch } from "./watch-preview.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -116,6 +117,7 @@ function render() {
       status.textContent = r.line ? `${where}line ${r.line}: ${r.error}` : `${where}${r.error}`;
       $("preview").innerHTML = "";
       $("json").textContent = "";
+      drawWatch($("watch"), null);
       return;
     }
     parsed.push(r.wod);
@@ -137,6 +139,7 @@ function render() {
   if (custom) msg += `, ${custom} movement(s) not in the catalog: counted by hand on the watch`;
   status.textContent = msg;
   $("preview").innerHTML = parts.map(partHtml).join('<hr class="part">');
+  drawWatch($("watch"), current);
   $("json").textContent = JSON.stringify(payload(), null, 2);
   $("copySettings").disabled = parts.length > 1;
   $("copySettings").title = parts.length > 1
@@ -191,6 +194,11 @@ function updateWatchUrl() {
   $("watchUrl").textContent = `https://${owner.toLowerCase()}.github.io/${name}/${path}`;
 }
 
+function showPublished() {
+  const t = store.get("published", "");
+  $("published").textContent = t ? `Last published ${new Date(t).toLocaleString()}` : "Not published from this browser yet";
+}
+
 function b64(str) {
   return btoa(String.fromCharCode(...new TextEncoder().encode(str)));
 }
@@ -221,6 +229,8 @@ async function publish() {
     });
     if (!res.ok) throw new Error(`GitHub ${res.status}: ${(await res.json()).message ?? ""}`);
     btn.textContent = "Published";
+    store.set("published", new Date().toISOString());
+    showPublished();
   } catch (e) {
     alert(`Publish failed: ${e.message}`);
     btn.textContent = "Publish WOD";
@@ -283,6 +293,7 @@ function drawTimer() {
   const cls = { [S.COUNTDOWN]: "countdown", [S.WORK]: "work", [S.REST]: "rest" };
   st.textContent = labels[engine.state];
   st.className = "t-state " + (cls[engine.state] ?? "");
+  $("timer").dataset.state = engine.intervalDone ? "rest" : (cls[engine.state] ?? "idle");
   const ms = engine.clockMs(now);
   const down = engine.state === S.COUNTDOWN || engine.state === S.IDLE || engine.wod.type !== "FOR_TIME";
   const sec = down ? Math.ceil(ms / 1000) : Math.floor(ms / 1000);
@@ -296,6 +307,19 @@ function drawTimer() {
     engine.state === S.DONE ? engine.wod.name
       : engine.intervalDone ? "Rest until next interval"
       : b ? blockText({ ...b, reps: engine.target(b) }) : "";
+  // what comes next, readable from across the room
+  let next = "";
+  if (engine.state !== S.DONE) {
+    if (engine.isInterval()) {
+      const nb = engine.nextBlocks();
+      if (nb.length) next = "Next: " + nb.map((x) => blockText({ ...x, reps: x.reps })).join(" + ");
+    } else {
+      const bl = engine.currentBlocks();
+      const nx = bl[engine.blockIdx + 1] ?? (engine.wod.type === "AMRAP" ? bl[0] : null);
+      if (nx && bl.length > 1) next = "Next: " + nx.name;
+    }
+  }
+  $("tNextMove").textContent = next;
   if (engine.state !== S.DONE && engine.state !== S.IDLE) raf = requestAnimationFrame(drawTimer);
 }
 
@@ -346,6 +370,8 @@ function init() {
     });
   }
   $("publish").addEventListener("click", publish);
+  $("copyUrl").addEventListener("click", (e) => copy($("watchUrl").textContent, e.target));
+  showPublished();
   updateWatchUrl();
 
   $("tStart").addEventListener("click", toggleTimer);

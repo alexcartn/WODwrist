@@ -34,7 +34,7 @@
         <ul>
           <li>Optional name line: <code># Fran</code></li>
           <li>First line: <code>AMRAP 12</code>, <code>EMOM 10</code>, <code>E2MOM 20</code>, <code>FOR TIME cap 15</code>, <code>3 ROUNDS FOR TIME</code>, <code>TABATA 8x20/10</code></li>
-          <li>One movement per line: <code>10 wall balls</code>, <code>200m run</code>, <code>15 cal row</code>, <code>30s plank</code>. Loads in brackets are ignored: <code>21 thrusters (43/30kg)</code></li>
+          <li>One movement per line: <code>10 wall balls</code>, <code>200m run</code>, <code>15 cal row</code>, <code>30s plank</code>. Loads (kg by default): <code>21 thrusters 43/30</code>, <code>(24)</code>, <code>@100</code>, <code>135/95 lb</code></li>
           <li>Rep scheme for For time: <code>21-15-9</code></li>
           <li>EMOM: lines rotate minute by minute, or use <code>odd:</code> / <code>even:</code> / <code>min 3:</code>. Join movements done in the same minute with <code>+</code></li>
           <li>Lines can also be separated by <code>;</code> (that is what the watch settings field uses)</li>
@@ -46,25 +46,39 @@
 
     <section class="col">
       <div id="status" class="status"></div>
-      <div id="preview" class="preview"></div>
+      <div class="preview-row">
+        <div id="preview" class="preview"></div>
+        <figure class="watch-wrap" title="What the watch shows">
+          <canvas id="watch" width="416" height="416"></canvas>
+          <figcaption>On the watch</figcaption>
+        </figure>
+      </div>
       <div class="actions">
         <button id="copySettings" title="Paste this into Garmin Connect > WODwrist > Settings > WOD text">Copy for watch settings</button>
         <button id="copyJson">Copy JSON</button>
         <button id="downloadJson">Download JSON</button>
       </div>
-      <details id="publishBox" class="publish">
-        <summary>Publish to GitHub Pages</summary>
-        <p class="small">Commits <code>today.json</code> to the repo; GitHub Pages serves it about a minute later. Athletes put the URL below in the watch app settings once.</p>
-        <div class="grid">
-          <label>Repo <input id="ghRepo" placeholder="owner/repo"></label>
-          <label>Branch <input id="ghBranch" placeholder="master"></label>
-          <label>File <input id="ghPath" placeholder="web-editor/wod/today.json"></label>
-          <label>Token <input id="ghToken" type="password" placeholder="fine-grained PAT, contents: write"></label>
+      <section class="publish card">
+        <div class="publish-head">
+          <div>
+            <h3>Publish for the class</h3>
+            <p class="small" id="published"></p>
+          </div>
+          <button id="publish" class="primary big">Publish WOD</button>
         </div>
-        <p class="small">The token stays in this browser (localStorage) and is only sent to api.github.com.</p>
-        <button id="publish" class="primary">Publish WOD</button>
-        <p class="small">Watch URL: <code id="watchUrl"></code></p>
-      </details>
+        <p class="small">Athletes put this URL in the watch app settings once:</p>
+        <div class="url-row"><code id="watchUrl"></code><button id="copyUrl">Copy URL</button></div>
+        <details>
+          <summary>GitHub settings</summary>
+          <div class="grid">
+            <label>Repo <input id="ghRepo" placeholder="owner/repo"></label>
+            <label>Branch <input id="ghBranch" placeholder="master"></label>
+            <label>File <input id="ghPath" placeholder="web-editor/wod/today.json"></label>
+            <label>Token <input id="ghToken" type="password" placeholder="fine-grained PAT, contents: write"></label>
+          </div>
+          <p class="small">The token stays in this browser (localStorage) and is only sent to api.github.com.</p>
+        </details>
+      </section>
       <details>
         <summary>JSON</summary>
         <pre id="json"></pre>
@@ -79,6 +93,7 @@
       <div id="tRound" class="t-round"></div>
       <div id="tClock" class="t-clock">0:00</div>
       <div id="tMove" class="t-move"></div>
+      <div id="tNextMove" class="t-next"></div>
       <div class="actions center">
         <button id="tStart" class="primary">Start</button>
         <button id="tNext">Next movement</button>

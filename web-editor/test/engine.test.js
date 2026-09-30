@@ -235,3 +235,20 @@ test("EVERY 2:30 intervals", () => {
   f.start(0);
   assert.equal(f.clockMs(10000), 140000);
 });
+
+test("segment progress for the ring", () => {
+  const a = new TimerEngine(wod("AMRAP 10\n5 burpees"), 10);
+  a.start(0);
+  assert.deepEqual(a.segment(4000), [4000, 10000]);          // countdown
+  assert.deepEqual(a.segment(10000 + 150000), [150000, 600000]);
+  const e = new TimerEngine(wod("EMOM 5\n5 burpees"), 0);
+  e.start(0);
+  assert.deepEqual(e.segment(75000), [15000, 60000]);
+  const t = new TimerEngine(wod("TABATA\nair squats"), 0);
+  t.start(0);
+  assert.deepEqual(t.segment(25000), [5000, 10000]);          // rest phase
+  assert.deepEqual(t.segment(35000), [5000, 20000]);          // next work
+  const f = new TimerEngine(wod("FOR TIME\n10 burpees"), 0);
+  f.start(0);
+  assert.equal(f.segment(5000), null);
+});

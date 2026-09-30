@@ -5,16 +5,17 @@ import Toybox.WatchUi;
 // "Syncing..." then the result of the URL fetch.
 class SyncView extends WatchUi.View {
 
-    private var _msg as String = "Syncing...";
+    private var _msg as String = "";
     private var _ok as Boolean = true;
 
     function initialize() {
         View.initialize();
+        _msg = Tr.s("Syncing...");
     }
 
     function onResult(ok as Boolean, msg as String) as Void {
         _ok = ok;
-        _msg = msg;
+        _msg = Tr.s(msg);
         WatchUi.requestUpdate();
     }
 
@@ -23,7 +24,7 @@ class SyncView extends WatchUi.View {
         var h = dc.getHeight();
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
-        dc.setColor(_ok ? Graphics.COLOR_WHITE : Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(_ok ? Theme.TEXT : Theme.DANGER, Graphics.COLOR_TRANSPARENT);
         // fitTextToArea wraps long error messages on small screens
         var text = _msg;
         if (Graphics has :fitTextToArea) {
