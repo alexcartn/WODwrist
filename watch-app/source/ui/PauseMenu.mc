@@ -2,7 +2,7 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 function buildPauseMenu() as WatchUi.Menu2 {
-    var menu = new WatchUi.Menu2({ :title => Tr.s("Paused") });
+    var menu = Ui.menu(Tr.s("Paused"));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Resume"), null, :resume, {}));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Finish"), getApp().plan != null ? Tr.s("Next part") : Tr.s("Save the score"), :finish, {}));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Discard"), Tr.s("Throw away"), :discard, {}));

@@ -4,7 +4,7 @@ import Toybox.WatchUi;
 
 // Coach menu: class timer mode, class plan, start time, rest, alerts.
 function buildCoachMenu() as WatchUi.Menu2 {
-    var menu = new WatchUi.Menu2({ :title => Tr.s("Coach") });
+    var menu = Ui.menu(Tr.s("Coach"));
     menu.addItem(new WatchUi.ToggleMenuItem(Tr.s("Class timer"), Tr.s("Big clock, no recording"), :coachMode,
         WorkoutSession.propBool("coachMode", false), {}));
     var plan = Coach.plan();

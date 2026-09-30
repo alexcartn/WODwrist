@@ -18,7 +18,8 @@ const MENU_PLAN = 1008;
 // Today's WOD on top, quick timer, then my WODs, stats, coach, sync, samples.
 function buildMainMenu() as WatchUi.Menu2 {
     var app = getApp();
-    var menu = new WatchUi.Menu2({ :title => "WODwrist" });
+    var menu = Ui.menu("WODwrist");
+    addDemoMenuItem(menu);  // debug builds only
     var list = app.syncSvc().wods();
     if (list.size() > 0) {
         menu.addItem(Icons.menuItem(list[0]["name"] as String,
@@ -64,7 +65,7 @@ function syncLabel() as String {
 }
 
 function buildWodListMenu(title as String, wods as Array<Dictionary?>, idBase as Number) as WatchUi.Menu2 {
-    var menu = new WatchUi.Menu2({ :title => title });
+    var menu = Ui.menu(title);
     for (var i = 0; i < wods.size(); i++) {
         var w = wods[i];
         if (w != null) {
@@ -102,6 +103,10 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (id == MENU_ERROR) {
             return;
         }
+        if (id == MENU_DEMO) {
+            loadDemoData();
+            return;
+        }
         app.menuOnTop = false;
         if (id == MENU_PLAN) {
             app.startPlan(false);
@@ -122,10 +127,12 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             WatchUi.pushView(buildWodListMenu(Tr.s("My WODs"), app.syncSvc().wods() as Array<Dictionary?>, 0),
                 new WodListDelegate(), WatchUi.SLIDE_LEFT);
         } else if (id == MENU_SAMPLES) {
-            var samples = [] as Array<Dictionary?>;
-            for (var i = 0; i < SampleWods.count(); i++) { samples.add(SampleWods.get(i)); }
-            WatchUi.pushView(buildWodListMenu(Tr.s("Samples"), samples, MENU_SAMPLE_BASE),
-                new WodListDelegate(), WatchUi.SLIDE_LEFT);
+            var menu = Ui.menu(Tr.s("Samples"));
+            for (var i = 0; i < SampleWods.count(); i++) {
+                var l = SampleWods.label(i);
+                menu.addItem(new WatchUi.MenuItem(l[0], l[1], MENU_SAMPLE_BASE + i, {}));
+            }
+            WatchUi.pushView(menu, new WodListDelegate(), WatchUi.SLIDE_LEFT);
         } else {
             var wod = wodForId(id);
             if (wod != null) { openPreview(wod, false); }

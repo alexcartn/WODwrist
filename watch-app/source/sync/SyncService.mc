@@ -96,7 +96,7 @@ class SyncService {
         }, method(:onReceive));
     }
 
-    function onReceive(code as Number, data) as Void {
+    function onReceive(code as Number, data as Dictionary or String or Null) as Void {
         if (code != 200) {
             done(false, code < 0 ? "Phone not connected (" + code.format("%d") + ")" : "HTTP " + code.format("%d"));
             return;

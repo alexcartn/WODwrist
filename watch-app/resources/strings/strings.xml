@@ -9,8 +9,8 @@
     <string id="SetCoachMode">Class timer (coach mode)</string>
     <string id="SetCoachRecord">Record activity in coach mode</string>
     <string id="SetPlanRest">Rest between class plan parts (s)</string>
-    <string id="SetAlertHalf">Vibrate at halfway</string>
-    <string id="SetAlertOneMin">Vibrate 1 min before the end</string>
+    <string id="SetAlertHalf">Alert at halfway</string>
+    <string id="SetAlertOneMin">Alert 1 min before the end</string>
     <string id="SetLoadSide">My numbers in "43/30kg" and "15/12 cal"</string>
     <string id="LoadFirst">First (43)</string>
     <string id="LoadSecond">Second (30)</string>

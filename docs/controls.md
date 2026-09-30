@@ -11,14 +11,13 @@
 | tap screen | +1 rep (same rule as BACK short), unless the setting "Touch screen counts reps" is off |
 | hold screen | -1 rep (same setting) |
 | swipe left | next movement, crediting the missing target reps |
-| swipe up / down | data page: clock (default), reps in giant digits, heart rate and zone |
 | swipe right | ignored, so a sweaty swipe does not leave the workout |
 
 Timed rest block (`1:00 Rest` in a superset): `REST` in blue with the time left,
 3-2-1 beeps, then the next movement by itself; BACK skips the rest.
 
 Every-minute task (`Every minute, 8/6 cal ski` in a For time / AMRAP): at each
-interval the screen shows `TASK` in orange, a strong double vibration and the
+interval the screen shows `TASK` in orange, a high tone and the
 task; count it like any movement (BACK = done for cal / m), then the main
 movement comes back where you left it. `3 x AMRAP 4`: `Set 2/3` next to the
 rounds, blue rest ring between sets, `SET 2/3` banner at each start.
@@ -49,11 +48,12 @@ the app, identical on every watch. Movements show their pictogram.
       7:42            <- big clock
    Wall balls         <- current movement
      7/10  ●          <- reps / target, dot = rep counter confidence
-  Reps 57  HR 162     <- total reps, heart rate
+   57  |  162       <- one screen, no pages: total reps | heart rate
+  REPS  | BPM Z4       (bpm colored by zone; the watch never vibrates)
 ```
 
 Coach mode (class timer): bigger clock, movement line under it, no footer,
-longer vibrations, no activity saved unless "Record activity in coach mode"
+no activity saved unless "Record activity in coach mode"
 is on.
 
 ## Today's plan (main menu)
@@ -87,11 +87,11 @@ Logic: `web-editor/js/quick-timer.js` (tested), port `watch-app/source/model/Qui
 
 | Item | What it does |
 | --- | --- |
-| Class timer | on/off: big clock, strong vibrations, no recording |
+| Class timer | on/off: big clock, no recording |
 | Run class plan | runs every part of the coach file back to back (warm-up, strength, metcon). In the web editor, separate parts with a line `---`, publish, then Sync WOD on the watch |
 | Start | tap to cycle: now (10 s countdown), next full minute, next :00/:15/:30/:45, in 2 min, in 5 min. Applies to class timer starts and to the plan |
 | Rest between parts | tap to cycle: 0:30, 1:00, 1:30, 2:00, 3:00, none. Countdown before each next part, showing `2/3 Strength` |
-| Halfway alert / 1 min left alert | double long vibration + `HALFWAY` / `1 MIN LEFT` on screen for 2 s (also in athlete mode) |
+| Halfway alert / 1 min left alert | a tone + `HALFWAY` / `1 MIN LEFT` on screen for 2 s (also in athlete mode) |
 
 In a plan, the pause menu's Finish goes to the next part and End class stops
 the plan. Countdowns over a minute show `m:ss`.
@@ -107,13 +107,14 @@ the summary shows `NEW BEST` or your best. Logic: `web-editor/js/score-history.j
 
 All computed on the watch from the saved workouts, nothing to export.
 
-- Overall: workouts, active time, reps, number of different WODs.
+- HR zones: time in each heart rate zone (Z1 to Z5) over the last 7 days, and
+  the total. Scroll down for the 3 weeks before. Saved with each workout from
+  this version on, so older weeks show "No heart rate data".
+- Overall: workouts, active time, reps.
 - Movements: seconds per rep for each movement, over all saved workouts
   (time from the start to the end of the block, so short breaks count: it is
   a work rate, not a pure rep speed). Custom movements are skipped.
-- One page per WOD: best, last (green when it equals or beats the best),
-  fade of the last attempt (last round vs first round, orange above +10 %:
-  probably started too fast), HR avg / max. Scroll down: round times best vs last.
+No per-WOD pages: a WOD is rarely done twice, so stats are per week, not per WOD.
 
 Training load and the Analysis page of each workout: see [performance.md](performance.md).
 

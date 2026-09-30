@@ -36,7 +36,8 @@ module Icons {
     function menuItem(label as String, sub as String?, id, icon as String) as WatchUi.MenuItem {
         var bmp = get(icon);
         if ((WatchUi has :IconMenuItem) && bmp != null) {
-            return new WatchUi.IconMenuItem(label, sub, id, bmp as WatchUi.BitmapResource, {});
+            // wrapped in a Drawable: a raw BitmapResource crashes Menu2 on venu3 (Symbol Not Found)
+            return new WatchUi.IconMenuItem(label, sub, id, new WatchUi.Bitmap({ :bitmap => bmp as WatchUi.BitmapResource }), {});
         }
         return new WatchUi.MenuItem(label, sub, id, {});
     }

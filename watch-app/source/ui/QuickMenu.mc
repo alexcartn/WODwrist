@@ -4,7 +4,7 @@ import Toybox.WatchUi;
 // Quick timer menu: Start on top, then the type and its settings.
 // Tap a row = next value (wraps). Changing the type rebuilds the rows.
 function buildQuickMenu(cfg as Dictionary<String, Number>) as WatchUi.Menu2 {
-    var menu = new WatchUi.Menu2({ :title => Tr.s("Quick timer") });
+    var menu = Ui.menu(Tr.s("Quick timer"));
     menu.addItem(Icons.menuItem(Tr.s("Start timer"), (QuickTimer.wod(cfg)["name"] as String), "go", "m_play"));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Type"), QuickTimer.label(cfg, "type"), "type", {}));
     var rows = QuickTimer.rows(cfg["type"] as Number);

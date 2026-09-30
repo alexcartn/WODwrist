@@ -2,6 +2,7 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Math;
 import Toybox.System;
+import Toybox.WatchUi;
 
 // One color language across the app:
 //   green = work / go / good, blue = rest, yellow = scores and targets,
@@ -24,6 +25,14 @@ const ICON_PLAY = 2;
 // Drawing helpers shared by the views: progress ring, page dots, Garmin-style
 // button hints, text that fits.
 module Ui {
+
+    // Every menu in the dark theme, whatever the watch setting: the menu
+    // pictograms are white and vanish on a light menu.
+    function menu(title as String) as WatchUi.Menu2 {
+        var opts = { :title => title } as Dictionary;
+        if (WatchUi has :MENU_THEME_DARK) { opts[:theme] = WatchUi.MENU_THEME_DARK; }
+        return new WatchUi.Menu2(opts);
+    }
 
     const CENTER = Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER;
 

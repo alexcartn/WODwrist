@@ -16,7 +16,7 @@ function hwpoOptionLines(logger as Test.Logger) as Boolean {
     Test.assertEqual(t[1], true);
     TestUtil.check(logger, t[2], "8/6 Cal Ski", "task body");
     Test.assertEqual((WodParser.parseTaskLine("Every 2:00, 10 wall balls") as Array)[0], 120);
-    Test.assertEqual(WodParser.parseTaskLine("10 burpees"), null);
+    Test.assert(WodParser.parseTaskLine("10 burpees") == null);
     return true;
 }
 

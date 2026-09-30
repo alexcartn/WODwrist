@@ -100,7 +100,7 @@ function afterRpe(s as WorkoutSession) as Void {
         s.showSummary();
         return;
     }
-    var menu = new WatchUi.Menu2({ :title => Tr.s("Done as") });
+    var menu = Ui.menu(Tr.s("Done as"));
     menu.addItem(new WatchUi.MenuItem(Tr.s("RX"), Tr.s("Load as written"), :rx, {}));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Scaled"), Tr.s("Lighter or modified"), :scaled, {}));
     WatchUi.switchToView(menu, new ScaledDelegate(s), WatchUi.SLIDE_LEFT);

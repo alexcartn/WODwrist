@@ -7,25 +7,20 @@ import Toybox.WatchUi;
 // (ScoreHistory), nothing to export.
 
 function buildStatsMenu() as WatchUi.Menu2 {
-    var menu = new WatchUi.Menu2({ :title => Tr.s("My stats") });
+    var menu = Ui.menu(Tr.s("My stats"));
     var t = ScoreHistory.totals();
     var e = Perf.loads();
     var today = Perf.today();
     var a = Perf.acwr(e, today, Perf.loadIndex(e, today));
     var week = Perf.weekCompare(e, today, D_SESSIONS);
     menu.addItem(new WatchUi.MenuItem(Tr.s("This week"), weekReportIsNew() ? Tr.s("New report") : week[0].format("%d") + " " + Tr.s("workouts"), :week, {}));
+    var zw = Perf.zoneWeek(e, today);
+    menu.addItem(new WatchUi.MenuItem(Tr.s("HR zones"), Tr.s("This week") + " " + Str.clock((zw[0] + zw[1] + zw[2] + zw[3] + zw[4]) * 1000, false), :zones, {}));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Training load"), loadStatusLabel(Perf.status(e, today, a[2])), :load, {}));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Balance"), Tr.s("Gym") + " / " + Tr.s("Weights") + " / " + Tr.s("Mono"), :balance, {}));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Strong / weak"), null, :strength, {}));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Overall"), (t["n"] as Number).format("%d") + " " + Tr.s("workouts"), :overall, {}));
     menu.addItem(new WatchUi.MenuItem(Tr.s("Movements"), Tr.s("Pace per rep"), :moves, {}));
-    var list = ScoreHistory.entries();
-    for (var i = 0; i < list.size(); i++) {
-        var e = list[i];
-        var name = e["name"] instanceof String ? e["name"] as String : "WOD";
-        var sub = "Best " + ScoreHistory.scoreText(e["best"] as Dictionary) + "  x" + (e["n"] as Number).format("%d");
-        menu.addItem(new WatchUi.MenuItem(name, sub, i, {}));
-    }
     return menu;
 }
 
@@ -61,23 +56,22 @@ class StatsMenuDelegate extends WatchUi.Menu2InputDelegate {
         var id = item.getId();
         var view;
         if (id == :load) {
-            view = new StatsView(STATS_LOAD, null);
+            view = new StatsView(STATS_LOAD);
         } else if (id == :week) {
             Application.Storage.setValue("weekSeen", Perf.today() / 7);
-            view = new StatsView(STATS_WEEK, null);
+            view = new StatsView(STATS_WEEK);
         } else if (id == :balance) {
-            view = new StatsView(STATS_BALANCE, null);
+            view = new StatsView(STATS_BALANCE);
         } else if (id == :strength) {
-            view = new StatsView(STATS_STRENGTH, null);
+            view = new StatsView(STATS_STRENGTH);
         } else if (id == :overall) {
-            view = new StatsView(STATS_OVERALL, null);
+            view = new StatsView(STATS_OVERALL);
         } else if (id == :moves) {
-            view = new StatsView(STATS_MOVES, null);
+            view = new StatsView(STATS_MOVES);
+        } else if (id == :zones) {
+            view = new StatsView(STATS_ZONES);
         } else {
-            var list = ScoreHistory.entries();
-            var i = id as Number;
-            if (i >= list.size()) { return; }
-            view = new StatsView(STATS_WOD, list[i]);
+            return;
         }
         WatchUi.pushView(view, new StatsDelegate(view), WatchUi.SLIDE_LEFT);
     }
@@ -89,35 +83,33 @@ class StatsMenuDelegate extends WatchUi.Menu2InputDelegate {
 
 const STATS_OVERALL = 0;
 const STATS_MOVES = 1;
-const STATS_WOD = 2;
+const STATS_ZONES = 2;
 const STATS_LOAD = 3;
 const STATS_BALANCE = 4;
 const STATS_STRENGTH = 5;
 const STATS_WEEK = 6;
 const STATS_LINES = 5;
+// HR zones: this week and the 3 before (load history keeps 6 weeks)
+const ZONE_WEEKS = 4;
 
 class StatsView extends WatchUi.View {
 
     var page as Number = 0;
     private var _kind as Number;
-    private var _entry as Dictionary?;
-    private var _rows as Array<String> = [] as Array<String>;  // paged table (moves, splits)
+    private var _rows as Array<String> = [] as Array<String>;  // paged table (moves)
 
-    function initialize(kind as Number, entry as Dictionary?) {
+    function initialize(kind as Number) {
         View.initialize();
         _kind = kind;
-        _entry = entry;
         if (kind == STATS_MOVES) {
             _rows = movementRows();
-        } else if (kind == STATS_WOD) {
-            _rows = splitRows(entry as Dictionary);
         }
     }
 
     function pageCount() as Number {
         var tablePages = (_rows.size() + STATS_LINES - 1) / STATS_LINES;
         if (_kind == STATS_MOVES) { return tablePages > 0 ? tablePages : 1; }
-        if (_kind == STATS_WOD) { return 2 + tablePages; }
+        if (_kind == STATS_ZONES) { return ZONE_WEEKS; }
         if (_kind == STATS_LOAD) { return 2; }
         return 1;
     }
@@ -142,14 +134,41 @@ class StatsView extends WatchUi.View {
             drawOverall(dc, cx, h);
         } else if (_kind == STATS_MOVES) {
             drawTable(dc, cx, h, "Pace per rep", page);
-        } else if (page == 0) {
-            drawWod(dc, cx, h);
-        } else if (page == 1) {
-            drawProgress(dc, w, h, cx);
-        } else {
-            drawTable(dc, cx, h, "Round  Best  Last", page - 2);
+        } else if (_kind == STATS_ZONES) {
+            drawZones(dc, w, h, cx);
         }
         Ui.pageDots(dc, page, pageCount());
+    }
+
+    // Time in each heart rate zone over one week (page 0 = last 7 days,
+    // swipe for the weeks before). Z5 on top, like Garmin Connect.
+    private function drawZones(dc as Graphics.Dc, w as Number, h as Number, cx as Number) as Void {
+        var z = Perf.zoneWeek(Perf.loads(), Perf.today() - page * 7);
+        var total = z[0] + z[1] + z[2] + z[3] + z[4];
+        text(dc, cx, h * 14 / 100, Graphics.FONT_XTINY, Theme.MUTED,
+            page == 0 ? "HR ZONES, THIS WEEK" : "HR ZONES, " + page.format("%d") + " WK AGO");
+        if (total == 0) {
+            text(dc, cx, h / 2, Graphics.FONT_TINY, Theme.MUTED, "No heart rate data");
+            return;
+        }
+        var colors = [Theme.MUTED, Theme.REST, Theme.WORK, Theme.WARN, Theme.DANGER];
+        var max = 1;
+        for (var i = 0; i < 5; i++) { if (z[i] > max) { max = z[i]; } }
+        var x0 = w * 26 / 100;
+        var bw = w * 42 / 100;
+        var rowH = h * 10 / 100;
+        var font = Graphics.FONT_XTINY;
+        for (var i = 0; i < 5; i++) {
+            var zone = 4 - i;
+            var y = h * 27 / 100 + i * rowH;
+            dc.setColor(colors[zone] as Number, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x0 - 8, y, font, "Z" + (zone + 1).format("%d"), Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+            var len = z[zone] * bw / max;
+            if (len > 0) { dc.fillRectangle(x0, y - rowH / 4, len < 3 ? 3 : len, rowH / 2); }
+            dc.setColor(Theme.TEXT, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x0 + bw + 8, y, font, Str.clock(z[zone] * 1000, false), Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        }
+        text(dc, cx, h * 82 / 100, Graphics.FONT_TINY, Theme.TEXT, "Total " + Str.clock(total * 1000, false));
     }
 
     // Centered, translated when the whole text is a known label, shortened to fit.
@@ -197,35 +216,6 @@ class StatsView extends WatchUi.View {
             if (bh > 0) { dc.fillRectangle(x0 + i * slot + slot / 5, base - bh, slot * 3 / 5, bh); }
             dc.fillRectangle(x0 + i * slot + slot / 5, base, slot * 3 / 5, 2);
         }
-    }
-
-    // Score of each attempt at this WOD (last 12), best in green.
-    private function drawProgress(dc as Graphics.Dc, w as Number, h as Number, cx as Number) as Void {
-        var e = _entry as Dictionary;
-        text(dc, cx, h * 14 / 100, Graphics.FONT_XTINY, Theme.MUTED, "PROGRESS");
-        var hist = e["hist"];
-        if (!(hist instanceof Array) || (hist as Array).size() < 2) {
-            text(dc, cx, h / 2, Graphics.FONT_TINY, Theme.MUTED, "No data yet");
-            return;
-        }
-        var kind = (e["best"] as Dictionary)["kind"] as String;
-        var v = [] as Array<Number>;
-        var hs = hist as Array;
-        var lo = ((hs[0] as Array)[1]) as Number;
-        var hi = lo;
-        for (var i = 0; i < hs.size(); i++) {
-            var x = ((hs[i] as Array)[1]) as Number;
-            v.add(x);
-            if (x < lo) { lo = x; }
-            if (x > hi) { hi = x; }
-        }
-        var colors = [] as Array<Number>;
-        for (var i = 0; i < v.size(); i++) { colors.add(v[i] == hi ? Theme.WORK : (i == v.size() - 1 ? Theme.SCORE : Theme.MUTED)); }
-        // bars start a bit under the worst score so progress is visible
-        var span = hi - lo;
-        Ui.bars(dc, v, colors, w * 18 / 100, h * 24 / 100, w * 64 / 100, h * 34 / 100, lo - span / 3 - 1);
-        text(dc, cx, h * 67 / 100, Graphics.FONT_TINY, Theme.WORK, Tr.s("Best") + " " + ScoreHistory.valueText(kind, hi));
-        text(dc, cx, h * 77 / 100, Graphics.FONT_XTINY, Theme.SCORE, Tr.s("Last") + " " + ScoreHistory.valueText(kind, v[v.size() - 1]));
     }
 
     // Foster monotony and strain of the last 7 days.
@@ -351,40 +341,6 @@ class StatsView extends WatchUi.View {
         text(dc, cx, h * 44 / 100, Graphics.FONT_XTINY, Theme.MUTED, "workouts");
         text(dc, cx, h * 58 / 100, Graphics.FONT_TINY, Theme.TEXT, "Time " + Str.clock(t["ms"] as Number, false));
         text(dc, cx, h * 68 / 100, Graphics.FONT_TINY, Theme.TEXT, "Reps " + (t["reps"] as Number).format("%d"));
-        text(dc, cx, h * 78 / 100, Graphics.FONT_TINY, Theme.TEXT, ScoreHistory.entries().size().format("%d") + " different WODs");
-    }
-
-    private function drawWod(dc as Graphics.Dc, cx as Number, h as Number) as Void {
-        var e = _entry as Dictionary;
-        var best = e["best"] as Dictionary;
-        var last = e["last"] as Dictionary;
-        var name = e["name"] instanceof String ? e["name"] as String : "WOD";
-        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Theme.MUTED, name);
-        text(dc, cx, h * 22 / 100, Graphics.FONT_XTINY, Theme.MUTED, "BEST");
-        text(dc, cx, h * 33 / 100, Graphics.FONT_LARGE, Theme.SCORE, ScoreHistory.scoreText(best));
-
-        var n = e["n"] as Number;
-        var y = h * 48 / 100;
-        var lh = dc.getFontHeight(Graphics.FONT_TINY);
-        if (n > 1) {
-            var diff = ScoreHistory.value(last) - ScoreHistory.value(best);
-            var color = diff >= 0 ? Graphics.COLOR_GREEN : Theme.TEXT;
-            text(dc, cx, y, Graphics.FONT_TINY, color, "Last " + ScoreHistory.scoreText(last) + "  (x" + n.format("%d") + ")");
-            y += lh;
-        }
-        var fade = ScoreHistory.fadePct(last["laps"] as Array?);
-        if (fade != null) {
-            // > 10 % slower on the last round: probably went out too fast
-            var f = fade as Number;
-            var fc = f > 10 ? Theme.WARN : Theme.TEXT;
-            text(dc, cx, y, Graphics.FONT_TINY, fc, "Fade " + (f >= 0 ? "+" : "") + f.format("%d") + "%");
-            y += lh;
-        }
-        var hr = last["hr"];
-        if (hr instanceof Number && (hr as Number) > 0) {
-            text(dc, cx, y, Graphics.FONT_TINY, Theme.TEXT,
-                "HR " + (hr as Number).format("%d") + " / " + (last["hrMax"] as Number).format("%d"));
-        }
     }
 
     private function drawTable(dc as Graphics.Dc, cx as Number, h as Number, title as String, p as Number) as Void {
@@ -424,22 +380,6 @@ class StatsView extends WatchUi.View {
             var name = Movements.name(order[i] as String);
             if (t == null) { continue; }
             rows.add((name == null ? order[i] as String : name as String) + "  " + ScoreHistory.formatTenths(t as Number));
-        }
-        return rows;
-    }
-
-    // "R3  1:38  1:44": round durations, best vs last attempt
-    private function splitRows(e as Dictionary) as Array<String> {
-        var bl = (e["best"] as Dictionary)["laps"];
-        var ll = (e["last"] as Dictionary)["laps"];
-        var b = bl instanceof Array ? bl as Array<Number> : [] as Array<Number>;
-        var l = ll instanceof Array ? ll as Array<Number> : [] as Array<Number>;
-        var n = b.size() > l.size() ? b.size() : l.size();
-        var rows = [] as Array<String>;
-        for (var i = 0; i < n; i++) {
-            var bs = i < b.size() ? Str.clock(b[i] - (i > 0 ? b[i - 1] : 0), false) : "-";
-            var ls = i < l.size() ? Str.clock(l[i] - (i > 0 ? l[i - 1] : 0), false) : "-";
-            rows.add("R" + (i + 1).format("%d") + "  " + bs + "  " + ls);
         }
         return rows;
     }

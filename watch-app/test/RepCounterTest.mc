@@ -66,6 +66,16 @@ function parserSamplesAreValid(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function sampleLabelsMatchTheParsedNames(logger as Test.Logger) as Boolean {
+    for (var i = 0; i < SampleWods.count(); i++) {
+        var l = SampleWods.label(i);
+        Test.assertEqualMessage(l[0], (SampleWods.get(i) as Dictionary)["name"], "sample " + i);
+        Test.assertMessage(l[1].length() > 0, "format line " + i);
+    }
+    return true;
+}
+
+(:test)
 function validateJson(logger as Test.Logger) as Boolean {
     var r = WodParser.validate({
         "version" => 1, "type" => "EMOM", "intervalSec" => 60, "timeCapSec" => 600,

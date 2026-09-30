@@ -20,6 +20,13 @@ module SampleWods {
         return texts().size();
     }
 
+    // [name, format line] read from the text without parsing it: parsing all
+    // samples at once trips the watchdog, so the list only parses on select.
+    function label(i as Number) as Array<String> {
+        var lines = Str.splitOn(texts()[i], '\n');
+        return [Str.trim(Str.sub(lines[0], 1, lines[0].length())), lines[1]] as Array<String>;
+    }
+
     function get(i as Number) as Dictionary? {
         var r = WodParser.parse(texts()[i]);
         return r.hasKey("wod") ? r["wod"] as Dictionary : null;

@@ -125,3 +125,22 @@ function perfWeekPattern(logger as Test.Logger) as Boolean {
     Test.assert(Perf.monotony(e, 100, D_SRPE) == null);
     return true;
 }
+
+(:test)
+function zoneWeekSumsTheLastSevenDays(logger as Test.Logger) as Boolean {
+    // [day, trimp, srpe, gym, wl, mono, sessions, kg, prs, z1..z5]; day 99 has no zone fields (old row)
+    var e = [
+        [99, 50, 0, 0, 0, 0, 1, 0, 0],
+        [100, 50, 0, 0, 0, 0, 1, 0, 0, 60, 120, 300, 600, 30],
+        [106, 50, 0, 0, 0, 0, 1, 0, 0, 0, 60, 60, 60, 60],
+        [107, 50, 0, 0, 0, 0, 1, 0, 0, 999, 999, 999, 999, 999]
+    ] as Array<Array<Number> >;
+    var z = Perf.zoneWeek(e, 106);
+    Test.assertEqual(z.size(), 5);
+    Test.assertEqual(z[0], 60);
+    Test.assertEqual(z[1], 180);
+    Test.assertEqual(z[3], 660);
+    Test.assertEqual(z[4], 90);
+    Test.assertEqual(Perf.zoneWeek(e, 99)[2], 0);
+    return true;
+}

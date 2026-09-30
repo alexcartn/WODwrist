@@ -8,7 +8,7 @@ import Toybox.Timer;
 import Toybox.WatchUi;
 
 // Glue for one workout: TimerEngine (logic) + RepCounter (sensor) +
-// RecordingManager (FIT) + Feedback (vibration). Views only read from here.
+// RecordingManager (FIT) + Feedback (tones). Views only read from here.
 class WorkoutSession {
 
     var engine as TimerEngine;
@@ -170,7 +170,7 @@ class WorkoutSession {
         }
     }
 
-    // Halfway / 1 min left: long vibration + a word on screen for 2 s.
+    // Halfway / 1 min left: a tone + a word on screen for 2 s.
     private function checkAlerts(t as Number) as Void {
         var a = engine.activeMs(t);
         if (engine.state != ST_WORK && engine.state != ST_REST) {
@@ -603,7 +603,7 @@ class WorkoutSession {
             ScoreHistory.save(engine.wod, r, scaled);
             ScoreHistory.addTotals(engine.totalReps, active, movementStats);
             Perf.addDay(Perf.today(), [Perf.trimp(zoneSec), srpe, domainMs[0], domainMs[1], domainMs[2], 1, kg,
-                isNewBest ? 1 : 0]);
+                isNewBest ? 1 : 0, zoneSec[1], zoneSec[2], zoneSec[3], zoneSec[4], zoneSec[5]]);
             if (hrr != null) { Perf.addHrr(Perf.today(), hrr as Number); }
             Glance.update(engine.wod["name"] as String,
                 (isNewBest ? Tr.s("NEW BEST") + " " : Tr.s("Last") + " ") + ScoreHistory.scoreText(r));

@@ -68,7 +68,7 @@ module Tr {
             "breaks" => "pauses", "Transitions" => "Transitions", "Beats/round" => "Batt./tour",
             "Moved" => "Soulevé", "No details for this WOD" => "Pas de détails", "HR recovery in" => "Récup FC dans",
             // stats
-            "This week" => "Cette semaine", "Training load" => "Charge", "Balance" => "Équilibre",
+            "This week" => "Cette semaine", "HR zones" => "Zones FC", "Training load" => "Charge", "Balance" => "Équilibre",
             "Strong / weak" => "Forts / faibles", "Movements" => "Mouvements", "Overall" => "Global",
             "LAST 7 DAYS" => "7 DERNIERS JOURS", "TRAINING LOAD" => "CHARGE", "WEEK PATTERN" => "PROFIL SEMAINE",
             "BALANCE, 4 WEEKS" => "ÉQUILIBRE, 4 SEM.", "STRONG / WEAK" => "FORTS / FAIBLES",

@@ -16,6 +16,8 @@ const D_MONO = 5;
 const D_SESSIONS = 6;
 const D_TONNAGE = 7;
 const D_PRS = 8;
+// seconds in heart rate zone 1..5: D_Z1 + zone - 1
+const D_Z1 = 9;
 
 // Performance engineering on the watch: HR zones, training load (TRIMP),
 // acute:chronic load ratio, pacing consistency, EMOM density, cardiac trend.
@@ -140,6 +142,13 @@ module Perf {
             if (e[i][0] > today - days && e[i][0] <= today) { s += field(e[i], idx); }
         }
         return s;
+    }
+
+    // Seconds in zones 1..5 over the 7 days ending on `last` (index 0 = zone 1).
+    function zoneWeek(e as Array<Array<Number> >, last as Number) as Array<Number> {
+        var out = [] as Array<Number>;
+        for (var z = 0; z < 5; z++) { out.add(sumDays(e, last, 7, D_Z1 + z)); }
+        return out;
     }
 
     // [acute (7 days), chronic (weekly avg over 28 days), ratio in hundredths or -1]
