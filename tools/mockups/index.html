@@ -1,0 +1,124 @@
+<!doctype html><html><head><meta charset="utf-8">
+<style>
+body{margin:0;background:#1b1d21;font-family:Roboto,"Helvetica Neue",Arial,sans-serif;color:#ddd}
+.sheet{display:flex;flex-wrap:wrap;gap:36px;padding:36px;width:1900px}
+.item{display:flex;flex-direction:column;align-items:center;gap:12px}
+.cap{font-size:20px;color:#aaa}
+.watch{position:relative;border-radius:50%;padding:22px;background:radial-gradient(circle at 30% 25%,#5a5d63,#2a2c30 60%,#151618);box-shadow:0 10px 30px #000a}
+.watch.sq{border-radius:70px;padding:26px}
+canvas{display:block;border-radius:50%;background:#000}
+.sq canvas{border-radius:46px}
+.btn{position:absolute;right:-8px;width:12px;height:56px;background:#44474d;border-radius:4px}
+</style></head><body><div class="sheet" id="s"></div>
+<script>
+const C={black:"#000",white:"#fff",lt:"#aaaaaa",dk:"#555555",green:"#00d23c",yellow:"#ffd400",blue:"#1e8cff",orange:"#ff8a00",red:"#ff2b2b"};
+const F={xtiny:26,tiny:30,small:34,medium:40,large:52,nhot:120,nthai:158};
+function mk(title,w,h,sq,draw){
+  const it=document.createElement("div");it.className="item";
+  const wa=document.createElement("div");wa.className="watch"+(sq?" sq":"");
+  const c=document.createElement("canvas");c.width=w;c.height=h;wa.appendChild(c);
+  const b1=document.createElement("div");b1.className="btn";b1.style.top=(h*0.28)+"px";
+  const b2=document.createElement("div");b2.className="btn";b2.style.top=(h*0.62)+"px";wa.append(b1,b2);
+  const cap=document.createElement("div");cap.className="cap";cap.textContent=title;
+  it.append(wa,cap);document.getElementById("s").appendChild(it);
+  const d=c.getContext("2d");d.fillStyle="#000";d.fillRect(0,0,w,h);draw(d,w,h);
+}
+function t(d,x,y,size,col,s,opts={}){d.fillStyle=col;const num=opts.num;
+  d.font=(opts.bold||num?"700 ":"500 ")+size+"px "+(num?'"Roboto Condensed","Arial Narrow",Arial,sans-serif':'Roboto,Arial,sans-serif');
+  d.textAlign=opts.align||"center";d.textBaseline=opts.top?"top":"middle";d.fillText(s,x,y);}
+// ---- Menu2 look ----
+function menu(d,w,h,title,items,sel){
+  t(d,w/2,h*0.12,F.tiny,C.white,title,{bold:1});
+  const rowH=h*0.22;const y0=h*0.5-rowH*sel-rowH/2+ (0);
+  items.forEach((it,i)=>{
+    const y=h*0.5+(i-sel)*rowH;
+    if(y<h*0.2||y>h*0.95)return;
+    if(i===sel){d.strokeStyle="#ffffff30";d.lineWidth=2;d.beginPath();d.moveTo(w*0.1,y-rowH/2);d.lineTo(w*0.9,y-rowH/2);d.moveTo(w*0.1,y+rowH/2);d.lineTo(w*0.9,y+rowH/2);d.stroke();}
+    const big=i===sel;
+    t(d,w/2,y-(it[1]?14:0),big?F.small+4:F.tiny,big?C.white:C.lt,it[0],{bold:big});
+    if(it[1])t(d,w/2,y+20,F.xtiny,big?C.yellow:C.dk,it[1]);
+    if(it[2]!==undefined){const x=w*0.82;d.fillStyle=it[2]?C.green:C.dk;d.beginPath();d.roundRect(x-22,y-12,44,24,12);d.fill();d.fillStyle="#fff";d.beginPath();d.arc(it[2]?x+10:x-10,y,9,0,7);d.fill();}
+  });
+}
+// ---- RunView port ----
+function run(d,w,h,o){
+  const cx=w/2;
+  t(d,cx,h*0.11,F.tiny,o.color,o.label);
+  if(o.delta){d.font="500 "+F.tiny+"px Roboto,Arial,sans-serif";const a=o.round+"  ",w1=d.measureText(a).width,w2=d.measureText(o.delta).width,x=cx-(w1+w2)/2;
+    t(d,x,h*0.21,F.tiny,C.lt,a,{align:"left"});t(d,x+w1,h*0.21,F.tiny,o.delta[0]=="-"?C.green:C.red,o.delta,{align:"left"});}
+  else t(d,cx,h*0.21,F.tiny,C.lt,o.round);
+  if(o.coach){t(d,cx,h*0.47,F.nthai,o.paused?C.orange:C.white,o.clock,{num:1});
+    if(o.move)t(d,cx,h*0.76,F.small,o.moveCol||C.white,o.move);return;}
+  t(d,cx,h*0.40,F.nhot,o.paused?C.orange:C.white,o.clock,{num:1});
+  if(o.next!==undefined){ if(o.next){t(d,cx,h*0.61,F.xtiny,C.lt,"NEXT");t(d,cx,h*0.72,F.small,C.white,o.next);} else t(d,cx,h*0.66,F.small,C.lt,"Last interval"); }
+  else if(o.name){t(d,cx,h*0.62,F.small,C.white,o.name);
+    t(d,cx,h*0.75,F.medium,C.yellow,o.reps,{bold:1});
+    if(o.conf){d.fillStyle=o.conf;d.beginPath();d.arc(cx+w*0.22,h*0.75,Math.max(3,w/60),0,7);d.fill();}}
+  if(o.foot)t(d,cx,h*0.88,F.xtiny,C.lt,o.foot);
+}
+function preview(d,w,h,name,head,lines,mode,hist){
+  const cx=w/2;t(d,cx,h*0.14,F.small,C.white,name);t(d,cx,h*0.26,F.tiny,C.yellow,head);
+  let y=h*0.36;lines.forEach(l=>{t(d,cx,y,F.xtiny,C.lt,l,{top:1});y+=F.xtiny+6;});
+  if(hist)t(d,cx,h*0.79,F.xtiny,C.orange,hist);
+  t(d,cx,h*0.88,F.xtiny,C.green,mode);
+}
+function hints(d,w,h){const cx=w/2;t(d,cx,h*0.83,F.xtiny,C.green,"START save");t(d,cx,h*0.90,F.xtiny,C.lt,"BACK discard");}
+function summary(d,w,h,name,score,lines,splits,best){
+  const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,name);t(d,cx,h*0.28,F.large,C.yellow,score,{bold:1});
+  if(best)t(d,cx,h*0.38,F.xtiny,best=="NEW BEST"?C.green:C.lt,best,{bold:best=="NEW BEST"});
+  let y=h*0.46;lines.forEach(l=>{t(d,cx,y,F.tiny,C.white,l);y+=F.tiny+8;});
+  const ay=y-(F.tiny+8)/4;t(d,cx-w*0.03,ay,F.xtiny,C.lt,"Analysis");const ax=cx+w*0.14,s=w/40;d.fillStyle=C.lt;d.beginPath();d.moveTo(ax-s,ay-s/2);d.lineTo(ax+s,ay-s/2);d.lineTo(ax,ay+s);d.fill();
+  hints(d,w,h);
+}
+const W=416;
+mk("1. Menu principal",W,W,0,(d,w,h)=>menu(d,w,h,"WODwrist",[["WOD 2026-09-30","AMRAP 12 min"],["Sync WOD","From coach page"],["My stats","23 workouts"],["Class timer","Coach mode, no recording",false],["Sample: Swing EMOM","EMOM 10 min"]],0));
+mk("2. Aperçu: meilleur et dernier score",W,W,0,(d,w,h)=>preview(d,w,h,"WOD 2026-09-30","AMRAP 12 min",["10 Wall balls","10 Burpees","200 m Run"],"START: go","Best 8 + 3  Last 7 + 12"));
+mk("3. Compte à rebours",W,W,0,(d,w,h)=>run(d,w,h,{label:"GET READY",color:C.yellow,round:"Rounds 0",clock:"7",name:"Wall balls",reps:"0/10",foot:"Reps 0  HR 98"}));
+mk("4. AMRAP: rythme vs ton record (en avance)",W,W,0,(d,w,h)=>run(d,w,h,{label:"WORK",color:C.green,round:"Rounds 3",delta:"-0:08",clock:"7:42",name:"Wall balls",reps:"7/10",conf:C.green,foot:"Reps 67  HR 164"}));
+mk("5. AMRAP: bloc distance (en retard)",W,W,0,(d,w,h)=>run(d,w,h,{label:"WORK",color:C.green,round:"Rounds 3",delta:"+0:14",clock:"6:58",name:"Run",reps:"200 m",foot:"Reps 80  HR 171"}));
+mk("6. For time 21-15-9",W,W,0,(d,w,h)=>run(d,w,h,{label:"WORK",color:C.green,round:"Round 2/3",clock:"3:17",name:"Thrusters",reps:"11/15",conf:C.yellow,foot:"Reps 53  HR 176"}));
+mk("7. EMOM: travail fini, prochain intervalle",W,W,0,(d,w,h)=>run(d,w,h,{label:"DONE, WAIT",color:C.blue,round:"Int 4/10",clock:"0:18",next:"10 Burpees",foot:"Reps 46  HR 158"}));
+mk("8. Tabata: repos (prochain mouvement)",W,W,0,(d,w,h)=>run(d,w,h,{label:"REST",color:C.blue,round:"Int 5/8",clock:"0:07",next:"Push-ups",foot:"Reps 88  HR 169"}));
+mk("9. Menu pause",W,W,0,(d,w,h)=>menu(d,w,h,"Paused",[["Resume"],["Finish","Save the score"],["Discard","Throw away"]],0));
+mk("10. Résumé: nouveau record",W,W,0,(d,w,h)=>summary(d,w,h,"WOD 2026-09-30","8 + 10",["Time 12:00","Rounds 8  Reps 170","HR avg 162  max 181"],8,"NEW BEST"));
+mk("11. Splits",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.14,F.xtiny,C.lt,"Splits 1/2");let y=h*0.28;["R1  1:31  30r  151","R2  1:35  30r  160","R3  1:38  30r  165","R4  1:40  30r  167","R5  1:44  30r  170"].forEach(s=>{t(d,cx,y,F.tiny,C.white,s);y+=F.tiny+8;});hints(d,w,h);});
+mk("12. Mode coach (class timer)",W,W,0,(d,w,h)=>run(d,w,h,{coach:1,label:"WORK",color:C.green,round:"Int 6/10",clock:"0:41",move:"12 KB swings"}));
+mk("13. Venu Sq 2 (écran rectangulaire)",320,360,1,(d,w,h)=>{const s=0.8;const f={...F};Object.keys(F).forEach(k=>F[k]=Math.round(f[k]*s));run(d,w,h,{label:"WORK",color:C.green,round:"Rounds 3",clock:"7:42",name:"Wall balls",reps:"7/10",conf:C.green,foot:"Reps 67  HR 164"});Object.assign(F,f);});
+
+function arrow(d,w,h){const cx=w/2,s=w/40,y=h*0.9;d.fillStyle=C.lt;d.beginPath();d.moveTo(cx-s,y-s/2);d.lineTo(cx+s,y-s/2);d.lineTo(cx,y+s);d.fill();}
+function table(d,w,h,title,rows){const cx=w/2;t(d,cx,h*0.15,F.xtiny,C.lt,title);let y=h*0.29;rows.forEach(r=>{t(d,cx,y,F.tiny,C.white,r);y+=F.tiny+10;});}
+mk("14. Menu My stats",W,W,0,(d,w,h)=>menu(d,w,h,"My stats",[["Overall","23 workouts"],["Movements","Pace per rep"],["WOD 2026-09-30","Best 8 + 10  x4"],["Fran-ish","Best 5:12  x2"]],2));
+mk("15. Stats d'un WOD",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"WOD 2026-09-30");t(d,cx,h*0.22,F.xtiny,C.lt,"BEST");t(d,cx,h*0.33,F.large,C.yellow,"8 + 10",{bold:1});
+  let y=h*0.48;[["Last 7 + 12  (x4)",C.white],["Fade +17%",C.orange],["HR 162 / 181",C.white]].forEach(([s,c])=>{t(d,cx,y,F.tiny,c,s);y+=F.tiny+8;});arrow(d,w,h);});
+mk("16. Rounds: record vs dernier",W,W,0,(d,w,h)=>{table(d,w,h,"Round  Best  Last",["R1  1:28  1:31","R2  1:30  1:35","R3  1:31  1:38","R4  1:33  1:40","R5  1:35  1:44"]);arrow(d,w,h);});
+mk("17. Rythme par mouvement",W,W,0,(d,w,h)=>table(d,w,h,"Pace per rep",["Wall balls  2.4 s","Burpees  3.9 s","KB swings  1.8 s","Thrusters  2.6 s","Air squats  1.4 s"]));
+mk("18. Global",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.15,F.xtiny,C.lt,"Overall");t(d,cx,h*0.32,F.large,C.yellow,"23",{bold:1});t(d,cx,h*0.44,F.xtiny,C.lt,"workouts");
+  t(d,cx,h*0.58,F.tiny,C.white,"Time 5:12:40");t(d,cx,h*0.68,F.tiny,C.white,"Reps 4210");t(d,cx,h*0.78,F.tiny,C.white,"9 different WODs");});
+
+function flash(d,w,h,txt,y){d.fillStyle=C.orange;const fh=F.medium+6;d.beginPath();d.roundRect(w*0.15,y-fh*0.75,w*0.7,fh*1.5,fh/3);d.fill();t(d,w/2,y,F.medium,"#000",txt,{bold:1});}
+mk("19. Menu Coach",W,W,0,(d,w,h)=>menu(d,w,h,"Coach",[["Class timer","Big clock, no recording",true],["Run class plan","3 parts: Warm-up, Strength, Metcon"],["Start","Next :00 :15 :30 :45"],["Rest between parts","1:00"]],1));
+mk("20. Départ au quart d'heure",W,W,0,(d,w,h)=>run(d,w,h,{coach:1,label:"GET READY",color:C.yellow,round:"1/3 Warm-up",clock:"7:42",move:"10 Air squats"}));
+mk("21. Alerte mi-temps (coach)",W,W,0,(d,w,h)=>{run(d,w,h,{coach:1,label:"WORK",color:C.green,round:"Rounds 4",clock:"6:00"});flash(d,w,h,"HALFWAY",h*0.79);});
+mk("22. Enchaînement: repos avant partie 3",W,W,0,(d,w,h)=>run(d,w,h,{coach:1,label:"GET READY",color:C.yellow,round:"3/3 Metcon",clock:"0:48",move:"10 Wall balls"}));
+mk("23. Alerte 1 min (athlète)",W,W,0,(d,w,h)=>{run(d,w,h,{label:"WORK",color:C.green,round:"Rounds 7",delta:"-0:05",clock:"1:00",name:"Burpees",reps:"4/10",foot:"Reps 154  HR 178"});flash(d,w,h,"1 MIN LEFT",h*0.62);});
+mk("24. Pause pendant un plan",W,W,0,(d,w,h)=>menu(d,w,h,"Paused",[["Resume"],["Finish","Next part"],["Discard","Throw away"],["End class","Stop the plan here"]],1));
+
+mk("25. Résumé > Analysis (AMRAP)",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"ANALYSIS");
+  const z=[0,120,180,240,300,60],tot=900,x0=w*0.15,bw=w*0.7,by=h*0.21,bh=h*0.05,zc=[C.lt,C.blue,C.green,C.orange,C.red];let x=x0;
+  for(let i=1;i<=5;i++){const seg=i==5?x0+bw-x:bw*z[i]/tot;d.fillStyle=zc[i-1];d.fillRect(x,by,seg,bh);x+=seg;}
+  t(d,cx,h*0.33,F.tiny,C.yellow,"Load 51");let y=h*0.44;
+  [["Mostly Z4 (5 min)",C.white],["Round var 6%",C.white],["Fade +17%",C.orange],["Fitter: -6 bpm vs last",C.green]].forEach(([s,c])=>{t(d,cx,y,F.tiny,c,s);y+=F.tiny+8;});hints(d,w,h);});
+mk("26. Résumé > Analysis (EMOM)",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"ANALYSIS");
+  const z=[0,60,240,300,0,0],tot=600,x0=w*0.15,bw=w*0.7,by=h*0.21,bh=h*0.05,zc=[C.lt,C.blue,C.green,C.orange,C.red];let x=x0;
+  for(let i=1;i<=5;i++){const seg=i==5?x0+bw-x:bw*z[i]/tot;d.fillStyle=zc[i-1];d.fillRect(x,by,seg,bh);x+=seg;}
+  t(d,cx,h*0.33,F.tiny,C.yellow,"Load 22");let y=h*0.44;
+  [["Mostly Z3 (5 min)",C.white],["Work 72% / interval",C.white]].forEach(([s,c])=>{t(d,cx,y,F.tiny,c,s);y+=F.tiny+8;});hints(d,w,h);});
+mk("27. My stats > Training load",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"TRAINING LOAD");t(d,cx,h*0.28,F.large,C.green,"1.12",{bold:1});
+  t(d,cx,h*0.39,F.xtiny,C.green,"Optimal");t(d,cx,h*0.49,F.xtiny,C.white,"7 days 320   4 wk avg 285");
+  const day=[60,0,85,0,70,40,65],max=85,x0=w*0.22,slot=w*0.56/7,base=h*0.8,hm=h*0.2;
+  day.forEach((v,i)=>{d.fillStyle=i==6?C.yellow:C.lt;const bh=v*hm/max;d.fillRect(x0+i*slot+slot/5,base-bh,slot*0.6,bh);d.fillRect(x0+i*slot+slot/5,base,slot*0.6,2);});});
+mk("28. Training load: risque",W,W,0,(d,w,h)=>{const cx=w/2;t(d,cx,h*0.13,F.xtiny,C.lt,"TRAINING LOAD");t(d,cx,h*0.28,F.large,C.red,"1.64",{bold:1});
+  t(d,cx,h*0.39,F.xtiny,C.red,"Very high: ease off");t(d,cx,h*0.49,F.xtiny,C.white,"7 days 510   4 wk avg 311");
+  const day=[90,85,0,95,110,60,70],max=110,x0=w*0.22,slot=w*0.56/7,base=h*0.8,hm=h*0.2;
+  day.forEach((v,i)=>{d.fillStyle=i==6?C.yellow:C.lt;const bh=v*hm/max;d.fillRect(x0+i*slot+slot/5,base-bh,slot*0.6,bh);d.fillRect(x0+i*slot+slot/5,base,slot*0.6,2);});});
+</script></body></html>
