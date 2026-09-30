@@ -129,7 +129,7 @@ function download() {
 function ghSettings() {
   return {
     repo: $("ghRepo").value.trim(),
-    branch: $("ghBranch").value.trim() || "main",
+    branch: $("ghBranch").value.trim() || "master",
     path: $("ghPath").value.trim() || "web-editor/wod/today.json",
     token: $("ghToken").value.trim(),
   };
@@ -292,7 +292,7 @@ function init() {
   $("copyJson").addEventListener("click", (e) => current && copy(JSON.stringify(current, null, 2), e.target));
   $("downloadJson").addEventListener("click", download);
 
-  for (const [id, key, def] of [["ghRepo", "repo", "alexcartn/WODwrist"], ["ghBranch", "branch", "main"], ["ghPath", "path", "web-editor/wod/today.json"], ["ghToken", "token", ""]]) {
+  for (const [id, key, def] of [["ghRepo", "repo", "alexcartn/WODwrist"], ["ghBranch", "branch", "master"], ["ghPath", "path", "web-editor/wod/today.json"], ["ghToken", "token", ""]]) {
     $(id).value = store.get(key, def);
     $(id).addEventListener("input", () => {
       store.set(key, $(id).value.trim());

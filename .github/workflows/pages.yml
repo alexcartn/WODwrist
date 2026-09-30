@@ -6,7 +6,7 @@ name: Deploy web editor
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths: ["web-editor/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
