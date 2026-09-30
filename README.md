@@ -125,8 +125,9 @@ npm test                      # parser + engine reference tests
 python3 -m http.server 8000   # then open http://localhost:8000
 ```
 
-Served by GitHub Pages straight from `master` (Settings > Pages > Deploy from a
-branch, `master` / root): https://alexcartn.github.io/WODwrist/web-editor/
+Served by GitHub Pages through `.github/workflows/pages.yml` (Settings > Pages >
+Source: GitHub Actions), deployed on every push to `master` that touches
+`web-editor/`: https://alexcartn.github.io/WODwrist/web-editor/
 The Publish button commits `web-editor/wod/today.json` with a fine-grained
 token (contents: write on this repo) kept in the browser.
 

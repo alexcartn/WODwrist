@@ -1,0 +1,42 @@
+name: Deploy web editor
+
+# Publishes the repo's web-editor/ at https://<owner>.github.io/<repo>/web-editor/
+# (same URLs as "deploy from branch", so the watch setting does not change).
+# Runs on every push touching the editor, including the WOD published by the
+# editor's Publish button (web-editor/wod/today.json).
+# One-time setup: repo Settings > Pages > Source: GitHub Actions.
+
+on:
+  push:
+    branches: [master]
+    paths: ["web-editor/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}web-editor/
+    steps:
+      - uses: actions/checkout@v5
+      - name: Stage site
+        run: |
+          mkdir -p _site/web-editor
+          cp -r web-editor/index.html web-editor/style.css web-editor/js web-editor/vendor web-editor/wod _site/web-editor/
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
