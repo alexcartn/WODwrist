@@ -39,8 +39,8 @@ them to apps.
 ## Loads, RX / scaled, tonnage
 
 Loads written in the WOD are read: `21 thrusters (43/30kg)`, `12 kb swings @24kg`,
-`5 cleans (135/95 lb)`, `1.5 pood` (converted to kg). Unitless `20/14` is ignored
-(kg or lb cannot be guessed). Setting `My load in "43/30kg"`: first or second value.
+`5 cleans (135/95 lb)`, `1.5 pood` (converted to kg). Without a unit, loads are kg:
+`thrusters 43/30`, `@100`, and any number in brackets `(24)`. Setting `My load in "43/30kg"`: first or second value.
 After a WOD with loads the watch asks RX or Scaled: scaled results get their own
 best / last and add no tonnage. Details page: `Moved 2340 kg`.
 

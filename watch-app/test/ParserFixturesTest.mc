@@ -400,6 +400,43 @@ function fixture_for_time_single(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function fixture_loads_kg(logger as Test.Logger) as Boolean {
+    var r = WodParser.parse("FOR TIME\n21-15-9\nthrusters 43/30\n12 kb swings (24)\n10 deadlifts @100\n");
+    Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);
+    var w = r["wod"] as Dictionary;
+    TestUtil.check(logger, w["name"], "FOR TIME", "name");
+    TestUtil.check(logger, w["type"], "FOR_TIME", "type");
+    TestUtil.check(logger, w["timeCapSec"], null, "timeCapSec");
+    TestUtil.check(logger, w["intervalSec"], null, "intervalSec");
+    TestUtil.check(logger, w["workSec"], null, "workSec");
+    TestUtil.check(logger, w["restSec"], null, "restSec");
+    TestUtil.check(logger, w["rounds"], 3, "rounds");
+    TestUtil.check(logger, w["repStep"], null, "repStep");
+    TestUtil.checkArray(logger, w["repScheme"], [21, 15, 9], "repScheme");
+    var b = w["blocks"] as Array<Dictionary>;
+    TestUtil.check(logger, b.size(), 3, "block count");
+    TestUtil.check(logger, b[0]["movement"], "thruster", "block 0 movement");
+    TestUtil.check(logger, b[0]["name"], "Thrusters", "block 0 name");
+    TestUtil.check(logger, b[0]["reps"], 0, "block 0 reps");
+    TestUtil.check(logger, b[0]["unit"], "reps", "block 0 unit");
+    TestUtil.check(logger, b[0]["slot"], null, "block 0 slot");
+    TestUtil.checkArray(logger, b[0]["load"], [43, 30], "block 0 load");
+    TestUtil.check(logger, b[1]["movement"], "kb_swing", "block 1 movement");
+    TestUtil.check(logger, b[1]["name"], "KB swings", "block 1 name");
+    TestUtil.check(logger, b[1]["reps"], 12, "block 1 reps");
+    TestUtil.check(logger, b[1]["unit"], "reps", "block 1 unit");
+    TestUtil.check(logger, b[1]["slot"], null, "block 1 slot");
+    TestUtil.checkArray(logger, b[1]["load"], [24], "block 1 load");
+    TestUtil.check(logger, b[2]["movement"], "deadlift", "block 2 movement");
+    TestUtil.check(logger, b[2]["name"], "Deadlifts", "block 2 name");
+    TestUtil.check(logger, b[2]["reps"], 10, "block 2 reps");
+    TestUtil.check(logger, b[2]["unit"], "reps", "block 2 unit");
+    TestUtil.check(logger, b[2]["slot"], null, "block 2 slot");
+    TestUtil.checkArray(logger, b[2]["load"], [100], "block 2 load");
+    return true;
+}
+
+(:test)
 function fixture_one_line(logger as Test.Logger) as Boolean {
     var r = WodParser.parse("AMRAP 12; 10 wall balls (9/6kg); 10 burpees; 200m run");
     Test.assertMessage(r.hasKey("wod"), "parse error: " + r["error"]);

@@ -60,7 +60,13 @@ test("movement lines", () => {
   assert.deepEqual(parseMovement("21 thrusters (43/30kg)").load, [43, 30]);
   assert.deepEqual(parseMovement("10 kbs (1.5 pood)").load, [25]);
   assert.deepEqual(parseMovement("5 cleans (135/95 lb)").load, [61, 43]);
-  assert.equal(parseMovement("wall balls 20/14").load, null);
+  assert.deepEqual(parseMovement("wall balls 20/14").load, [20, 14]);
+  assert.deepEqual(parseMovement("21 thrusters (43/30)").load, [43, 30]);
+  assert.deepEqual(parseMovement("12 kb swings (24)").load, [24]);
+  assert.deepEqual(parseMovement("10 deadlifts @ 100").load, [100]);
+  assert.deepEqual(parseMovement("10 deadlifts @100").load, [100]);
+  assert.equal(parseMovement("10 deadlifts @100").reps, 10);
+  assert.equal(parseMovement("10 burpees").load, null);
   assert.equal(parseMovement("12 sandbag cleans").movement, "custom");
   assert.equal(parseMovement("12 sandbag cleans").name, "Sandbag cleans");
 });

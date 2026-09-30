@@ -274,9 +274,10 @@ function weightValues(num, unit) {
   return out.length > 0 && out.every((x) => x > 0) ? out : null;
 }
 
-// First load written in these tokens, in kg: [rx] or [rx, alternative]. Unitless
-// numbers ("20/14") are ignored: kg or lb cannot be guessed.
-function findLoad(t) {
+// First load written in these tokens, in kg: [rx] or [rx, alternative].
+// Without a unit, loads are kg: "20/14", "@60". In brackets any number is a
+// load: "(24)", "(43/30)".
+function findLoad(t, inBrackets = false) {
   for (let k = 0; k < t.length; k++) {
     const tok = t[k][0] === "@" ? t[k].substring(1) : t[k];
     for (const u of WEIGHT_UNITS) {
@@ -291,6 +292,21 @@ function findLoad(t) {
         const v = weightValues(prev, tok);
         if (v) return v;
       }
+    }
+  }
+  // no unit written: kg
+  for (let k = 0; k < t.length; k++) {
+    const at = t[k][0] === "@";
+    const tok = at ? t[k].substring(1) : t[k];
+    const next = k + 1 < t.length ? t[k + 1] : "";
+    if (WEIGHT_UNITS.includes(next)) continue;
+    if (isWeightNumber(tok) && (at || inBrackets || tok.includes("/"))) {
+      const v = weightValues(tok, "kg");
+      if (v) return v;
+    }
+    if (t[k] === "@" && k + 1 < t.length && isWeightNumber(t[k + 1])) {
+      const v = weightValues(t[k + 1], "kg");
+      if (v) return v;
     }
   }
   return null;
@@ -309,7 +325,7 @@ function bracketText(s) {
 
 export function parseMovement(raw) {
   const t0 = tokens(stripBrackets(raw).toLowerCase());
-  const load = findLoad(t0) ?? findLoad(tokens(bracketText(raw).toLowerCase()));
+  const load = findLoad(t0) ?? findLoad(tokens(bracketText(raw).toLowerCase()), true);
 
   // drop loads: "43/30kg", "20/14", "24 kg", "@", "@60kg"
   const t1 = [];

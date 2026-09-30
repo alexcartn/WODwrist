@@ -54,7 +54,9 @@ The first number is the target, an optional unit follows it:
 | `30s plank`, `1 min plank` | 30 / 60 | sec |
 | `air squats` | 0 (max, or from the rep scheme) | reps |
 
-Loads are ignored: `(43/30kg)`, `[24kg]`, `20/14`, `@ 60kg`, `100 kg`.
+Loads are kept apart from the movement name, in `block.load` (kg):
+`(43/30kg)`, `[24kg]`, `@ 60kg`, `100 kg`, `(135/95 lb)`, `1.5 pood`. Without a
+unit a load is kg: `20/14`, `@60`, `(24)`.
 
 The remaining words are looked up in `docs/movements.json` (normalized:
 lowercase, `-` `_` `.` become spaces, a trailing `s`/`es` is tried). Unknown

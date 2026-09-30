@@ -299,8 +299,9 @@ module WodParser {
     }
 
     // First load written in these tokens, in kg: [rx] or [rx, alternative].
-    // Unitless numbers ("20/14") are ignored: kg or lb cannot be guessed.
-    function findLoad(t as Array<String>) as Array<Number>? {
+    // Without a unit, loads are kg: "20/14", "@60". In brackets any number is a
+    // load: "(24)", "(43/30)".
+    function findLoad(t as Array<String>, inBrackets as Boolean) as Array<Number>? {
         for (var k = 0; k < t.size(); k++) {
             var tok = stripAt(t[k]);
             for (var u = 0; u < WEIGHT_UNITS.size(); u++) {
@@ -319,6 +320,20 @@ module WodParser {
                     var v = weightValues(prev, tok);
                     if (v != null) { return v; }
                 }
+            }
+        }
+        // no unit written: kg
+        for (var k = 0; k < t.size(); k++) {
+            var at = Str.startsWith(t[k], "@");
+            var tok = stripAt(t[k]);
+            if (k + 1 < t.size() && Str.indexIn(WEIGHT_UNITS as Array<String>, t[k + 1]) >= 0) { continue; }
+            if (Str.isWeightNumber(tok) && (at || inBrackets || Str.contains(tok, "/"))) {
+                var v = weightValues(tok, "kg");
+                if (v != null) { return v; }
+            }
+            if (t[k].equals("@") && k + 1 < t.size() && Str.isWeightNumber(t[k + 1])) {
+                var v = weightValues(t[k + 1], "kg");
+                if (v != null) { return v; }
             }
         }
         return null;
@@ -345,8 +360,8 @@ module WodParser {
 
     function parseMovement(raw as String) as Dictionary {
         var t0 = Str.tokens(stripBrackets(raw).toLower());
-        var load = findLoad(t0);
-        if (load == null) { load = findLoad(Str.tokens(bracketText(raw).toLower())); }
+        var load = findLoad(t0, false);
+        if (load == null) { load = findLoad(Str.tokens(bracketText(raw).toLower()), true); }
 
         // drop loads: "43/30kg", "20/14", "24 kg", "@", "@60kg"
         var t1 = [] as Array<String>;

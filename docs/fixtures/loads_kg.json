@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "name": "FOR TIME",
+  "type": "FOR_TIME",
+  "timeCapSec": null,
+  "intervalSec": null,
+  "workSec": null,
+  "restSec": null,
+  "rounds": 3,
+  "repScheme": [
+    21,
+    15,
+    9
+  ],
+  "repStep": null,
+  "blocks": [
+    {
+      "movement": "thruster",
+      "name": "Thrusters",
+      "reps": 0,
+      "unit": "reps",
+      "slot": null,
+      "load": [
+        43,
+        30
+      ]
+    },
+    {
+      "movement": "kb_swing",
+      "name": "KB swings",
+      "reps": 12,
+      "unit": "reps",
+      "slot": null,
+      "load": [
+        24
+      ]
+    },
+    {
+      "movement": "deadlift",
+      "name": "Deadlifts",
+      "reps": 10,
+      "unit": "reps",
+      "slot": null,
+      "load": [
+        100
+      ]
+    }
+  ]
+}
