@@ -38,6 +38,7 @@ class SyncService {
             out.add(w);
         }
         Application.Storage.setValue("wods", out as Array<Application.PropertyValueType>);
+        Glance.update(wod["name"] as String, WodFormat.headline(wod));
     }
 
     function removeWod(index as Number) as Void {

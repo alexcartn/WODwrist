@@ -49,10 +49,22 @@ export function scoreText(rec) {
   return `${rec.reps} reps`;
 }
 
-// History entry for one WOD: { last, best, n }
-export function addResult(entry, rec) {
-  if (entry == null) return { last: rec, best: rec, n: 1 };
-  return { last: rec, best: isBetter(rec, entry.best) ? rec : entry.best, n: entry.n + 1 };
+// History entry for one WOD: { last, best, n, hist }
+// hist = [[day, scoreValue], ...], the last 12 results, for the progress chart.
+export const HIST_MAX = 12;
+
+export function addResult(entry, rec, day = 0) {
+  const point = [day, scoreValue(rec)];
+  if (entry == null) return { last: rec, best: rec, n: 1, hist: [point] };
+  const hist = [...(entry.hist || []), point].slice(-HIST_MAX);
+  return { last: rec, best: isBetter(rec, entry.best) ? rec : entry.best, n: entry.n + 1, hist };
+}
+
+// Back from a scoreValue to the score text.
+export function valueText(kind, v) {
+  if (kind === "rounds") return `${Math.floor(v / 1000)} + ${v % 1000}`;
+  if (kind === "time") return scoreText({ kind, ms: 2000000000 - v });
+  return `${v} reps`;
 }
 
 // ---------- on-watch stats ----------

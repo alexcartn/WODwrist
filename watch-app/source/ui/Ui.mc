@@ -152,4 +152,114 @@ module Ui {
         if (dy >= r) { return 0; }
         return (2 * Math.sqrt(r * r - dy * dy)).toNumber() * 88 / 100;
     }
+
+    // ---------- 7-segment "gym timer" digits ----------
+
+    // segments a b c d e f g per digit, as bits 0..6
+    const SEGS = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F];
+
+    function clockWidth(text as String, h as Number) as Number {
+        var cs = text.toCharArray();
+        var w = 0;
+        for (var i = 0; i < cs.size(); i++) {
+            w += charWidth(cs[i], h);
+            if (i < cs.size() - 1) { w += h / 9; }
+        }
+        return w;
+    }
+
+    // "1" is narrow, like on real gym timers (no gap in "1:32").
+    function charWidth(c as Char, h as Number) as Number {
+        if (c == ':') { return h * 28 / 100; }
+        if (c == '1') { return h * 58 / 100 / 3 + 2; }
+        return h * 58 / 100;
+    }
+
+    // Digits and ':' centered on (cx, cy), h pixels tall.
+    function drawClock(dc as Graphics.Dc, text as String, cx as Number, cy as Number, h as Number, color as Number) as Void {
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        var t = h / 9;                 // segment thickness
+        if (t < 3) { t = 3; }
+        var dw = h * 58 / 100;         // digit width
+        var x = cx - clockWidth(text, h) / 2;
+        var y = cy - h / 2;
+        var cs = text.toCharArray();
+        for (var i = 0; i < cs.size(); i++) {
+            var c = cs[i];
+            if (c == ':') {
+                var cw = h * 28 / 100;
+                dc.fillRoundedRectangle(x + (cw - t) / 2, y + h * 30 / 100 - t / 2, t, t, t / 3);
+                dc.fillRoundedRectangle(x + (cw - t) / 2, y + h * 70 / 100 - t / 2, t, t, t / 3);
+                x += cw + h / 9;
+                continue;
+            }
+            var n = c.toNumber() - 48;
+            var cw1 = charWidth(c, h);
+            // a "1" keeps its segments on the right edge of its narrow cell
+            if (n >= 0 && n <= 9) { digit(dc, SEGS[n] as Number, x + cw1 - dw, y, dw, h, t); }
+            x += cw1 + h / 9;
+        }
+    }
+
+    function digit(dc as Graphics.Dc, m as Number, x as Number, y as Number, w as Number, h as Number, t as Number) as Void {
+        var g = t / 4 + 1;             // gap between segments
+        var half = h / 2;
+        var hl = w - 2 * g;            // horizontal length
+        var vl = half - t / 2 - 2 * g; // vertical length
+        var r = t / 2;
+        if ((m & 0x01) != 0) { dc.fillRoundedRectangle(x + g, y, hl, t, r); }                               // a
+        if ((m & 0x02) != 0) { dc.fillRoundedRectangle(x + w - t, y + g + t / 2, t, vl, r); }              // b
+        if ((m & 0x04) != 0) { dc.fillRoundedRectangle(x + w - t, y + half + g, t, vl, r); }              // c
+        if ((m & 0x08) != 0) { dc.fillRoundedRectangle(x + g, y + h - t, hl, t, r); }                       // d
+        if ((m & 0x10) != 0) { dc.fillRoundedRectangle(x, y + half + g, t, vl, r); }                        // e
+        if ((m & 0x20) != 0) { dc.fillRoundedRectangle(x, y + g + t / 2, t, vl, r); }                      // f
+        if ((m & 0x40) != 0) { dc.fillRoundedRectangle(x + g, y + half - t / 2, hl, t, r); }               // g
+    }
+
+    // ---------- charts ----------
+
+    // Bars from the bottom of the box. colors: one per bar (or null = MUTED).
+    // lo = value drawn as a minimal bar (so small differences stay visible).
+    function bars(dc as Graphics.Dc, v as Array<Number>, colors as Array<Number>?, x as Number, y as Number,
+            w as Number, h as Number, lo as Number) as Void {
+        var n = v.size();
+        if (n == 0) { return; }
+        var max = lo + 1;
+        for (var i = 0; i < n; i++) { if (v[i] > max) { max = v[i]; } }
+        var slot = w / n;
+        var bw = slot * 7 / 10;
+        if (bw < 2) { bw = 2; }
+        for (var i = 0; i < n; i++) {
+            var val = v[i] - lo;
+            if (val < 0) { val = 0; }
+            var bh = h / 8 + (h - h / 8) * val / (max - lo);
+            dc.setColor(colors == null ? Theme.MUTED : (colors as Array<Number>)[i], Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(x + i * slot + (slot - bw) / 2, y + h - bh, bw, bh);
+        }
+    }
+
+    // Polyline scaled between the min and max of v.
+    function line(dc as Graphics.Dc, v as Array<Number>, color as Number, x as Number, y as Number, w as Number, h as Number) as Void {
+        var n = v.size();
+        if (n < 2) { return; }
+        var min = v[0];
+        var max = v[0];
+        for (var i = 1; i < n; i++) {
+            if (v[i] < min) { min = v[i]; }
+            if (v[i] > max) { max = v[i]; }
+        }
+        if (max == min) { max = min + 1; }
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(3);
+        var px = x;
+        var py = y + h - (v[0] - min) * h / (max - min);
+        for (var i = 1; i < n; i++) {
+            var qx = x + i * w / (n - 1);
+            var qy = y + h - (v[i] - min) * h / (max - min);
+            dc.drawLine(px, py, qx, qy);
+            px = qx;
+            py = qy;
+        }
+        dc.setPenWidth(1);
+    }
 }

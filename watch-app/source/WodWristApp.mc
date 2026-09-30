@@ -2,9 +2,14 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
+// (:glance): the app class is also loaded for the glance (widget list), where
+// only glance code is available. Everything else is created lazily in the
+// full app (getInitialView), never in the glance.
+(:glance)
 class WodWristApp extends Application.AppBase {
 
-    var sync as SyncService;
+    private var _sync as SyncService? = null;
+    private var _started as Boolean = false;
     var session as WorkoutSession? = null;
     // true while the main menu is the visible view (so a background sync can refresh it)
     var menuOnTop as Boolean = true;
@@ -14,14 +19,26 @@ class WodWristApp extends Application.AppBase {
 
     function initialize() {
         AppBase.initialize();
-        sync = new SyncService();
     }
 
-    function onStart(state as Dictionary?) as Void {
-        sync.importSettingsText();
-        if (sync.hasUrl()) {
-            sync.fetch(method(:onStartupSync));
+    function syncSvc() as SyncService {
+        if (_sync == null) { _sync = new SyncService(); }
+        return _sync as SyncService;
+    }
+
+    // Settings text import and background URL sync, once, in the full app.
+    private function startFullApp() as Void {
+        if (_started) { return; }
+        _started = true;
+        syncSvc().importSettingsText();
+        if (syncSvc().hasUrl()) {
+            syncSvc().fetch(method(:onStartupSync));
         }
+    }
+
+    (:glance)
+    function getGlanceView() as [WatchUi.GlanceView] or [WatchUi.GlanceView, WatchUi.GlanceViewDelegate] or Null {
+        return [new WodGlanceView()];
     }
 
     function onStop(state as Dictionary?) as Void {
@@ -32,8 +49,9 @@ class WodWristApp extends Application.AppBase {
     }
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
+        startFullApp();
         // first launch without any WOD: a short how-to first
-        if (Application.Storage.getValue("onboarded") != true && sync.wods().size() == 0) {
+        if (Application.Storage.getValue("onboarded") != true && syncSvc().wods().size() == 0) {
             menuOnTop = false;
             var v = new OnboardView();
             return [v, new OnboardDelegate(v, true)];
@@ -42,7 +60,8 @@ class WodWristApp extends Application.AppBase {
     }
 
     function onSettingsChanged() as Void {
-        sync.importSettingsText();
+        if (!_started) { return; }  // glance: nothing to do
+        syncSvc().importSettingsText();
         refreshMenu();
     }
 
@@ -67,10 +86,13 @@ class WodWristApp extends Application.AppBase {
         }
         session = s;
         menuOnTop = false;
+        var v = new RunView(s);
+        var d = new RunDelegate(s);
+        d.setView(v);
         if (replace) {
-            WatchUi.switchToView(new RunView(s), new RunDelegate(s), WatchUi.SLIDE_UP);
+            WatchUi.switchToView(v, d, WatchUi.SLIDE_UP);
         } else {
-            WatchUi.pushView(new RunView(s), new RunDelegate(s), WatchUi.SLIDE_UP);
+            WatchUi.pushView(v, d, WatchUi.SLIDE_UP);
         }
         s.begin();
     }

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,13 +12,18 @@
     <nav>
       <button class="tab active" data-tab="edit">Editor</button>
       <button class="tab" data-tab="timer">Class timer</button>
+      <button id="themeBtn" class="icon-btn" title="Light / dark">&#9681;</button>
     </nav>
   </header>
 
   <main id="edit" class="panel active">
     <section class="col">
       <label for="wodText">WOD text</label>
-      <textarea id="wodText" spellcheck="false" rows="12"></textarea>
+      <div class="editor">
+        <pre id="hl" class="hl" aria-hidden="true"></pre>
+        <textarea id="wodText" spellcheck="false" rows="12" autocapitalize="off" autocomplete="off"></textarea>
+      </div>
+      <div id="suggest" class="suggest" hidden></div>
       <div class="examples">
         Examples:
         <button class="link" data-example="amrap">AMRAP</button>
@@ -28,6 +33,7 @@
         <button class="link" data-example="deathby">Death by</button>
         <button class="link" data-example="ladder">Ladder</button>
         <button class="link" data-example="class">Class plan</button>
+        <select id="benchmarks" aria-label="Benchmarks"><option value="">Benchmarks…</option></select>
       </div>
       <details class="help">
         <summary>Format</summary>
@@ -67,7 +73,8 @@
           <button id="publish" class="primary big">Publish WOD</button>
         </div>
         <p class="small">Athletes put this URL in the watch app settings once:</p>
-        <div class="url-row"><code id="watchUrl"></code><button id="copyUrl">Copy URL</button></div>
+        <div class="url-row"><code id="watchUrl"></code><button id="copyUrl">Copy URL</button><button id="qrBtn">QR code</button></div>
+        <div id="qrBox" class="qr" hidden></div>
         <details>
           <summary>GitHub settings</summary>
           <div class="grid">
@@ -104,6 +111,7 @@
     </div>
   </main>
 
+  <script src="vendor/qrcode.js" defer></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

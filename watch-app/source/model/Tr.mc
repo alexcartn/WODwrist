@@ -76,7 +76,8 @@ module Tr {
             "Halfway alert" => "Alerte mi-temps", "1 min left alert" => "Alerte 1 min", "Big clock, no recording" => "Gros chrono, sans enregistrement",
             // sync / onboarding
             "Syncing..." => "Synchro...", "WOD updated" => "WOD à jour", "Welcome" => "Bienvenue",
-            "Continue" => "Continuer", "Phone" => "Téléphone",
+            "Continue" => "Continuer", "ROUND" => "TOUR", "Rounds times" => "Temps par tour",
+            "HR during the WOD" => "FC pendant le WOD", "PROGRESS" => "PROGRESSION", "Zone" => "Zone", "Phone" => "Téléphone",
             "Your WOD on the wrist: timer, reps, rounds, heart rate." => "Ton WOD au poignet : chrono, reps, tours, cardio.",
             "Garmin Connect > WODwrist > Settings > WOD text. Example: AMRAP 12; 10 burpees" => "Garmin Connect > WODwrist > Réglages > WOD text. Exemple : AMRAP 12; 10 burpees",
             "Coach page? Paste its URL in the settings, then Sync WOD. Or try a sample." => "Page du coach ? Colle son URL dans les réglages, puis Synchroniser. Ou essaie un exemple."

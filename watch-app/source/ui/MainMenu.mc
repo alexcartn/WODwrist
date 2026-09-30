@@ -17,32 +17,32 @@ const MENU_ONBOARD = 1006;
 function buildMainMenu() as WatchUi.Menu2 {
     var app = getApp();
     var menu = new WatchUi.Menu2({ :title => "WODwrist" });
-    var list = app.sync.wods();
+    var list = app.syncSvc().wods();
     if (list.size() > 0) {
-        menu.addItem(new WatchUi.MenuItem(list[0]["name"] as String,
-            Tr.s("Today") + " - " + WodFormat.headline(list[0]), 0, {}));
+        menu.addItem(Icons.menuItem(list[0]["name"] as String,
+            Tr.s("Today") + " - " + WodFormat.headline(list[0]), 0, "m_play"));
     } else {
-        menu.addItem(new WatchUi.MenuItem(Tr.s("Get started"), Tr.s("No WOD yet"), MENU_ONBOARD, {}));
+        menu.addItem(Icons.menuItem(Tr.s("Get started"), Tr.s("No WOD yet"), MENU_ONBOARD, "m_play"));
     }
-    if (app.sync.settingsError != null) {
-        menu.addItem(new WatchUi.MenuItem(Tr.s("Settings WOD error"), app.sync.settingsError as String, MENU_ERROR, {}));
+    if (app.syncSvc().settingsError != null) {
+        menu.addItem(new WatchUi.MenuItem(Tr.s("Settings WOD error"), app.syncSvc().settingsError as String, MENU_ERROR, {}));
     }
     if (list.size() > 1) {
-        menu.addItem(new WatchUi.MenuItem(Tr.s("My WODs"), list.size().format("%d") + " WODs", MENU_MY_WODS, {}));
+        menu.addItem(Icons.menuItem(Tr.s("My WODs"), list.size().format("%d") + " WODs", MENU_MY_WODS, "m_list"));
     }
     var tot = ScoreHistory.totals();
-    menu.addItem(new WatchUi.MenuItem(Tr.s("My stats"),
-        weekReportIsNew() ? Tr.s("New weekly report") : (tot["n"] as Number).format("%d") + " " + Tr.s("workouts"), MENU_STATS, {}));
-    menu.addItem(new WatchUi.MenuItem(Tr.s("Coach"),
-        WorkoutSession.propBool("coachMode", false) ? Tr.s("Class timer") + " ON" : null, MENU_COACH, {}));
-    menu.addItem(new WatchUi.MenuItem(Tr.s("Sync WOD"), syncLabel(), MENU_SYNC, {}));
-    menu.addItem(new WatchUi.MenuItem(Tr.s("Samples"), Tr.s("Try a built-in WOD"), MENU_SAMPLES, {}));
+    menu.addItem(Icons.menuItem(Tr.s("My stats"),
+        weekReportIsNew() ? Tr.s("New weekly report") : (tot["n"] as Number).format("%d") + " " + Tr.s("workouts"), MENU_STATS, "m_stats"));
+    menu.addItem(Icons.menuItem(Tr.s("Coach"),
+        WorkoutSession.propBool("coachMode", false) ? Tr.s("Class timer") + " ON" : null, MENU_COACH, "m_coach"));
+    menu.addItem(Icons.menuItem(Tr.s("Sync WOD"), syncLabel(), MENU_SYNC, "m_sync"));
+    menu.addItem(Icons.menuItem(Tr.s("Samples"), Tr.s("Try a built-in WOD"), MENU_SAMPLES, "m_star"));
     return menu;
 }
 
 // "Synced 7:02" today, "Synced 3d ago", or what to do.
 function syncLabel() as String {
-    if (!getApp().sync.hasUrl()) { return Tr.s("Set URL in settings"); }
+    if (!getApp().syncSvc().hasUrl()) { return Tr.s("Set URL in settings"); }
     var last = Application.Storage.getValue("lastSync");
     if (!(last instanceof Number)) { return Tr.s("Never synced"); }
     var t = last as Number;
@@ -78,7 +78,7 @@ function openPreview(wod as Dictionary, replace as Boolean) as Void {
 // id < 100: stored WOD index, id >= 100: sample.
 function wodForId(id as Number) as Dictionary? {
     if (id >= MENU_SAMPLE_BASE) { return SampleWods.get(id - MENU_SAMPLE_BASE); }
-    var list = getApp().sync.wods();
+    var list = getApp().syncSvc().wods();
     return id < list.size() ? list[id] : null;
 }
 
@@ -102,12 +102,12 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         } else if (id == MENU_SYNC) {
             var view = new SyncView();
             WatchUi.pushView(view, new SyncDelegate(), WatchUi.SLIDE_LEFT);
-            app.sync.fetch(view.method(:onResult));
+            app.syncSvc().fetch(view.method(:onResult));
         } else if (id == MENU_ONBOARD) {
             var v = new OnboardView();
             WatchUi.pushView(v, new OnboardDelegate(v, false), WatchUi.SLIDE_LEFT);
         } else if (id == MENU_MY_WODS) {
-            WatchUi.pushView(buildWodListMenu(Tr.s("My WODs"), app.sync.wods() as Array<Dictionary?>, 0),
+            WatchUi.pushView(buildWodListMenu(Tr.s("My WODs"), app.syncSvc().wods() as Array<Dictionary?>, 0),
                 new WodListDelegate(), WatchUi.SLIDE_LEFT);
         } else if (id == MENU_SAMPLES) {
             var samples = [] as Array<Dictionary?>;

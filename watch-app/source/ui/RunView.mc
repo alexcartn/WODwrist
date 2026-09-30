@@ -8,10 +8,19 @@ import Toybox.WatchUi;
 class RunView extends WatchUi.View {
 
     private var _s as WorkoutSession;
+    // data page (athlete): 0 clock, 1 reps, 2 heart rate. Swipe up / down.
+    var page as Number = 0;
+    const PAGES = 3;
 
     function initialize(session as WorkoutSession) {
         View.initialize();
         _s = session;
+    }
+
+    function nextPage(delta as Number) as Void {
+        if (_s.coach) { return; }
+        page = (page + delta + PAGES) % PAGES;
+        WatchUi.requestUpdate();
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -74,11 +83,16 @@ class RunView extends WatchUi.View {
         } else {
             clock = Str.clock(ms, e.clockCountsDown(now));
         }
-        dc.setColor(e.state == ST_PAUSED ? Theme.WARN : Theme.TEXT, Graphics.COLOR_TRANSPARENT);
+        var clockColor = e.state == ST_PAUSED ? Theme.WARN : Theme.TEXT;
+        if (!_s.coach && page != 0 && e.state != ST_COUNTDOWN) {
+            drawDataPage(dc, e, w, h, cx, clock, clockColor);
+            drawOverlays(dc, w, h, cx);
+            return;
+        }
         if (_s.coach) {
-            dc.drawText(cx, h * 47 / 100, Graphics.FONT_NUMBER_THAI_HOT, clock, center);
+            Ui.drawClock(dc, clock, cx, h * 47 / 100, h * 30 / 100, clockColor);
         } else {
-            dc.drawText(cx, h * 41 / 100, Graphics.FONT_NUMBER_HOT, clock, center);
+            Ui.drawClock(dc, clock, cx, h * 41 / 100, h * 22 / 100, clockColor);
         }
 
         // ---- movement ----
@@ -99,7 +113,7 @@ class RunView extends WatchUi.View {
                 var line = WodFormat.target(unit, target) + " " + name;
                 dc.drawText(cx, h * 76 / 100, Graphics.FONT_SMALL, Ui.fit(dc, line, Graphics.FONT_SMALL, Ui.widthAt(dc, h * 76 / 100)), center);
             } else {
-                dc.drawText(cx, h * 62 / 100, Graphics.FONT_SMALL, Ui.fit(dc, name, Graphics.FONT_SMALL, Ui.widthAt(dc, h * 62 / 100)), center);
+                drawNameWithIcon(dc, b, cx, h * 62 / 100);
                 var reps;
                 if (unit.equals("reps")) {
                     reps = target > 0 ? e.blockReps.format("%d") + "/" + target.format("%d") : e.blockReps.format("%d");
@@ -122,7 +136,20 @@ class RunView extends WatchUi.View {
             }
         }
 
-        // ---- banner: coach alerts, next movement ----
+        // ---- footer ----
+        if (!_s.coach) {
+            var foot = Tr.s("Reps") + " " + e.totalReps.format("%d");
+            if (_s.hr > 0) { foot += "  " + Tr.s("HR") + " " + _s.hr.format("%d"); }
+            dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, foot, center);
+        }
+        drawOverlays(dc, w, h, cx);
+    }
+
+    // Banner (alerts, new movement), round celebration, page dots.
+    private function drawOverlays(dc as Graphics.Dc, w as Number, h as Number, cx as Number) as Void {
+        var center = Ui.CENTER;
+        if (!_s.coach) { Ui.pageDots(dc, page, PAGES); }
         if (_s.flashText != null) {
             var fh = dc.getFontHeight(Graphics.FONT_MEDIUM);
             var fy = _s.coach ? h * 79 / 100 : h * 62 / 100;
@@ -132,14 +159,72 @@ class RunView extends WatchUi.View {
             dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
             dc.drawText(cx, fy, Graphics.FONT_MEDIUM, Ui.fit(dc, _s.flashText as String, Graphics.FONT_MEDIUM, bw - 8), center);
         }
-
-        // ---- footer ----
-        if (!_s.coach) {
-            var foot = Tr.s("Reps") + " " + e.totalReps.format("%d");
-            if (_s.hr > 0) { foot += "  " + Tr.s("HR") + " " + _s.hr.format("%d"); }
-            dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx, h * 87 / 100, Graphics.FONT_XTINY, foot, center);
+        // ---- round completed: full screen for 1.5 s ----
+        if (_s.celebrate != null) {
+            var c = _s.celebrate as Array<String>;
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+            dc.fillCircle(cx, h / 2, w / 2 - w / 30);
+            if (!Ui.isRound()) { dc.fillRectangle(0, h / 20, w, h - h / 10); }
+            dc.setColor(Theme.WORK, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 27 / 100, Graphics.FONT_MEDIUM, c[0], center);
+            Ui.drawClock(dc, c[1], cx, h * 50 / 100, h * 22 / 100, Theme.TEXT);
+            if (c[2].length() > 0) {
+                dc.setColor(_s.celebrateBest ? Theme.WORK : Theme.DANGER, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(cx, h * 72 / 100, Graphics.FONT_MEDIUM, c[2], center);
+            }
         }
+    }
+
+    // Name with the movement pictogram on its left.
+    private function drawNameWithIcon(dc as Graphics.Dc, b as Dictionary, cx as Number, y as Number) as Void {
+        var font = Graphics.FONT_SMALL;
+        var icon = Icons.forMovement(b["movement"] as String);
+        var iw = icon == null ? 0 : (icon as WatchUi.BitmapResource).getWidth() + 6;
+        var name = Ui.fit(dc, b["name"] as String, font, Ui.widthAt(dc, y) - iw);
+        var tw = dc.getTextWidthInPixels(name, font);
+        var x0 = cx - (tw + iw) / 2;
+        if (icon != null) { Icons.draw(dc, icon, x0 + iw / 2 - 3, y); }
+        dc.setColor(Theme.TEXT, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x0 + iw, y, font, name, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    // Page 1: the rep count in giant digits. Page 2: heart rate and zone.
+    private function drawDataPage(dc as Graphics.Dc, e as TimerEngine, w as Number, h as Number, cx as Number,
+            clock as String, clockColor as Number) as Void {
+        var center = Ui.CENTER;
+        if (page == 1) {
+            var b = e.currentBlock();
+            if (b != null && !e.intervalDone && e.state == ST_WORK) {
+                drawNameWithIcon(dc, b, cx, h * 32 / 100);
+                var target = e.target(b);
+                var reps = e.blockReps.format("%d");
+                var bigH = h * 30 / 100;
+                var tail = target > 0 ? "/" + target.format("%d") : "";
+                var rw = Ui.clockWidth(reps, bigH);
+                var tw = dc.getTextWidthInPixels(tail, Graphics.FONT_MEDIUM);
+                var x0 = cx - (rw + tw + 6) / 2;
+                Ui.drawClock(dc, reps, x0 + rw / 2, h * 55 / 100, bigH, Theme.SCORE);
+                dc.setColor(Theme.SCORE, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(x0 + rw + 6, h * 55 / 100 + bigH / 3, Graphics.FONT_MEDIUM, tail, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+                if (_s.popText != null) {
+                    dc.setColor(Theme.WORK, Graphics.COLOR_TRANSPARENT);
+                    dc.drawText(cx - w * 30 / 100, h * 55 / 100, Graphics.FONT_SMALL, _s.popText as String, center);
+                }
+            } else {
+                dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+                dc.drawText(cx, h * 50 / 100, Graphics.FONT_SMALL, Tr.s(e.state == ST_REST || e.intervalDone ? "REST" : "DONE"), center);
+            }
+        } else {
+            var z = _s.hrZone();
+            var zc = [Theme.MUTED, Theme.MUTED, Theme.REST, Theme.WORK, Theme.WARN, Theme.DANGER];
+            Ui.drawClock(dc, _s.hr > 0 ? _s.hr.format("%d") : "0", cx, h * 50 / 100, h * 26 / 100, zc[z] as Number);
+            dc.setColor(zc[z] as Number, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 70 / 100, Graphics.FONT_SMALL,
+                z > 0 ? Tr.s("Zone") + " " + z.format("%d") + "  bpm" : "bpm", center);
+        }
+        // small clock at the bottom of the data pages
+        dc.setColor(clockColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 83 / 100, Graphics.FONT_MEDIUM, clock, center);
     }
 
     // While waiting (EMOM work done, Tabata rest): what comes next.
@@ -215,6 +300,7 @@ class RunDelegate extends WatchUi.InputDelegate {
 
     private var _s as WorkoutSession;
     private var _backDownAt as Number = -1;
+    private var _view as RunView? = null;
     // "Touch counts reps" setting: off = only the buttons count (sweat, stray taps)
     private var _touch as Boolean;
     const LONG_PRESS_MS = 700;
@@ -223,6 +309,10 @@ class RunDelegate extends WatchUi.InputDelegate {
         InputDelegate.initialize();
         _s = session;
         _touch = WorkoutSession.propBool("touchReps", true);
+    }
+
+    function setView(v as RunView) as Void {
+        _view = v;
     }
 
     function onKey(evt as WatchUi.KeyEvent) as Boolean {
@@ -270,8 +360,13 @@ class RunDelegate extends WatchUi.InputDelegate {
     }
 
     function onSwipe(evt as WatchUi.SwipeEvent) as Boolean {
-        if (evt.getDirection() == WatchUi.SWIPE_LEFT) {
+        var d = evt.getDirection();
+        if (d == WatchUi.SWIPE_LEFT) {
             _s.nextBlock();
+        } else if (d == WatchUi.SWIPE_UP && _view != null) {
+            (_view as RunView).nextPage(1);
+        } else if (d == WatchUi.SWIPE_DOWN && _view != null) {
+            (_view as RunView).nextPage(-1);
         }
         // swallow the others: a stray swipe right must not leave the workout
         return true;

@@ -77,6 +77,12 @@ class WorkoutSession {
     var flashText as String? = null;
     var flashColor as Number = Theme.WARN;
     private var _flashUntil as Number = 0;
+    // full-screen "ROUND 4" after each completed round: [title, time, delta or ""]
+    var celebrate as Array<String>? = null;
+    var celebrateBest as Boolean = false;
+    private var _celebrateUntil as Number = 0;
+    // heart rate every 5 s of work, for the summary graph
+    var hrTrace as Array<Number> = [] as Array<Number>;
     // "+1" / "-1" next to the rep count, confirms a tap or a button press
     var popText as String? = null;
     private var _popUntil as Number = 0;
@@ -148,6 +154,10 @@ class WorkoutSession {
             flashText = null;
             WatchUi.requestUpdate();
         }
+        if (celebrate != null && t >= _celebrateUntil) {
+            celebrate = null;
+            WatchUi.requestUpdate();
+        }
         if (popText != null && t >= _popUntil) {
             popText = null;
             WatchUi.requestUpdate();
@@ -171,6 +181,26 @@ class WorkoutSession {
             showFlash(Tr.s(due[i] == ALERT_HALF ? "HALFWAY" : "1 MIN LEFT"), Theme.WARN, 2000);
             Feedback.alert();
         }
+    }
+
+    function hrZone() as Number {
+        return hr > 0 ? Perf.zoneOf(hr, _zoneBounds) : 0;
+    }
+
+    // "ROUND 4", its time and the gap with your best at the same round.
+    private function celebrateRound() as Void {
+        if (coach || engine.state == ST_DONE) { return; }
+        var n = roundTimes.size();
+        var dur = roundTimes[n - 1] - (n > 1 ? roundTimes[n - 2] : 0);
+        var d = paceDelta();
+        celebrate = [
+            Tr.s("ROUND") + " " + n.format("%d"),
+            Str.clock(dur, false),
+            d == null ? "" : ScoreHistory.formatDelta(d as Number)
+        ];
+        celebrateBest = d != null && (d as Number) <= 0;
+        _celebrateUntil = now() + 1500;
+        WatchUi.requestUpdate();
     }
 
     function showFlash(text as String, color as Number, ms as Number) as Void {
@@ -198,6 +228,7 @@ class WorkoutSession {
         hr = info.currentHeartRate as Number;
         if (engine.state != ST_WORK && engine.state != ST_REST) { return; }
         if (hr > hrMax) { hrMax = hr; }
+        if (_hrCount % 5 == 0 && hrTrace.size() < 360) { hrTrace.add(hr); }
         zoneSec[Perf.zoneOf(hr, _zoneBounds)] += 1;
         _hrSum += hr;
         _hrCount++;
@@ -246,6 +277,7 @@ class WorkoutSession {
             } else if (code == EV_ROUND) {
                 roundTimes.add(engine.activeMs(now()));
                 Feedback.round();
+                celebrateRound();
             } else if (code == EV_TARGET_DONE) {
                 Feedback.block();
                 if (engine.wodType == WT_EMOM && engine.intervalMs() > 0) {
@@ -554,6 +586,8 @@ class WorkoutSession {
             Perf.addDay(Perf.today(), [Perf.trimp(zoneSec), srpe, domainMs[0], domainMs[1], domainMs[2], 1, kg,
                 isNewBest ? 1 : 0]);
             if (hrr != null) { Perf.addHrr(Perf.today(), hrr as Number); }
+            Glance.update(engine.wod["name"] as String,
+                (isNewBest ? Tr.s("NEW BEST") + " " : Tr.s("Last") + " ") + ScoreHistory.scoreText(r));
         }
     }
 

@@ -1,3 +1,24 @@
 <drawables>
     <bitmap id="LauncherIcon" filename="launcher_icon.png" />
+    <bitmap id="Icon_ball" filename="icons/ball.png" />
+    <bitmap id="Icon_kb" filename="icons/kb.png" />
+    <bitmap id="Icon_db" filename="icons/db.png" />
+    <bitmap id="Icon_barbell" filename="icons/barbell.png" />
+    <bitmap id="Icon_burpee" filename="icons/burpee.png" />
+    <bitmap id="Icon_pull" filename="icons/pull.png" />
+    <bitmap id="Icon_squat" filename="icons/squat.png" />
+    <bitmap id="Icon_box" filename="icons/box.png" />
+    <bitmap id="Icon_rope" filename="icons/rope.png" />
+    <bitmap id="Icon_climb" filename="icons/climb.png" />
+    <bitmap id="Icon_row" filename="icons/row.png" />
+    <bitmap id="Icon_run" filename="icons/run.png" />
+    <bitmap id="Icon_bike" filename="icons/bike.png" />
+    <bitmap id="Icon_ski" filename="icons/ski.png" />
+    <bitmap id="Icon_hold" filename="icons/hold.png" />
+    <bitmap id="Icon_m_play" filename="icons/m_play.png" />
+    <bitmap id="Icon_m_list" filename="icons/m_list.png" />
+    <bitmap id="Icon_m_stats" filename="icons/m_stats.png" />
+    <bitmap id="Icon_m_coach" filename="icons/m_coach.png" />
+    <bitmap id="Icon_m_sync" filename="icons/m_sync.png" />
+    <bitmap id="Icon_m_star" filename="icons/m_star.png" />
 </drawables>

@@ -15,10 +15,10 @@ class SummaryView extends WatchUi.View {
         _s = session;
     }
 
-    // page 0: score, 1: analysis, 2: details, 3+: splits
+    // page 0: score, 1: analysis, 2: details, 3: charts, 4+: splits
     function pageCount() as Number {
         var n = _s.laps.size();
-        return 3 + (n + SPLITS_PER_PAGE - 1) / SPLITS_PER_PAGE;
+        return 4 + (n + SPLITS_PER_PAGE - 1) / SPLITS_PER_PAGE;
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -34,6 +34,8 @@ class SummaryView extends WatchUi.View {
             drawAnalysis(dc, w, h, cx, center);
         } else if (page == 2) {
             drawDetails(dc, h, cx, center);
+        } else if (page == 3) {
+            drawCharts(dc, w, h, cx, center);
         } else {
             drawSplits(dc, w, h, cx, center);
         }
@@ -222,6 +224,45 @@ class SummaryView extends WatchUi.View {
         }
     }
 
+    // Round times as bars (fastest green, slowest orange) and the HR curve.
+    private function drawCharts(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
+        var laps = completedLaps();
+        // narrower than the screen: the button hints sit on the right edge
+        var x0 = w * 20 / 100;
+        var cw = w * 56 / 100;
+        if (laps.size() >= 2) {
+            dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, Tr.s("Rounds times"), center);
+            var v = [] as Array<Number>;
+            var lo = laps[0][0];
+            var hi = laps[0][0];
+            for (var i = 0; i < laps.size(); i++) {
+                v.add(laps[i][0] / 1000);
+                if (laps[i][0] < lo) { lo = laps[i][0]; }
+                if (laps[i][0] > hi) { hi = laps[i][0]; }
+            }
+            var colors = [] as Array<Number>;
+            for (var i = 0; i < laps.size(); i++) {
+                colors.add(laps[i][0] == lo ? Theme.WORK : (laps[i][0] == hi ? Theme.WARN : Theme.MUTED));
+            }
+            Ui.bars(dc, v, colors, x0, h * 19 / 100, cw, h * 25 / 100, lo / 1000 * 8 / 10);
+            dc.setColor(Theme.TEXT, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 49 / 100, Graphics.FONT_XTINY,
+                Str.clock(lo, false) + " - " + Str.clock(hi, false), center);
+        }
+        if (_s.hrTrace.size() >= 2) {
+            dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 58 / 100, Graphics.FONT_XTINY, Tr.s("HR during the WOD"), center);
+            Ui.line(dc, _s.hrTrace, Theme.DANGER, x0, h * 63 / 100, cw, h * 16 / 100);
+            dc.setColor(Theme.TEXT, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 85 / 100, Graphics.FONT_XTINY, _s.avgHr().format("%d") + " / " + _s.hrMax.format("%d") + " bpm", center);
+        }
+        if (laps.size() < 2 && _s.hrTrace.size() < 2) {
+            dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h / 2, Graphics.FONT_TINY, Tr.s("No data yet"), center);
+        }
+    }
+
     // Movement that slowed down the most: [name, % slower], or null.
     private function worstFatigue() as Array? {
         var ids = _s.occurrences.keys();
@@ -246,10 +287,10 @@ class SummaryView extends WatchUi.View {
 
     // "R3  1:02  12r  151" : lap, duration, reps, avg HR
     private function drawSplits(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
-        var first = (page - 3) * SPLITS_PER_PAGE;
+        var first = (page - 4) * SPLITS_PER_PAGE;
         var laps = _s.laps;
         dc.setColor(Theme.MUTED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, Tr.s("Splits") + " " + (page - 2).format("%d") + "/" + (pageCount() - 3).format("%d"), center);
+        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, Tr.s("Splits") + " " + (page - 3).format("%d") + "/" + (pageCount() - 4).format("%d"), center);
         dc.setColor(Theme.TEXT, Graphics.COLOR_TRANSPARENT);
         var y = h * 28 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);

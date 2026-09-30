@@ -1,12 +1,13 @@
 {
   "version": 1,
-  "comment": "Single source of truth for movement IDs. Run `python3 tools/gen_movements.py` after editing to regenerate the Monkey C and JS catalogs. `counter` holds rep-counter parameters (null = manual counting). Values marked untuned are starting points until rep-lab tuning replaces them. `domain`: G gymnastics, W weightlifting (incl. KB, DB, wall balls), M monostructural. `refTenths`: rough reference pace in tenths of a second per rep for an intermediate athlete inside a WOD (used for strengths / weaknesses, edit freely).",
+  "comment": "Single source of truth for movement IDs. Run `python3 tools/gen_movements.py` after editing to regenerate the Monkey C and JS catalogs. `counter` holds rep-counter parameters (null = manual counting). Values marked untuned are starting points until rep-lab tuning replaces them. `domain`: G gymnastics, W weightlifting (incl. KB, DB, wall balls), M monostructural. `refTenths`: rough reference pace in tenths of a second per rep for an intermediate athlete inside a WOD (used for strengths / weaknesses, edit freely). `icon`: pictogram drawn by tools/make_icons.py.",
   "movements": [
     {
       "id": "wall_ball",
       "name": "Wall balls",
       "domain": "W",
       "refTenths": 25,
+      "icon": "ball",
       "aliases": [
         "wall ball",
         "wall balls",
@@ -30,6 +31,7 @@
       "name": "Thrusters",
       "domain": "W",
       "refTenths": 28,
+      "icon": "barbell",
       "aliases": [
         "thruster",
         "thrusters",
@@ -53,6 +55,7 @@
       "name": "KB swings",
       "domain": "W",
       "refTenths": 20,
+      "icon": "kb",
       "aliases": [
         "kb swing",
         "kb swings",
@@ -79,6 +82,7 @@
       "name": "Burpees",
       "domain": "G",
       "refTenths": 35,
+      "icon": "burpee",
       "aliases": [
         "burpee",
         "burpees",
@@ -99,6 +103,7 @@
       "name": "DB snatches",
       "domain": "W",
       "refTenths": 22,
+      "icon": "db",
       "aliases": [
         "db snatch",
         "db snatches",
@@ -124,6 +129,7 @@
       "name": "Air squats",
       "domain": "G",
       "refTenths": 15,
+      "icon": "squat",
       "aliases": [
         "air squat",
         "air squats",
@@ -137,6 +143,7 @@
       "name": "Pull-ups",
       "domain": "G",
       "refTenths": 20,
+      "icon": "pull",
       "aliases": [
         "pull up",
         "pull ups",
@@ -154,6 +161,7 @@
       "name": "Chest-to-bar",
       "domain": "G",
       "refTenths": 25,
+      "icon": "pull",
       "aliases": [
         "chest to bar",
         "chest to bar pull up",
@@ -168,6 +176,7 @@
       "name": "Push-ups",
       "domain": "G",
       "refTenths": 18,
+      "icon": "hold",
       "aliases": [
         "push up",
         "push ups",
@@ -184,6 +193,7 @@
       "name": "Sit-ups",
       "domain": "G",
       "refTenths": 18,
+      "icon": "hold",
       "aliases": [
         "sit up",
         "sit ups",
@@ -199,6 +209,7 @@
       "name": "GHD sit-ups",
       "domain": "G",
       "refTenths": 20,
+      "icon": "hold",
       "aliases": [
         "ghd sit up",
         "ghd sit ups",
@@ -211,6 +222,7 @@
       "name": "V-ups",
       "domain": "G",
       "refTenths": 20,
+      "icon": "hold",
       "aliases": [
         "v up",
         "v ups",
@@ -224,6 +236,7 @@
       "name": "Toes-to-bar",
       "domain": "G",
       "refTenths": 22,
+      "icon": "pull",
       "aliases": [
         "toes to bar",
         "t2b",
@@ -236,6 +249,7 @@
       "name": "Box jumps",
       "domain": "G",
       "refTenths": 25,
+      "icon": "box",
       "aliases": [
         "box jump",
         "box jumps",
@@ -251,6 +265,7 @@
       "name": "Burpee box jumps",
       "domain": "G",
       "refTenths": 50,
+      "icon": "box",
       "aliases": [
         "burpee box jump",
         "burpee box jumps",
@@ -265,6 +280,7 @@
       "name": "Box step-ups",
       "domain": "G",
       "refTenths": 22,
+      "icon": "box",
       "aliases": [
         "box step up",
         "box step ups",
@@ -278,6 +294,7 @@
       "name": "Double-unders",
       "domain": "M",
       "refTenths": 6,
+      "icon": "rope",
       "aliases": [
         "double under",
         "double unders",
@@ -292,6 +309,7 @@
       "name": "Single-unders",
       "domain": "M",
       "refTenths": 4,
+      "icon": "rope",
       "aliases": [
         "single under",
         "single unders",
@@ -306,6 +324,7 @@
       "name": "Lunges",
       "domain": "G",
       "refTenths": 22,
+      "icon": "squat",
       "aliases": [
         "lunge",
         "lunges",
@@ -323,6 +342,7 @@
       "name": "Pistols",
       "domain": "G",
       "refTenths": 30,
+      "icon": "squat",
       "aliases": [
         "pistol",
         "pistols",
@@ -336,6 +356,7 @@
       "name": "Deadlifts",
       "domain": "W",
       "refTenths": 25,
+      "icon": "barbell",
       "aliases": [
         "deadlift",
         "deadlifts",
@@ -350,6 +371,7 @@
       "name": "Cleans",
       "domain": "W",
       "refTenths": 35,
+      "icon": "barbell",
       "aliases": [
         "clean",
         "cleans",
@@ -363,6 +385,7 @@
       "name": "Power cleans",
       "domain": "W",
       "refTenths": 30,
+      "icon": "barbell",
       "aliases": [
         "power clean",
         "power cleans",
@@ -378,6 +401,7 @@
       "name": "Clean & jerks",
       "domain": "W",
       "refTenths": 50,
+      "icon": "barbell",
       "aliases": [
         "clean and jerk",
         "clean and jerks",
@@ -393,6 +417,7 @@
       "name": "Snatches",
       "domain": "W",
       "refTenths": 40,
+      "icon": "barbell",
       "aliases": [
         "snatch",
         "snatches",
@@ -408,6 +433,7 @@
       "name": "Push press",
       "domain": "W",
       "refTenths": 25,
+      "icon": "barbell",
       "aliases": [
         "push press",
         "push presses"
@@ -419,6 +445,7 @@
       "name": "Push jerks",
       "domain": "W",
       "refTenths": 28,
+      "icon": "barbell",
       "aliases": [
         "push jerk",
         "push jerks",
@@ -432,6 +459,7 @@
       "name": "Shoulder-to-overhead",
       "domain": "W",
       "refTenths": 28,
+      "icon": "barbell",
       "aliases": [
         "shoulder to overhead",
         "s2oh",
@@ -444,6 +472,7 @@
       "name": "Overhead squats",
       "domain": "W",
       "refTenths": 30,
+      "icon": "barbell",
       "aliases": [
         "overhead squat",
         "overhead squats",
@@ -456,6 +485,7 @@
       "name": "Front squats",
       "domain": "W",
       "refTenths": 30,
+      "icon": "barbell",
       "aliases": [
         "front squat",
         "front squats",
@@ -468,6 +498,7 @@
       "name": "Back squats",
       "domain": "W",
       "refTenths": 30,
+      "icon": "barbell",
       "aliases": [
         "back squat",
         "back squats",
@@ -480,6 +511,7 @@
       "name": "Goblet squats",
       "domain": "W",
       "refTenths": 22,
+      "icon": "kb",
       "aliases": [
         "goblet squat",
         "goblet squats",
@@ -493,6 +525,7 @@
       "name": "Devil press",
       "domain": "W",
       "refTenths": 50,
+      "icon": "db",
       "aliases": [
         "devil press",
         "devils press",
@@ -505,6 +538,7 @@
       "name": "HSPU",
       "domain": "G",
       "refTenths": 35,
+      "icon": "hold",
       "aliases": [
         "handstand push up",
         "handstand push ups",
@@ -518,6 +552,7 @@
       "name": "Muscle-ups",
       "domain": "G",
       "refTenths": 60,
+      "icon": "pull",
       "aliases": [
         "muscle up",
         "muscle ups",
@@ -536,6 +571,7 @@
       "name": "Ring dips",
       "domain": "G",
       "refTenths": 25,
+      "icon": "pull",
       "aliases": [
         "ring dip",
         "ring dips",
@@ -549,6 +585,7 @@
       "name": "Wall walks",
       "domain": "G",
       "refTenths": 120,
+      "icon": "hold",
       "aliases": [
         "wall walk",
         "wall walks"
@@ -560,6 +597,7 @@
       "name": "Rope climbs",
       "domain": "G",
       "refTenths": 150,
+      "icon": "climb",
       "aliases": [
         "rope climb",
         "rope climbs",
@@ -572,6 +610,7 @@
       "name": "Plank",
       "domain": "G",
       "refTenths": null,
+      "icon": "hold",
       "aliases": [
         "plank",
         "plank hold"
@@ -583,6 +622,7 @@
       "name": "Run",
       "domain": "M",
       "refTenths": null,
+      "icon": "run",
       "aliases": [
         "run",
         "running"
@@ -594,6 +634,7 @@
       "name": "Row",
       "domain": "M",
       "refTenths": null,
+      "icon": "row",
       "aliases": [
         "row",
         "rowing",
@@ -608,6 +649,7 @@
       "name": "Bike",
       "domain": "M",
       "refTenths": null,
+      "icon": "bike",
       "aliases": [
         "bike",
         "assault bike",
@@ -623,6 +665,7 @@
       "name": "Ski erg",
       "domain": "M",
       "refTenths": null,
+      "icon": "ski",
       "aliases": [
         "ski",
         "ski erg",

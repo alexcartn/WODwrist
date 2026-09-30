@@ -11,7 +11,8 @@
 | tap screen | +1 rep (same rule as BACK short), unless the setting "Touch screen counts reps" is off |
 | hold screen | -1 rep (same setting) |
 | swipe left | next movement, crediting the missing target reps |
-| other swipes | ignored, so a sweaty swipe does not leave the workout |
+| swipe up / down | data page: clock (default), reps in giant digits, heart rate and zone |
+| swipe right | ignored, so a sweaty swipe does not leave the workout |
 
 The next movement starts automatically when the target reps are reached
 (auto count or manual). In EMOM / Tabata, once the interval's work is done the
@@ -26,7 +27,10 @@ The ring on the bezel fills with the current segment (countdown, time cap,
 interval, Tabata phase) in the state color: yellow get ready, green work,
 blue rest, orange paused. A short yellow arc at the bottom fills with the reps
 of the current set. Each counted rep flashes `+1` (or `-1`) next to the count,
-and a new movement shows in a green banner for 1.5 s.
+and a new movement shows in a green banner for 1.5 s. Each completed round
+(AMRAP, For time) shows `ROUND 4`, its time and the gap with your best at the
+same round for 1.5 s. The clock uses 7-segment "gym timer" digits drawn by
+the app, identical on every watch. Movements show their pictogram.
 
 ```
       WORK            <- state (GET READY / WORK / REST / PAUSED)

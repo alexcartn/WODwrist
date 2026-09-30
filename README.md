@@ -101,6 +101,11 @@ the screens). Mockups of every screen: [docs/mockups](docs/mockups).
 
 ## Web editor
 
+Syntax highlighting (header, reps, movements, loads, unknown movements in
+purple, errors underlined), movement autocomplete (Tab), benchmark library,
+live watch preview, QR code of the WOD URL for athletes, class timer in gym
+mode, dark theme by default. `vendor/qrcode.js` is qrcode-generator (MIT).
+
 ```bash
 cd web-editor
 npm test                      # parser + engine reference tests

@@ -117,7 +117,7 @@ class StatsView extends WatchUi.View {
     function pageCount() as Number {
         var tablePages = (_rows.size() + STATS_LINES - 1) / STATS_LINES;
         if (_kind == STATS_MOVES) { return tablePages > 0 ? tablePages : 1; }
-        if (_kind == STATS_WOD) { return 1 + tablePages; }
+        if (_kind == STATS_WOD) { return 2 + tablePages; }
         if (_kind == STATS_LOAD) { return 2; }
         return 1;
     }
@@ -144,8 +144,10 @@ class StatsView extends WatchUi.View {
             drawTable(dc, cx, h, "Pace per rep", page);
         } else if (page == 0) {
             drawWod(dc, cx, h);
+        } else if (page == 1) {
+            drawProgress(dc, w, h, cx);
         } else {
-            drawTable(dc, cx, h, "Round  Best  Last", page - 1);
+            drawTable(dc, cx, h, "Round  Best  Last", page - 2);
         }
         Ui.pageDots(dc, page, pageCount());
     }
@@ -195,6 +197,35 @@ class StatsView extends WatchUi.View {
             if (bh > 0) { dc.fillRectangle(x0 + i * slot + slot / 5, base - bh, slot * 3 / 5, bh); }
             dc.fillRectangle(x0 + i * slot + slot / 5, base, slot * 3 / 5, 2);
         }
+    }
+
+    // Score of each attempt at this WOD (last 12), best in green.
+    private function drawProgress(dc as Graphics.Dc, w as Number, h as Number, cx as Number) as Void {
+        var e = _entry as Dictionary;
+        text(dc, cx, h * 14 / 100, Graphics.FONT_XTINY, Theme.MUTED, "PROGRESS");
+        var hist = e["hist"];
+        if (!(hist instanceof Array) || (hist as Array).size() < 2) {
+            text(dc, cx, h / 2, Graphics.FONT_TINY, Theme.MUTED, "No data yet");
+            return;
+        }
+        var kind = (e["best"] as Dictionary)["kind"] as String;
+        var v = [] as Array<Number>;
+        var hs = hist as Array;
+        var lo = ((hs[0] as Array)[1]) as Number;
+        var hi = lo;
+        for (var i = 0; i < hs.size(); i++) {
+            var x = ((hs[i] as Array)[1]) as Number;
+            v.add(x);
+            if (x < lo) { lo = x; }
+            if (x > hi) { hi = x; }
+        }
+        var colors = [] as Array<Number>;
+        for (var i = 0; i < v.size(); i++) { colors.add(v[i] == hi ? Theme.WORK : (i == v.size() - 1 ? Theme.SCORE : Theme.MUTED)); }
+        // bars start a bit under the worst score so progress is visible
+        var span = hi - lo;
+        Ui.bars(dc, v, colors, w * 18 / 100, h * 24 / 100, w * 64 / 100, h * 34 / 100, lo - span / 3 - 1);
+        text(dc, cx, h * 67 / 100, Graphics.FONT_TINY, Theme.WORK, Tr.s("Best") + " " + ScoreHistory.valueText(kind, hi));
+        text(dc, cx, h * 77 / 100, Graphics.FONT_XTINY, Theme.SCORE, Tr.s("Last") + " " + ScoreHistory.valueText(kind, v[v.size() - 1]));
     }
 
     // Foster monotony and strain of the last 7 days.

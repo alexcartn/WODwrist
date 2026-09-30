@@ -46,6 +46,8 @@ def load():
             aliases[n] = m["id"]
         if m.get("domain") not in ("G", "W", "M"):
             sys.exit(f"{m['id']}: domain must be G, W or M")
+        if not (ROOT / "watch-app/resources/drawables/icons" / f"{m.get('icon')}.png").exists():
+            sys.exit(f"{m['id']}: icon {m.get('icon')} not found (tools/make_icons.py)")
         if m.get("refTenths") is not None and not isinstance(m["refTenths"], int):
             sys.exit(f"{m['id']}: refTenths must be an int or null")
         c = m.get("counter")
@@ -65,7 +67,7 @@ def gen_js(movements, aliases) -> str:
     out.append("export const MOVEMENTS = {")
     for m in movements:
         out.append(
-            f"  {m['id']}: {json.dumps({'name': m['name'], 'domain': m['domain'], 'refTenths': m.get('refTenths'), 'counter': m.get('counter')})},"
+            f"  {m['id']}: {json.dumps({'name': m['name'], 'domain': m['domain'], 'refTenths': m.get('refTenths'), 'icon': m['icon'], 'counter': m.get('counter')})},"
         )
     out.append("};")
     out.append("")
@@ -103,6 +105,13 @@ def gen_mc(movements, aliases) -> str:
     out.append("        return {")
     out += mc_entries([f"            {mc_str(m['id'])} => {'GWM'.index(m['domain'])}" for m in movements])
     out.append("        } as Dictionary<String, Number>;")
+    out.append("    }")
+    out.append("")
+    out.append("    // movement id -> icon name (resources/drawables/icons)")
+    out.append("    function icons() as Dictionary<String, String> {")
+    out.append("        return {")
+    out += mc_entries([f"            {mc_str(m['id'])} => {mc_str(m['icon'])}" for m in movements])
+    out.append("        } as Dictionary<String, String>;")
     out.append("    }")
     out.append("")
     out.append("    // movement id -> reference pace, tenths of a second per rep")

@@ -2,6 +2,7 @@ import Toybox.Application;
 import Toybox.Lang;
 
 const HISTORY_MAX = 30;
+const HIST_MAX = 12;
 
 // Score memory per WOD (last + best, with round split times for pacing).
 // Port of web-editor/js/score-history.js. Keep in sync.
@@ -65,6 +66,13 @@ module ScoreHistory {
         return sign + (sec / 60).format("%d") + ":" + (sec % 60).format("%02d");
     }
 
+    // Back from value() to the score text.
+    function valueText(kind as String, v as Number) as String {
+        if (kind.equals("rounds")) { return (v / 1000).format("%d") + " + " + (v % 1000).format("%d"); }
+        if (kind.equals("time")) { return Str.clock(2000000000 - v, false); }
+        return v.format("%d") + " reps";
+    }
+
     function scoreText(rec as Dictionary) as String {
         var kind = rec["kind"] as String;
         if (kind.equals("rounds")) {
@@ -119,16 +127,22 @@ module ScoreHistory {
         var k = key(sig);
         var prev = load(wod, scaled);
         var entry;
+        var point = [Perf.today(), value(rec)];
         if (prev == null) {
-            entry = { "sig" => sig, "name" => wod["name"], "last" => rec, "best" => rec, "n" => 1 };
+            entry = { "sig" => sig, "name" => wod["name"], "last" => rec, "best" => rec, "n" => 1, "hist" => [point] };
         } else {
             var best = prev["best"] as Dictionary;
+            // last HIST_MAX results for the progress chart
+            var hist = prev["hist"] instanceof Array ? (prev["hist"] as Array).slice(0, null) : [] as Array;
+            hist.add(point);
+            if (hist.size() > HIST_MAX) { hist = hist.slice(hist.size() - HIST_MAX, null); }
             entry = {
                 "sig" => sig,
                 "name" => wod["name"],
                 "last" => rec,
                 "best" => isBetter(rec, best) ? rec : best,
-                "n" => (prev["n"] as Number) + 1
+                "n" => (prev["n"] as Number) + 1,
+                "hist" => hist
             };
         }
         Application.Storage.setValue(k, entry as Dictionary<Application.PropertyKeyType, Application.PropertyValueType>);

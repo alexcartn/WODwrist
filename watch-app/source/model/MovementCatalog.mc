@@ -320,6 +320,55 @@ module MovementCatalog {
         } as Dictionary<String, Number>;
     }
 
+    // movement id -> icon name (resources/drawables/icons)
+    function icons() as Dictionary<String, String> {
+        return {
+            "wall_ball" => "ball",
+            "thruster" => "barbell",
+            "kb_swing" => "kb",
+            "burpee" => "burpee",
+            "db_snatch" => "db",
+            "air_squat" => "squat",
+            "pull_up" => "pull",
+            "chest_to_bar" => "pull",
+            "push_up" => "hold",
+            "sit_up" => "hold",
+            "ghd_sit_up" => "hold",
+            "v_up" => "hold",
+            "toes_to_bar" => "pull",
+            "box_jump" => "box",
+            "burpee_box_jump" => "box",
+            "box_step_up" => "box",
+            "double_under" => "rope",
+            "single_under" => "rope",
+            "lunge" => "squat",
+            "pistol" => "squat",
+            "deadlift" => "barbell",
+            "clean" => "barbell",
+            "power_clean" => "barbell",
+            "clean_and_jerk" => "barbell",
+            "snatch" => "barbell",
+            "push_press" => "barbell",
+            "push_jerk" => "barbell",
+            "shoulder_to_overhead" => "barbell",
+            "overhead_squat" => "barbell",
+            "front_squat" => "barbell",
+            "back_squat" => "barbell",
+            "goblet_squat" => "kb",
+            "devil_press" => "db",
+            "handstand_push_up" => "hold",
+            "muscle_up" => "pull",
+            "ring_dip" => "pull",
+            "wall_walk" => "hold",
+            "rope_climb" => "climb",
+            "plank" => "hold",
+            "run" => "run",
+            "row" => "row",
+            "bike" => "bike",
+            "ski" => "ski"
+        } as Dictionary<String, String>;
+    }
+
     // movement id -> reference pace, tenths of a second per rep
     function refTenths() as Dictionary<String, Number> {
         return {

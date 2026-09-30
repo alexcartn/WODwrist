@@ -2,6 +2,8 @@ import { parseWod, wodToText } from "./wod-parser.js";
 import { TimerEngine, S, E } from "./timer-engine.js";
 import { splitParts } from "./coach.js";
 import { drawWatch } from "./watch-preview.js";
+import { highlight, suggest, applySuggestion } from "./editor-assist.js";
+import { BENCHMARKS } from "./benchmarks.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -101,9 +103,41 @@ function partHtml(w) {
     <div class="plan">${plan(w)}</div>`;
 }
 
+// Textarea line (0-based) of the n-th non-empty WOD line (1-based) of part p.
+function errorLineIndex(text, p, n) {
+  const lines = text.split("\n");
+  let part = 0;
+  let count = 0;
+  let seenContent = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === "---") {
+      if (seenContent) part++;
+      continue;
+    }
+    if (part !== p) {
+      if (lines[i].trim()) seenContent = true;
+      continue;
+    }
+    seenContent = true;
+    const segs = lines[i].split(/[;|]/).filter((x) => x.trim()).length;
+    if (segs === 0) continue;
+    count += segs;
+    if (count >= n) return i;
+  }
+  return -1;
+}
+
+function paintEditor(errLine = -1) {
+  const ta = $("wodText");
+  $("hl").innerHTML = highlight(ta.value, errLine) + "\n";
+  ta.style.height = "auto";
+  ta.style.height = Math.max(260, ta.scrollHeight + 2) + "px";
+}
+
 function render() {
   const text = $("wodText").value;
   store.set("text", text);
+  paintEditor();
   const status = $("status");
   const texts = splitParts(text);
   const parsed = [];
@@ -115,6 +149,7 @@ function render() {
       status.className = "status err";
       const where = texts.length > 1 ? `Part ${i + 1}, ` : "";
       status.textContent = r.line ? `${where}line ${r.line}: ${r.error}` : `${where}${r.error}`;
+      paintEditor(r.line ? errorLineIndex(text, i, r.line) : -1);
       $("preview").innerHTML = "";
       $("json").textContent = "";
       drawWatch($("watch"), null);
@@ -342,9 +377,101 @@ function toggleTimer() {
 
 // ---------- wiring ----------
 
+// ---------- movement suggestions ----------
+
+let currentSuggestions = [];
+
+function lineBeforeCursor() {
+  const ta = $("wodText");
+  const pos = ta.selectionStart;
+  const start = ta.value.lastIndexOf("\n", pos - 1) + 1;
+  const end = ta.value.indexOf("\n", pos);
+  const lineEnd = end < 0 ? ta.value.length : end;
+  // only at the end of the line (typing a new movement)
+  if (ta.value.substring(pos, lineEnd).trim() !== "") return null;
+  return { start, pos, before: ta.value.substring(start, pos) };
+}
+
+function updateSuggestions() {
+  const box = $("suggest");
+  const at = lineBeforeCursor();
+  currentSuggestions = at ? suggest(at.before) : [];
+  box.hidden = currentSuggestions.length === 0;
+  box.innerHTML = currentSuggestions.length
+    ? currentSuggestions.map((s, i) => `<button data-i="${i}">${escapeHtml(s.name)}</button>`).join("") + " <kbd>Tab</kbd>"
+    : "";
+  box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => acceptSuggestion(currentSuggestions[+b.dataset.i])));
+}
+
+function acceptSuggestion(sug) {
+  const ta = $("wodText");
+  const at = lineBeforeCursor();
+  if (!at || !sug) return;
+  const replaced = applySuggestion(at.before, sug.insert);
+  ta.value = ta.value.substring(0, at.start) + replaced + ta.value.substring(at.pos);
+  const cur = at.start + replaced.length;
+  ta.setSelectionRange(cur, cur);
+  ta.focus();
+  render();
+  updateSuggestions();
+}
+
+// ---------- theme, QR ----------
+
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  store.set("theme", t);
+}
+
+function toggleQr() {
+  const box = $("qrBox");
+  if (!box.hidden) {
+    box.hidden = true;
+    return;
+  }
+  const url = $("watchUrl").textContent;
+  if (typeof window.qrcode !== "function") {
+    box.textContent = "QR library not loaded (offline?)";
+  } else {
+    const q = window.qrcode(0, "M");
+    q.addData(url);
+    q.make();
+    box.innerHTML = `<img alt="QR code of the WOD URL" src="${q.createDataURL(6, 2)}"><p class="small">Athletes scan it to get the URL for the watch settings.</p>`;
+  }
+  box.hidden = false;
+}
+
 function init() {
   $("wodText").value = store.get("text", EXAMPLES.amrap);
-  $("wodText").addEventListener("input", render);
+  $("wodText").addEventListener("input", () => {
+    render();
+    updateSuggestions();
+  });
+  $("wodText").addEventListener("scroll", () => ($("hl").scrollTop = $("wodText").scrollTop));
+  $("wodText").addEventListener("keydown", (e) => {
+    if (e.key === "Tab" && currentSuggestions.length) {
+      e.preventDefault();
+      acceptSuggestion(currentSuggestions[0]);
+    }
+  });
+  $("wodText").addEventListener("click", updateSuggestions);
+  for (const [name, text] of BENCHMARKS) {
+    const o = document.createElement("option");
+    o.value = name;
+    o.textContent = name;
+    $("benchmarks").appendChild(o);
+  }
+  $("benchmarks").addEventListener("change", (e) => {
+    const b = BENCHMARKS.find(([n]) => n === e.target.value);
+    if (b) {
+      $("wodText").value = b[1];
+      render();
+    }
+    e.target.value = "";
+  });
+  applyTheme(store.get("theme", "dark"));
+  $("themeBtn").addEventListener("click", () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+  $("qrBtn").addEventListener("click", toggleQr);
   document.querySelectorAll("[data-example]").forEach((b) =>
     b.addEventListener("click", () => {
       $("wodText").value = EXAMPLES[b.dataset.example];

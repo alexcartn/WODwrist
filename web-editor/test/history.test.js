@@ -51,6 +51,17 @@ test("history keeps last and best", () => {
   assert.equal(e.n, 3);
   assert.deepEqual(e.best, { kind: "rounds", rounds: 7, reps: 5 });
   assert.deepEqual(e.last, { kind: "rounds", rounds: 6, reps: 20 });
+  assert.deepEqual(e.hist.map((p) => p[1]), [6000, 7005, 6020]);
+  for (let i = 0; i < 20; i++) e = addResult(e, { kind: "reps", reps: i });
+  assert.equal(e.hist.length, 12);
+});
+
+import { valueText, scoreValue as sv } from "../js/score-history.js";
+
+test("value back to text", () => {
+  assert.equal(valueText("rounds", sv({ kind: "rounds", rounds: 7, reps: 12 })), "7 + 12");
+  assert.equal(valueText("time", sv({ kind: "time", ms: 277000 })), "4:37");
+  assert.equal(valueText("reps", 88), "88 reps");
 });
 
 import { roundDurations, fadePct, tenthsPerRep, mergeMovementStats } from "../js/score-history.js";
