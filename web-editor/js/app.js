@@ -4,7 +4,7 @@ import { splitParts } from "./coach.js";
 import { drawWatch } from "./watch-preview.js";
 import { highlight, suggest, applySuggestion } from "./editor-assist.js";
 import { BENCHMARKS } from "./benchmarks.js";
-import { cleanOcr } from "./shot-import.js";
+import { cleanOcr, mergeParts } from "./shot-import.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -470,32 +470,59 @@ function loadTesseract() {
   return tesseractLoading;
 }
 
-async function importShot(file) {
+// Text left by the last import: while it is still in the box, the next
+// screenshots of the day are added to it instead of replacing it.
+let lastImported = null;
+
+async function importShots(files) {
   const st = $("shotStatus");
   const undo = $("shotUndo");
+  const list = [...files].filter((f) => f && f.type.startsWith("image/"));
+  if (list.length === 0) return;
+  // taken top to bottom of the page: oldest first
+  list.sort((a, b) => a.lastModified - b.lastModified || a.name.localeCompare(b.name));
   undo.hidden = true;
   $("shotBtn").disabled = true;
+  const before = $("wodText").value;
+  let text = before === lastImported ? before : "";
+  let worker = null;
   try {
     st.textContent = "Loading the text reader…";
     const T = await loadTesseract();
-    const r = await T.recognize(file, "eng", {
+    let n = 0;
+    worker = await T.createWorker("eng", 1, {
       logger: (m) => {
-        if (m.status === "recognizing text") st.textContent = `Reading the screenshot… ${Math.round(m.progress * 100)}%`;
+        if (m.status === "recognizing text") {
+          st.textContent = `Reading screenshot ${n}/${list.length}… ${Math.round(m.progress * 100)}%`;
+        }
       },
     });
-    const out = cleanOcr(r.data.text);
-    if (!out.wods) {
-      st.textContent = "No WOD found in this image. Try a sharper screenshot, or copy the text with Live Text / Google Lens.";
+    let empty = 0;
+    let cut = 0;
+    for (const f of list) {
+      n++;
+      const r = await worker.recognize(f);
+      const out = cleanOcr(r.data.text);
+      if (!out.wods) empty++;
+      else text = mergeParts(text, out.text);
+      cut = out.cut; // only the last screenshot can leave a part unfinished
+    }
+    if (text.trim() === "" || text === before) {
+      st.textContent = "No new WOD found. Try a sharper screenshot, or copy the text with Live Text / Google Lens.";
       return;
     }
-    const before = $("wodText").value;
-    $("wodText").value = out.text;
+    $("wodText").value = text;
+    lastImported = text;
     render();
-    st.textContent = (out.wods === 1 ? "1 WOD imported: check it below." : `${out.wods} WODs imported as a class plan: check them below.`)
-      + (out.cut ? ` ${out.cut} part cut off at the bottom of the screenshot: scroll and import a second one.` : "");
+    const parts = text.split("\n---\n").length;
+    st.textContent = `${list.length === 1 ? "Screenshot read" : `${list.length} screenshots read`}: ${parts === 1 ? "1 WOD" : `${parts} WODs (class plan)`}, check below.`
+      + (empty ? ` ${empty} without a WOD.` : "")
+      + (cut ? " The last part is cut off at the bottom: add the next screenshot." : " Add the next screenshot of the day to continue.");
+    $("shotBtn").textContent = "\u{1F4F7} Add a screenshot";
     undo.hidden = false;
     undo.onclick = () => {
       $("wodText").value = before;
+      lastImported = before === "" ? null : lastImported;
       render();
       undo.hidden = true;
       st.textContent = "";
@@ -503,6 +530,7 @@ async function importShot(file) {
   } catch (e) {
     st.textContent = e.message;
   } finally {
+    if (worker) worker.terminate();
     $("shotBtn").disabled = false;
   }
 }
@@ -540,14 +568,14 @@ function init() {
   $("qrBtn").addEventListener("click", toggleQr);
   $("shotBtn").addEventListener("click", () => $("shotFile").click());
   $("shotFile").addEventListener("change", (e) => {
-    if (e.target.files[0]) importShot(e.target.files[0]);
+    importShots(e.target.files);
     e.target.value = "";
   });
   $("wodText").addEventListener("paste", (e) => {
     const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith("image/"));
     if (!item) return;
     e.preventDefault();
-    importShot(item.getAsFile());
+    importShots([item.getAsFile()]);
   });
   document.querySelectorAll("[data-example]").forEach((b) =>
     b.addEventListener("click", () => {

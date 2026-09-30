@@ -114,7 +114,10 @@ text of a training app page (HWPO...) with tesseract.js, in the browser: the
 image is not uploaded. App menus are dropped, cut lines joined, one WOD per
 section (`---`), titles kept (`Strength: Deadlift`, `Bonus: Part 1`), the
 1RM box and RPE notes dropped, a part cut at the bottom of the screenshot
-reported. Check the result: OCR can misread small italic text.
+reported. Several screenshots at once (the day's pages) are read in the
+order they were taken and merged: a part seen on two overlapping screenshots
+is kept once. While the imported text is untouched, the next screenshot is
+added to it. Check the result: OCR can misread small italic text.
 
 ```bash
 cd web-editor

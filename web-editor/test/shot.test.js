@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { cleanOcr } from "../js/shot-import.js";
+import { cleanOcr, mergeParts } from "../js/shot-import.js";
 import { parseWod } from "../js/wod-parser.js";
 
 const OCR = new URL("./ocr/", import.meta.url).pathname;
@@ -60,4 +60,19 @@ test("HWPO strength page: 1RM box dropped, RPE notes ignored, rests timed", () =
   assert.deepEqual(b.blocks.map((x) => [x.movement, x.reps, x.unit]), [
     ["goblet_squat", 20, "reps"], ["rest", 60, "sec"], ["custom", 12, "reps"], ["rest", 120, "sec"],
   ]);
+});
+
+test("three screenshots of one day: parts in order, overlaps kept once", () => {
+  const read = (f) => cleanOcr(fs.readFileSync(OCR + f, "utf8")).text;
+  let text = "";
+  for (const f of ["hwpo-strength.txt", "hwpo-skill.txt", "hwpo-metcon.txt"]) text = mergeParts(text, read(f));
+  const parts = text.split("\n---\n");
+  assert.equal(parts.length, 6);
+  assert.ok(parts.every((p) => parseWod(p).wod), text);
+  // the same page imported twice adds nothing
+  assert.equal(mergeParts(text, read("hwpo-metcon.txt")), text);
+  // overlap: the end of a part at the top of the next screenshot, without its title
+  const a = "# Bonus: Part 1\n3:00 AMRAP\n30/24 cal Fan Bike";
+  const b = "3:00 AMRAP\n30/24 cal Fan Bike\n30/24 cal C2 Bike";
+  assert.equal(mergeParts(a, b), "# Bonus: Part 1\n3:00 AMRAP\n30/24 cal Fan Bike\n30/24 cal C2 Bike");
 });

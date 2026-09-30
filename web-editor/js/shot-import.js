@@ -161,3 +161,34 @@ export function cleanOcr(raw) {
     .join("\n---\n");
   return { text, wods: kept.length, cut: withHeader.length - kept.length };
 }
+
+// ---------- several screenshots of the same day ----------
+
+function splitPart(p) {
+  const lines = p.split("\n").filter((l) => l.trim().length > 0);
+  const name = lines.length > 0 && lines[0].startsWith("#") ? lines.shift() : null;
+  return { name, lines };
+}
+
+// Same part seen twice (screenshots overlap): same header and first movement,
+// with or without its title.
+function partKey(lines) {
+  return lines.slice(0, 2).join("|").toLowerCase().replace(/\s+/g, " ");
+}
+
+// Adds the parts of `text` after the parts of `base` (both "---" separated).
+// A part already there is kept once: the longer version, with its title.
+export function mergeParts(base, text) {
+  const out = (base.trim().length > 0 ? base.split("\n---\n") : []).map(splitPart);
+  for (const p of text.split("\n---\n").map(splitPart)) {
+    if (p.lines.length === 0) continue;
+    const same = out.find((o) => partKey(o.lines) === partKey(p.lines));
+    if (!same) {
+      out.push(p);
+      continue;
+    }
+    if (p.lines.length > same.lines.length) same.lines = p.lines;
+    same.name = same.name ?? p.name;
+  }
+  return out.map((p) => (p.name ? [p.name, ...p.lines] : p.lines).join("\n")).join("\n---\n");
+}
