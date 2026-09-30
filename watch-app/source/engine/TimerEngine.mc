@@ -182,6 +182,10 @@ class TimerEngine {
         return 0;
     }
 
+    function intervalMs() as Number {
+        return _intervalMs;
+    }
+
     // Planned length in ms (0 for For time without cap): used for coach alerts.
     function totalMs() as Number {
         return _capMs;

@@ -69,6 +69,8 @@ All computed on the watch from the saved workouts, nothing to export.
   fade of the last attempt (last round vs first round, orange above +10 %:
   probably started too fast), HR avg / max. Scroll down: round times best vs last.
 
+Training load and the Analysis page of each workout: see [performance.md](performance.md).
+
 ## Summary
 
 START saves the activity to Garmin Connect, BACK asks to discard.

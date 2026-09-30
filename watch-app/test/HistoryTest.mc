@@ -70,3 +70,33 @@ function coachNextSlot(logger as Test.Logger) as Boolean {
     Test.assertEqual(Coach.secondsToNextSlot(23, 50, 0, 15, 30), 600);
     return true;
 }
+
+// Ports of web-editor/test/perf.test.js
+(:test)
+function perfZonesAndLoad(logger as Test.Logger) as Boolean {
+    var b = Perf.defaultBounds(190);
+    TestUtil.checkArray(logger, b, [95, 114, 133, 152, 171, 190], "bounds");
+    Test.assertEqual(Perf.zoneOf(80, b), 0);
+    Test.assertEqual(Perf.zoneOf(114, b), 1);
+    Test.assertEqual(Perf.zoneOf(160, b), 4);
+    Test.assertEqual(Perf.zoneOf(185, b), 5);
+    Test.assertEqual(Perf.trimp([0, 0, 0, 600, 300, 120]), 60);
+    Test.assertEqual(Perf.cvPct([90000, 100000, 110000]), 8);
+    Test.assert(Perf.cvPct([1]) == null);
+    Test.assertEqual(Perf.densityPct([40000, 45000, 50000], 60000), 75);
+    return true;
+}
+
+(:test)
+function perfAcwr(logger as Test.Logger) as Boolean {
+    var e = [] as Array<Array<Number> >;
+    for (var d = 100; d < 128; d += 2) { e.add([d, d == 126 ? 100 : 60]); }
+    var a = Perf.acwr(e, 127);
+    Test.assertEqual(a[0], 220);
+    Test.assertEqual(a[1], 220);
+    Test.assertEqual(a[2], 100);
+    TestUtil.check(logger, Perf.status(e, 127, a[2]), "optimal", "status");
+    TestUtil.check(logger, Perf.status(e, 110, 200), "building", "status");
+    TestUtil.check(logger, Perf.status(e, 127, 160), "risk", "status");
+    return true;
+}

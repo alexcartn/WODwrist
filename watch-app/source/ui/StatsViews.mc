@@ -8,6 +8,10 @@ import Toybox.WatchUi;
 function buildStatsMenu() as WatchUi.Menu2 {
     var menu = new WatchUi.Menu2({ :title => "My stats" });
     var t = ScoreHistory.totals();
+    var e = Perf.loads();
+    var today = Perf.today();
+    var a = Perf.acwr(e, today);
+    menu.addItem(new WatchUi.MenuItem("Training load", loadStatusLabel(Perf.status(e, today, a[2])), :load, {}));
     menu.addItem(new WatchUi.MenuItem("Overall", (t["n"] as Number).format("%d") + " workouts", :overall, {}));
     menu.addItem(new WatchUi.MenuItem("Movements", "Pace per rep", :moves, {}));
     var list = ScoreHistory.entries();
@@ -20,6 +24,14 @@ function buildStatsMenu() as WatchUi.Menu2 {
     return menu;
 }
 
+function loadStatusLabel(st as String) as String {
+    if (st.equals("low")) { return "Low: room for more"; }
+    if (st.equals("optimal")) { return "Optimal"; }
+    if (st.equals("high")) { return "High: watch recovery"; }
+    if (st.equals("risk")) { return "Very high: ease off"; }
+    return "Building baseline";
+}
+
 class StatsMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function initialize() {
@@ -29,7 +41,9 @@ class StatsMenuDelegate extends WatchUi.Menu2InputDelegate {
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
         var view;
-        if (id == :overall) {
+        if (id == :load) {
+            view = new StatsView(STATS_LOAD, null);
+        } else if (id == :overall) {
             view = new StatsView(STATS_OVERALL, null);
         } else if (id == :moves) {
             view = new StatsView(STATS_MOVES, null);
@@ -50,6 +64,7 @@ class StatsMenuDelegate extends WatchUi.Menu2InputDelegate {
 const STATS_OVERALL = 0;
 const STATS_MOVES = 1;
 const STATS_WOD = 2;
+const STATS_LOAD = 3;
 const STATS_LINES = 5;
 
 class StatsView extends WatchUi.View {
@@ -83,7 +98,9 @@ class StatsView extends WatchUi.View {
         var cx = w / 2;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
-        if (_kind == STATS_OVERALL) {
+        if (_kind == STATS_LOAD) {
+            drawLoad(dc, w, h, cx);
+        } else if (_kind == STATS_OVERALL) {
             drawOverall(dc, cx, h);
         } else if (_kind == STATS_MOVES) {
             drawTable(dc, cx, h, "Pace per rep", page);
@@ -103,6 +120,44 @@ class StatsView extends WatchUi.View {
     private function text(dc as Graphics.Dc, x as Number, y as Number, font, color, s as String) as Void {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, font, s, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    // Acute (7 days) vs chronic (weekly average over 28 days) training load.
+    private function drawLoad(dc as Graphics.Dc, w as Number, h as Number, cx as Number) as Void {
+        var e = Perf.loads();
+        var today = Perf.today();
+        var a = Perf.acwr(e, today);
+        var st = Perf.status(e, today, a[2]);
+        text(dc, cx, h * 13 / 100, Graphics.FONT_XTINY, Graphics.COLOR_LT_GRAY, "TRAINING LOAD");
+        var color = Graphics.COLOR_LT_GRAY;
+        if (st.equals("low")) { color = Graphics.COLOR_BLUE; }
+        if (st.equals("optimal")) { color = Graphics.COLOR_GREEN; }
+        if (st.equals("high")) { color = Graphics.COLOR_ORANGE; }
+        if (st.equals("risk")) { color = Graphics.COLOR_RED; }
+        var big = a[2] < 0 || st.equals("building") ? "--" : (a[2] / 100).format("%d") + "." + (a[2] % 100).format("%02d");
+        text(dc, cx, h * 28 / 100, Graphics.FONT_LARGE, color, big);
+        text(dc, cx, h * 39 / 100, Graphics.FONT_XTINY, color, loadStatusLabel(st));
+        text(dc, cx, h * 49 / 100, Graphics.FONT_XTINY, Graphics.COLOR_WHITE,
+            "7 days " + a[0].format("%d") + "   4 wk avg " + a[1].format("%d"));
+
+        // last 7 days, today on the right
+        var day = [] as Array<Number>;
+        var max = 1;
+        for (var i = 6; i >= 0; i--) {
+            var v = Perf.sumDays(e, today - i, 1);
+            day.add(v);
+            if (v > max) { max = v; }
+        }
+        var x0 = w * 22 / 100;
+        var slot = w * 56 / 100 / 7;
+        var base = h * 80 / 100;
+        var hmax = h * 20 / 100;
+        for (var i = 0; i < 7; i++) {
+            var bh = day[i] * hmax / max;
+            dc.setColor(i == 6 ? Graphics.COLOR_YELLOW : Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+            if (bh > 0) { dc.fillRectangle(x0 + i * slot + slot / 5, base - bh, slot * 3 / 5, bh); }
+            dc.fillRectangle(x0 + i * slot + slot / 5, base, slot * 3 / 5, 2);
+        }
     }
 
     private function drawOverall(dc as Graphics.Dc, cx as Number, h as Number) as Void {

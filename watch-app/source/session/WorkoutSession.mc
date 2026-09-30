@@ -24,6 +24,10 @@ class WorkoutSession {
     var isNewBest as Boolean = false;
     // cumulative active ms at the end of each completed round (AMRAP / FOR_TIME)
     var roundTimes as Array<Number> = [] as Array<Number>;
+    // performance: seconds per HR zone (0..5), EMOM work time per interval
+    var zoneSec as Array<Number> = [0, 0, 0, 0, 0, 0] as Array<Number>;
+    var intervalWorkMs as Array<Number> = [] as Array<Number>;
+    private var _zoneBounds as Array<Number>;
     // time spent per movement (only "reps" blocks): id -> [reps, ms]
     var movementStats as Dictionary = {};
     private var _mvId as String? = null;
@@ -57,6 +61,7 @@ class WorkoutSession {
         coach = coachMode;
         Feedback.strong = coachMode;
         engine = new TimerEngine(wod, countdownSec != null ? countdownSec : propNumber("countdownSec", 10));
+        _zoneBounds = Perf.bounds();
         _alertHalf = propBool("alertHalf", false);
         _alertOneMin = propBool("alertOneMin", true);
         _capture = !coachMode && propBool("captureMode", false);
@@ -144,6 +149,7 @@ class WorkoutSession {
         hr = info.currentHeartRate as Number;
         if (engine.state != ST_WORK && engine.state != ST_REST) { return; }
         if (hr > hrMax) { hrMax = hr; }
+        zoneSec[Perf.zoneOf(hr, _zoneBounds)] += 1;
         _hrSum += hr;
         _hrCount++;
         _lapHrSum += hr;
@@ -191,6 +197,9 @@ class WorkoutSession {
                 Feedback.round();
             } else if (code == EV_TARGET_DONE) {
                 Feedback.block();
+                if (engine.wodType == WT_EMOM && engine.intervalMs() > 0) {
+                    intervalWorkMs.add(engine.activeMs(now()) % engine.intervalMs());
+                }
                 mvClose();
                 if (_counter != null) { (_counter as RepCounter).setProfile(null); }
             } else if (code == EV_DONE) {
@@ -347,7 +356,9 @@ class WorkoutSession {
             "t" => Time.now().value(),
             "laps" => roundTimes,
             "hr" => avgHr(),
-            "hrMax" => hrMax
+            "hrMax" => hrMax,
+            "trimp" => Perf.trimp(zoneSec),
+            "zones" => zoneSec
         };
     }
 
@@ -382,6 +393,7 @@ class WorkoutSession {
         if (!coach && result != null) {
             ScoreHistory.save(engine.wod, result as Dictionary);
             ScoreHistory.addTotals(engine.totalReps, engine.finalActiveMs(), movementStats);
+            Perf.addLoad(Perf.today(), Perf.trimp(zoneSec));
         }
     }
 

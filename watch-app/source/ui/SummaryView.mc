@@ -15,9 +15,10 @@ class SummaryView extends WatchUi.View {
         _s = session;
     }
 
+    // page 0: score, 1: analysis, 2+: splits
     function pageCount() as Number {
         var n = _s.laps.size();
-        return 1 + (n + SPLITS_PER_PAGE - 1) / SPLITS_PER_PAGE;
+        return 2 + (n + SPLITS_PER_PAGE - 1) / SPLITS_PER_PAGE;
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -29,6 +30,8 @@ class SummaryView extends WatchUi.View {
         dc.clear();
         if (page == 0) {
             drawOverview(dc, w, h, cx, center);
+        } else if (page == 1) {
+            drawAnalysis(dc, w, h, cx, center);
         } else {
             drawSplits(dc, w, h, cx, center);
         }
@@ -83,23 +86,99 @@ class SummaryView extends WatchUi.View {
             dc.drawText(cx, y, Graphics.FONT_TINY, lines[i], center);
             y += lh;
         }
-        // "8 splits" + a small down arrow: scroll for the per-round table
-        if (_s.laps.size() > 1) {
-            var ay = y - lh / 4;
-            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(cx - w * 3 / 100, ay, Graphics.FONT_XTINY, _s.laps.size().format("%d") + " splits", center);
-            var ax = cx + w * 13 / 100;
-            var s = w / 40;
-            dc.fillPolygon([[ax - s, ay - s / 2], [ax + s, ay - s / 2], [ax, ay + s]]);
+        // "Analysis" + a small down arrow: scroll for analysis and splits
+        var ay = y - lh / 4;
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx - w * 3 / 100, ay, Graphics.FONT_XTINY, "Analysis", center);
+        var ax = cx + w * 14 / 100;
+        var s = w / 40;
+        dc.fillPolygon([[ax - s, ay - s / 2], [ax + s, ay - s / 2], [ax, ay + s]]);
+    }
+
+    // HR zone bar + load, pacing, EMOM density, fitness trend vs last time.
+    private function drawAnalysis(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
+        var e = _s.engine;
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(cx, h * 13 / 100, Graphics.FONT_XTINY, "ANALYSIS", center);
+
+        // time in zones 1..5 as one stacked bar
+        var z = _s.zoneSec;
+        var total = z[1] + z[2] + z[3] + z[4] + z[5];
+        var x0 = w * 15 / 100;
+        var bw = w * 70 / 100;
+        var by = h * 21 / 100;
+        var bh = h * 5 / 100;
+        var lines = [] as Array<String>;
+        var colors = [] as Array<Number>;
+        if (total > 0) {
+            var zc = [Graphics.COLOR_LT_GRAY, Graphics.COLOR_BLUE, Graphics.COLOR_GREEN, Graphics.COLOR_ORANGE, Graphics.COLOR_RED];
+            var x = x0;
+            var top = 1;
+            for (var i = 1; i <= 5; i++) {
+                var seg = i == 5 ? x0 + bw - x : bw * z[i] / total;
+                dc.setColor(zc[i - 1] as Number, Graphics.COLOR_TRANSPARENT);
+                if (seg > 0) { dc.fillRectangle(x, by, seg, bh); }
+                x += seg;
+                if (z[i] > z[top]) { top = i; }
+            }
+            dc.setColor(Graphics.COLOR_YELLOW, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, h * 33 / 100, Graphics.FONT_TINY, "Load " + Perf.trimp(z).format("%d"), center);
+            lines.add("Mostly Z" + top.format("%d") + " (" + ((z[top] + 30) / 60).format("%d") + " min)");
+            colors.add(Graphics.COLOR_WHITE);
+        } else {
+            dc.drawText(cx, h * 30 / 100, Graphics.FONT_TINY, "No heart rate", center);
+        }
+
+        // pacing: round-to-round consistency and fade
+        var rt = _s.roundTimes;
+        if (rt.size() >= 2) {
+            var d = [] as Array<Number>;
+            for (var i = 0; i < rt.size(); i++) { d.add(rt[i] - (i > 0 ? rt[i - 1] : 0)); }
+            var cv = Perf.cvPct(d);
+            var fade = ScoreHistory.fadePct(rt);
+            // variation of round times (low = even pacing)
+            lines.add("Round var " + (cv == null ? 0 : cv as Number).format("%d") + "%");
+            colors.add(Graphics.COLOR_WHITE);
+            if (fade != null) {
+                // > 10 % slower on the last round: probably went out too fast
+                var f = fade as Number;
+                lines.add("Fade " + (f >= 0 ? "+" : "") + f.format("%d") + "%");
+                colors.add(f > 10 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE);
+            }
+        }
+
+        // EMOM: how much of each interval was work (high = little rest)
+        var dens = Perf.densityPct(_s.intervalWorkMs, e.intervalMs());
+        if (e.wodType == WT_EMOM && dens != null) {
+            lines.add("Work " + (dens as Number).format("%d") + "% / interval");
+            colors.add((dens as Number) > 85 ? Graphics.COLOR_ORANGE : Graphics.COLOR_WHITE);
+        }
+
+        // same WOD, same or better score, lower HR = fitter
+        if (_s.history != null && _s.result != null) {
+            var trend = Perf.cardiacTrend((_s.history as Dictionary)["last"] as Dictionary, _s.result as Dictionary);
+            if (trend != null) {
+                var t = trend as Number;
+                lines.add(t <= 0 ? "Fitter: " + t.format("%d") + " bpm vs last" : "HR +" + t.format("%d") + " bpm vs last");
+                colors.add(t <= 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_ORANGE);
+            }
+        }
+
+        var y = h * 44 / 100;
+        var lh = dc.getFontHeight(Graphics.FONT_TINY);
+        for (var i = 0; i < lines.size() && i < 4; i++) {
+            dc.setColor(colors[i], Graphics.COLOR_TRANSPARENT);
+            dc.drawText(cx, y, Graphics.FONT_TINY, lines[i], center);
+            y += lh;
         }
     }
 
     // "R3  1:02  12r  151" : lap, duration, reps, avg HR
     private function drawSplits(dc as Graphics.Dc, w as Number, h as Number, cx as Number, center as Number) as Void {
-        var first = (page - 1) * SPLITS_PER_PAGE;
+        var first = (page - 2) * SPLITS_PER_PAGE;
         var laps = _s.laps;
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, "Splits " + page.format("%d") + "/" + (pageCount() - 1).format("%d"), center);
+        dc.drawText(cx, h * 14 / 100, Graphics.FONT_XTINY, "Splits " + (page - 1).format("%d") + "/" + (pageCount() - 2).format("%d"), center);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
         var y = h * 28 / 100;
         var lh = dc.getFontHeight(Graphics.FONT_TINY);
