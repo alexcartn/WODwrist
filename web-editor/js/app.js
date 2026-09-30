@@ -66,6 +66,7 @@ function headline(w) {
 }
 
 function blockText(b) {
+  if (b.movement === "rest") return `Rest ${fmt(b.reps)} (timer)`;
   const unit = { m: " m", cal: " cal", sec: " s", reps: "" }[b.unit];
   const load = b.load ? ` @ ${b.load.join("/")} kg` : "";
   const n = b.repsAlt != null ? `${b.reps}/${b.repsAlt}` : `${b.reps}`;
@@ -484,7 +485,9 @@ async function importShots(files) {
   undo.hidden = true;
   $("shotBtn").disabled = true;
   const before = $("wodText").value;
-  let text = before === lastImported ? before : "";
+  const base = before === lastImported ? before : "";
+  let text = base;
+  const shots = []; // cleaned text of each screenshot, in reading order
   let worker = null;
   try {
     st.textContent = "Loading the text reader…";
@@ -504,7 +507,10 @@ async function importShots(files) {
       const r = await worker.recognize(f);
       const out = cleanOcr(r.data.text);
       if (!out.wods) empty++;
-      else text = mergeParts(text, out.text);
+      else {
+        shots.push(out.text);
+        text = mergeParts(text, out.text);
+      }
       cut = out.cut; // only the last screenshot can leave a part unfinished
     }
     if (text.trim() === "" || text === before) {
@@ -525,7 +531,18 @@ async function importShots(files) {
       lastImported = before === "" ? null : lastImported;
       render();
       undo.hidden = true;
+      $("shotFlip").hidden = true;
       st.textContent = "";
+    };
+    // phones do not always hand the files in the order they were taken
+    const flip = $("shotFlip");
+    flip.hidden = shots.length < 2;
+    flip.onclick = () => {
+      shots.reverse();
+      const t = shots.reduce((acc, x) => mergeParts(acc, x), base);
+      $("wodText").value = t;
+      lastImported = t;
+      render();
     };
   } catch (e) {
     st.textContent = e.message;
